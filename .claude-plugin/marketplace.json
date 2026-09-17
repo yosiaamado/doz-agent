@@ -1,0 +1,15 @@
+{
+  "name": "doz-agent",
+  "description": "Subagent dan skill Claude Code pribadi untuk engineering dan bisnis",
+  "owner": {
+    "name": "Yosia",
+    "email": "yosiaamado04@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "doz-agent",
+      "source": "./plugins",
+      "description": "6 subagent (QA, security, code review, backend, frontend, devops) + 5 skill (backend, frontend, devops patterns, analytical & business thinking)"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "doz-agent",
+  "version": "1.0.0",
+  "description": "6 subagent (QA, security, code review, backend, frontend, devops) + 5 skill (backend, frontend, devops patterns, analytical & business thinking)",
+  "author": {
+    "name": "Yosia",
+    "email": "yosiaamado04@gmail.com"
+  },
+  "keywords": ["agents", "skills", "backend", "frontend", "devops", "qa", "security"]
+}
