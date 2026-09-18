@@ -8,6 +8,7 @@ Kumpulan subagent + skill Claude Code pribadi. Upload sekali ke GitHub, lalu ins
 
 | Agent | Role | Bisa edit file? |
 |---|---|---|
+| `product-owner` | Analisis dampak fitur, user story INVEST + acceptance criteria, kontrak API, brief task untuk FE/BE/QA, dan accept/reject hasil | ❌ read-only |
 | `qa-tester` | Strategi test berbasis risiko, teknik desain test (BVA, decision table), laporan bug severity + priority | ✅ |
 | `security-tester` | Threat model STRIDE + audit OWASP Top 10:2025 / ASVS 5.0 | ❌ read-only |
 | `code-reviewer` | Review ala Google eng practices, komentar berlabel blocking/non-blocking | ❌ read-only |
@@ -19,6 +20,7 @@ Kumpulan subagent + skill Claude Code pribadi. Upload sekali ke GitHub, lalu ins
 
 | Skill | Isi |
 |---|---|
+| `product-ownership` | Kerangka kerja PO (Scrum Guide 2020): analisis dampak, INVEST, Given/When/Then, story splitting, DoR, pemecahan task FE/BE, penerimaan hasil |
 | `engineering-workflow` | Alur kerja tim: DoR/DoD, branching, Conventional Commits, PR, code review, ADR, SemVer, incident & postmortem |
 | `backend-patterns` | Aturan dasar backend (REST, RFC 9457, migration zero-downtime, OWASP, resiliency, OpenTelemetry) + aturan per bahasa di `references/` (.NET, dll.) |
 | `frontend-patterns` | Struktur, state, form, WCAG 2.2 AA, Core Web Vitals, CSP, testing trophy |
@@ -33,8 +35,8 @@ doz-agent/
 ├── .claude-plugin/marketplace.json
 └── plugins/
     ├── .claude-plugin/plugin.json
-    ├── agents/        # 6 subagent
-    └── skills/        # 6 skill (masing-masing <nama>/SKILL.md)
+    ├── agents/        # 7 subagent
+    └── skills/        # 7 skill (masing-masing <nama>/SKILL.md)
 ```
 
 ## Upload ke GitHub
