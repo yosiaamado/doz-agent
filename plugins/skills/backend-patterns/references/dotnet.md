@@ -73,6 +73,26 @@ tests/
 - `.Model` tidak me-reference project lain dan **tidak** bergantung pada EF Core. Isinya POCO murni.
 - **Tidak boleh ada reference terbalik** (misalnya `.Model` → `.Core`).
 
+### Setup solution (file di root)
+
+- **Target framework:** versi LTS terbaru (.NET 10), kecuali project sudah memakai versi lain.
+- **`Directory.Build.props`** berisi setting yang dipakai semua project:
+  ```xml
+  <Project>
+    <PropertyGroup>
+      <TargetFramework>net10.0</TargetFramework>
+      <Nullable>enable</Nullable>
+      <ImplicitUsings>enable</ImplicitUsings>
+      <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+      <AnalysisLevel>latest-recommended</AnalysisLevel>
+      <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    </PropertyGroup>
+  </Project>
+  ```
+- **`Directory.Packages.props`** mengaktifkan Central Package Management (`<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>`), supaya versi NuGet diatur di satu tempat.
+- **`.editorconfig`** berisi aturan gaya dan penamaan. Format dicek di CI dengan `dotnet format --verify-no-changes`.
+- **`global.json`** mengunci versi SDK supaya build sama di semua mesin dan CI.
+
 ## 3. Contoh kode
 
 ### Entity (`.Model/Entities`)
@@ -223,12 +243,28 @@ public static IServiceCollection AddCore(this IServiceCollection services, IConf
 
 // <App>.Api/Program.cs
 builder.Services.AddCore(builder.Configuration);
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+builder.Services.AddControllers();
+builder.Services.AddProblemDetails();                 // format error RFC 9457
+builder.Services.AddOpenApi();                        // dokumentasi kontrak API
+builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
+builder.Services.AddRateLimiter(/* policy untuk login/OTP & endpoint mahal */);
+// OpenTelemetry: tracing + metric ASP.NET Core, HttpClient, EF Core
+
+var app = builder.Build();
+app.UseMiddleware<ExceptionHandlingMiddleware>();     // paling awal di pipeline
+app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRateLimiter();
+app.MapControllers();
+app.MapHealthChecks("/health/live", new() { Predicate = _ => false });
+app.MapHealthChecks("/health/ready");
+app.Run();
 ```
 
 ### Middleware error (`.Api/Middlewares`)
 
-Satu tempat untuk memetakan exception ke HTTP status dengan response `ProblemDetails`:
+Satu tempat untuk memetakan exception ke HTTP status dengan response `ProblemDetails` (RFC 9457, `application/problem+json`). Response selalu menyertakan `traceId` (`Activity.Current?.Id ?? HttpContext.TraceIdentifier`) dan `code` error yang stabil. Error validasi menyertakan `errors` per field.
 
 | Exception | Status |
 |---|---|
@@ -267,13 +303,21 @@ Controller dan service **tidak** memakai try/catch hanya untuk mengubah exceptio
   - Satu class per file, dengan namespace mengikuti folder (file-scoped namespace).
 - **Logging** memakai `ILogger<T>` dengan structured template (`"Order {OrderId}"`), bukan string interpolation.
 - **Uang** memakai `decimal` dengan `HasPrecision(18, 2)`.
-- **Waktu** disimpan dalam UTC (`DateTime.UtcNow`, atau `DateTimeOffset`).
+- **Waktu** disimpan dalam UTC. Inject `TimeProvider` (jangan memanggil `DateTime.UtcNow` langsung di service) supaya waktu bisa di-mock di test.
+- **Concurrency:** entity yang bisa diubah bersamaan diberi token versi (`[Timestamp] byte[] RowVersion` / `IsRowVersion()`), dan `DbUpdateConcurrencyException` dipetakan ke 409.
+- **Pagination:** `pageSize` dibatasi (misalnya maksimal 100) dan divalidasi, supaya client tidak bisa meminta seluruh tabel.
+- **HttpClient** ke layanan eksternal lewat `IHttpClientFactory` (typed client) dengan timeout dan resilience handler (`AddStandardResilienceHandler()`). Jangan `new HttpClient()` per request.
+- **Versioning API** pakai `Asp.Versioning.Mvc` kalau butuh lebih dari satu versi aktif. Route tetap `/api/v{version}/...`.
+- **Authorization** memakai policy (`[Authorize(Policy = "...")]`), dan pengecekan kepemilikan resource dilakukan di service (filter berdasarkan `userId`/`tenantId` di query), bukan hanya di controller.
+- **Secret lokal** pakai `dotnet user-secrets`. `appsettings.json` hanya berisi nilai non-rahasia.
 
 ## 5. Testing
 
 - **`<App>.Core.Tests`:** unit test service dengan xUnit dan `AppDbContext` memakai SQLite in-memory (lebih mirip DB asli dibanding provider InMemory).
 - **`<App>.Api.Tests`:** integration test dengan `WebApplicationFactory<Program>` dan Testcontainers untuk DB asli.
 - Nama test: `MethodName_Kondisi_HasilYangDiharapkan`.
+- Assertion memakai assert bawaan xUnit atau Shouldly. Mock memakai NSubstitute/Moq, hanya untuk dependency eksternal (HTTP client, email, `TimeProvider`).
+- CI menjalankan `dotnet build -warnaserror`, `dotnet format --verify-no-changes`, `dotnet test`, dan `dotnet list package --vulnerable --include-transitive`.
 
 ## 6. Checklist fitur baru
 

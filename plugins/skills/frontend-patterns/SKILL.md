@@ -1,6 +1,6 @@
 ---
 name: frontend-patterns
-description: Aturan coding dan arsitektur frontend (struktur komponen, state management, data fetching, form, styling, aksesibilitas, performa, testing). Pakai saat menulis, mengubah, atau mendesain UI/komponen/halaman web, terutama React/Next.js/Vue, dan kalau project belum punya konvensi sendiri.
+description: Aturan coding dan arsitektur frontend profesional. Mencakup struktur, komponen & design system, state management, data fetching, form, aksesibilitas WCAG 2.2 AA, performa Core Web Vitals, keamanan (XSS/CSP), i18n, error monitoring, dan testing. Pakai saat menulis, mengubah, atau mendesain UI/komponen/halaman web (React/Next.js/Vue/Svelte).
 ---
 
 # Frontend Patterns
@@ -11,79 +11,133 @@ Konvensi di codebase yang ada **selalu menang**. Pakai aturan ini kalau project 
 
 ```
 src/
-├── app/ atau pages/        # routing
+├── app/ atau pages/        # routing (tipis: susun komponen fitur)
 ├── features/
 │   └── checkout/
 │       ├── components/     # komponen khusus fitur ini
 │       ├── hooks/          # useCheckout, dll.
 │       ├── api.ts          # pemanggilan API fitur ini
+│       ├── schemas.ts      # validasi (zod)
 │       └── types.ts
-├── components/ui/          # komponen generik (Button, Input, Modal)
+├── components/ui/          # komponen generik (Button, Input, Modal): design system
 ├── lib/                    # api client, util, config
-└── styles/
+└── styles/                 # design token, global CSS
 ```
 
-- Komponen generik tidak boleh bergantung pada fitur.
-- Satu komponen per file, nama file dan komponen PascalCase.
+- Arah dependency: `app` → `features` → `components/ui` / `lib`. Komponen generik tidak boleh bergantung pada fitur, dan satu fitur tidak boleh meng-import isi internal fitur lain.
+- Satu komponen per file, dengan nama PascalCase. Hook diawali `use`.
 
-## 2. Komponen
+## 2. Komponen & design system
 
-- Pisahkan logika (hook) dari tampilan (komponen).
-- Props diberi tipe eksplisit. Hindari prop drilling lebih dari 2 level (pakai composition atau context).
+- **Pakai design system/token** yang ada: warna, spacing, radius, tipografi, shadow. Jangan hardcode hex atau px acak.
+- Pisahkan logika (hook) dari tampilan (komponen presentational).
+- Props diberi tipe eksplisit, dengan API yang kecil dan konsisten. Hindari prop drilling lebih dari 2 level (pakai composition atau context).
 - Komponen di atas ±200 baris dipecah.
 - `key` di list pakai ID yang stabil, bukan index.
-- Tangani semua state: **loading (skeleton), empty, error (ada tombol retry), success.**
+- **Tangani semua state UI:** loading (skeleton), empty (ada ajakan aksi), error (pesan manusiawi + retry), success, dan disabled/submitting. Perhatikan juga teks panjang, data banyak, dan gambar yang gagal dimuat.
+- Kalau project memakai Storybook, dokumentasikan komponen UI generik di sana.
 
 ## 3. State management
 
-- **Server state** (data dari API) pakai TanStack Query / SWR / RTK Query. Jangan disalin ke global store.
-- **UI state lokal** pakai `useState`/`useReducer`.
-- **Global client state** (tema, sesi, keranjang) pakai Zustand/Context, dan secukupnya.
-- **URL state** (filter, pagination, tab) disimpan di query params supaya bisa di-share.
-- Nilai turunan dihitung, bukan disimpan di state.
+| Jenis state | Tempat |
+|---|---|
+| Server state (data API) | TanStack Query / SWR / RTK Query. **Jangan disalin ke global store** |
+| URL state (filter, page, tab) | Query params, supaya bisa di-share dan tombol back berfungsi |
+| Form state | Library form |
+| UI lokal | `useState` / `useReducer` |
+| Global client (tema, sesi, keranjang) | Zustand/Context, secukupnya |
+
+Nilai turunan dihitung, bukan disimpan di state. Satu sumber kebenaran untuk setiap data.
 
 ## 4. Data fetching
 
-- Satu API client terpusat (base URL, auth header, penanganan error, refresh token).
-- Tipe response dibuat dari skema (OpenAPI/zod) kalau tersedia.
-- Tangani 401 (arahkan ke login), 403, 404, dan 5xx secara konsisten.
-- Request pencarian di-debounce. Request yang sudah tidak relevan dibatalkan.
+- Satu **API client terpusat**: base URL, auth, timeout, parsing error RFC 9457, dan refresh token.
+- Tipe dibuat dari skema OpenAPI atau divalidasi dengan zod di boundary. Jangan percaya bentuk response begitu saja.
+- **Penanganan error:**
+  - 401: arahkan ke login.
+  - 403: tampilkan halaman "tidak berhak".
+  - 404: tampilkan halaman not found.
+  - 422: tampilkan error per field.
+  - 5xx: tampilkan pesan umum + retry.
+- Request pencarian di-debounce, dan request yang sudah tidak relevan dibatalkan (AbortController).
+- **Optimistic update** hanya untuk aksi yang jarang gagal, dan harus ada rollback kalau gagal.
+- Next.js/SSR: ambil data di server kalau memungkinkan. Jangan bocorkan data server-only ke client component.
 
 ## 5. Form
 
-- Pakai library form (React Hook Form + zod, atau yang setara).
-- Validasi di client untuk UX, tapi tetap anggap server sebagai sumber kebenaran.
-- Pesan error tampil di bawah field. Tombol submit di-disable saat submitting, supaya tidak double submit.
+- Pakai library form (React Hook Form + zod, atau yang setara). Schema validasi sebisa mungkin dipakai bersama dengan backend.
+- Validasi di client untuk UX, tapi **server tetap sumber kebenaran**. Tampilkan error dari server per field.
+- Label terlihat (bukan hanya placeholder), error di bawah field, dan fokus pindah ke field error pertama saat submit.
+- Tombol submit di-disable saat submitting (cegah double submit). Konfirmasi dulu untuk aksi destruktif.
+- Pakai tipe input dan `autocomplete` yang benar (`email`, `tel`, `one-time-code`, `current-password`).
 
-## 6. Styling
+## 6. Styling & responsif
 
-- Ikuti design token (warna, spacing, radius, font). Jangan hardcode hex acak.
-- Mobile-first, breakpoint konsisten, dan diuji mulai dari lebar 360px.
-- Dukung dark mode kalau design system-nya mendukung.
+- Mobile-first, breakpoint konsisten, diuji mulai dari lebar **360px**, tanpa scroll horizontal.
+- Pakai unit relatif untuk teks (`rem`) supaya mengikuti pengaturan zoom user.
+- Dukung dark mode dan `prefers-reduced-motion` kalau design system mendukung.
 
-## 7. Aksesibilitas
+## 7. Aksesibilitas (WCAG 2.2 level AA)
 
-- Pakai elemen semantik: `button` untuk aksi, `a` untuk navigasi, heading berurutan.
-- Setiap input punya `label`. Gambar punya `alt`. Icon button punya `aria-label`.
-- Semua bisa dioperasikan dengan keyboard, fokus terlihat, modal menjebak fokus dan bisa ditutup dengan Esc.
-- Kontras warna minimal 4.5:1 untuk teks.
+- **HTML semantik:** `button` untuk aksi, `a` untuk navigasi, heading berurutan, landmark (`header`, `nav`, `main`, `footer`), dan `lang` di `<html>`.
+- **Label & nama:** setiap input punya `label`, icon button punya `aria-label`, dan gambar punya `alt` (kosong `alt=""` untuk gambar dekoratif).
+- **Keyboard:** semua bisa dioperasikan dengan keyboard, urutan fokus logis, dan fokus terlihat serta **tidak tertutup** header sticky atau elemen lain.
+- **Modal/dialog:** fokus terjebak di dalam, bisa ditutup dengan Esc, dan fokus kembali ke pemicunya.
+- **Kontras:** teks minimal 4.5:1 (teks besar 3:1), komponen UI dan ikon minimal 3:1.
+- **Target sentuh** minimal 24×24px (disarankan 44×44px untuk mobile).
+- **Jangan mengandalkan warna saja** untuk menyampaikan informasi (error, status).
+- **Perubahan dinamis** (toast, error, hasil pencarian) diumumkan lewat `aria-live`.
+- Pakai ARIA hanya kalau HTML native tidak cukup. ARIA yang salah lebih buruk daripada tidak ada ARIA sama sekali.
+- Cek dengan axe/Lighthouse dan navigasi keyboard manual.
 
-## 8. Performa
+## 8. Performa (Core Web Vitals)
 
-- Route dan komponen berat di-lazy-load.
-- Gambar dioptimasi (format modern, ukuran pas, `loading="lazy"`), dengan dimensi tetap supaya tidak ada layout shift.
-- `memo`/`useMemo`/`useCallback` hanya dipakai kalau ada masalah re-render yang terukur.
-- List panjang di-virtualize.
-- Pantau Core Web Vitals (LCP < 2.5s, INP < 200ms, CLS < 0.1).
+Target di persentil ke-75 user:
+- **LCP** < 2.5s
+- **INP** < 200ms
+- **CLS** < 0.1
+
+Caranya:
+- Code splitting per route, dan lazy-load komponen berat (chart, editor, map).
+- **Gambar:** format modern (AVIF/WebP), `srcset`/ukuran pas, `width`/`height` atau `aspect-ratio`, `loading="lazy"` untuk gambar di bawah fold, dan prioritas tinggi untuk gambar LCP.
+- **Font:** `font-display: swap`, subset, dan preload untuk font utama.
+- **Performance budget:** perhatikan ukuran bundle JS. Cek dampak sebelum menambah dependency (bundlephobia).
+- Hindari pekerjaan berat di main thread. Pecah long task, dan debounce/throttle event handler.
+- `memo`/`useMemo`/`useCallback` hanya dipakai kalau ada masalah re-render yang **terukur**.
+- List panjang (> ±100 item) di-virtualize.
 
 ## 9. Keamanan
 
-- Jangan render HTML dari user tanpa sanitasi (DOMPurify).
-- Tidak ada secret di kode client. Env publik saja yang boleh (`NEXT_PUBLIC_*`, `VITE_*`).
-- Token sesi disimpan di cookie HttpOnly, bukan localStorage.
+- Jangan render HTML dari user tanpa sanitasi (DOMPurify). Hindari `dangerouslySetInnerHTML`/`v-html`.
+- **Tidak ada secret di kode client.** Semua yang ada di bundle bisa dibaca publik, jadi hanya env publik (`NEXT_PUBLIC_*`, `VITE_*`) yang boleh.
+- Token sesi disimpan di cookie `HttpOnly; Secure; SameSite`, bukan localStorage.
+- Terapkan **Content Security Policy** dan hindari inline script.
+- Validasi URL sebelum dipakai di `href`/redirect (cegah `javascript:` dan open redirect). Link eksternal diberi `rel="noopener noreferrer"`.
+- Authorization di UI hanya untuk kenyamanan. **Keamanan sebenarnya ada di server.**
 
-## 10. Testing
+## 10. i18n, analytics & privasi
 
-- Unit test untuk util dan hook.
-- Component test (Testing Library) yang menguji perilaku dari sudut pandang user, bukan detail implementasi.
-- E2E (Playwright) untuk alur kritis: login, checkout, dan form utama.
+- Semua teks yang dilihat user dipusatkan di file terjemahan kalau project multi-bahasa.
+- Format tanggal, angka, dan mata uang memakai `Intl` sesuai locale (misalnya `Rp 150.000`).
+- Event analytics diberi nama yang konsisten (`checkout_started`). Jangan kirim PII ke analytics, dan hormati consent sesuai UU PDP/GDPR.
+
+## 11. Error handling & monitoring
+
+- Pasang **error boundary** di level route/fitur supaya satu komponen yang error tidak membuat seluruh halaman putih.
+- Error dikirim ke monitoring (Sentry, dll.) beserta konteksnya (route, release, user ID yang aman), dan source map di-upload.
+- Pesan error untuk user harus manusiawi dan bisa ditindaklanjuti, bukan teks error teknis mentah.
+
+## 12. Testing
+
+Ikuti **testing trophy:** fokus terbesar di integration/component test.
+
+| Level | Tool | Untuk |
+|---|---|---|
+| Static | TypeScript, ESLint | Kesalahan tipe dan pola |
+| Unit | Vitest/Jest | Util, hook, logika murni |
+| Component/integration | Testing Library | Perilaku dari sudut pandang user: query berdasarkan role/label, bukan class/test-id |
+| E2E | Playwright | Alur kritis: login, checkout, form utama |
+| Visual/a11y | Playwright screenshot, axe | Regresi tampilan & aksesibilitas (kalau ada setup-nya) |
+
+- Mock API memakai MSW, bukan mock internal fungsi fetch.
+- Uji perilaku, bukan detail implementasi (state internal, nama class).

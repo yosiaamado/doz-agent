@@ -9,7 +9,7 @@
     {
       "name": "doz-agent",
       "source": "./plugins",
-      "description": "6 subagent (QA, security, code review, backend, frontend, devops) + 5 skill (backend, frontend, devops patterns, analytical & business thinking)"
+      "description": "6 subagent (QA, security, code review, backend, frontend, devops) + 6 skill (engineering workflow, backend/frontend/devops patterns, analytical & business thinking)"
     }
   ]
 }

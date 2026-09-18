@@ -8,22 +8,23 @@ Kumpulan subagent + skill Claude Code pribadi. Upload sekali ke GitHub, lalu ins
 
 | Agent | Role | Bisa edit file? |
 |---|---|---|
-| `qa-tester` | Menulis & menjalankan test, mencari edge case, melaporkan bug | ✅ |
-| `security-tester` | Audit kerentanan (injection, auth, IDOR, secret, dll.) | ❌ read-only |
-| `code-reviewer` | Review kode sebelum commit/merge | ❌ read-only |
-| `backend-engineer` | API, service, DB, migration, queue | ✅ |
-| `frontend-engineer` | UI, komponen, state, form, a11y | ✅ |
-| `devops-engineer` | Docker, CI/CD, deploy, infra, monitoring | ✅ |
+| `qa-tester` | Strategi test berbasis risiko, teknik desain test (BVA, decision table), laporan bug severity + priority | ✅ |
+| `security-tester` | Threat model STRIDE + audit OWASP Top 10:2025 / ASVS 5.0 | ❌ read-only |
+| `code-reviewer` | Review ala Google eng practices, komentar berlabel blocking/non-blocking | ❌ read-only |
+| `backend-engineer` | API, service, DB, migration, queue: requirement → desain → kode + test → verifikasi | ✅ |
+| `frontend-engineer` | UI, komponen, state, form, WCAG 2.2 AA, Core Web Vitals | ✅ |
+| `devops-engineer` | Docker, CI/CD, deploy, IaC, observability, SLO, dengan aturan keselamatan production | ✅ |
 
 **Skill** (`plugins/skills/`)
 
 | Skill | Isi |
 |---|---|
-| `backend-patterns` | Aturan dasar backend + aturan per bahasa di `references/` (.NET, dll.) |
-| `frontend-patterns` | Aturan coding & arsitektur frontend |
-| `devops-patterns` | Best practice Docker, CI/CD, deploy, infra |
-| `analytical-thinking` | Memecah masalah, root cause, membandingkan opsi |
-| `business-thinking` | Validasi ide, prioritas fitur, unit economics, KPI |
+| `engineering-workflow` | Alur kerja tim: DoR/DoD, branching, Conventional Commits, PR, code review, ADR, SemVer, incident & postmortem |
+| `backend-patterns` | Aturan dasar backend (REST, RFC 9457, migration zero-downtime, OWASP, resiliency, OpenTelemetry) + aturan per bahasa di `references/` (.NET, dll.) |
+| `frontend-patterns` | Struktur, state, form, WCAG 2.2 AA, Core Web Vitals, CSP, testing trophy |
+| `devops-patterns` | Docker, CI/CD + supply chain, deploy & rollback, K8s, Terraform, SLO, DR, metrik DORA |
+| `analytical-thinking` | MECE, hipotesis, root cause, estimasi Fermi, matriks keputusan, pre-mortem |
+| `business-thinking` | Validasi ide, PRD, RICE/WSJF, unit economics, pricing, OKR, A/B test, build vs buy, UU PDP |
 
 ## Struktur
 
@@ -33,7 +34,7 @@ doz-agent/
 └── plugins/
     ├── .claude-plugin/plugin.json
     ├── agents/        # 6 subagent
-    └── skills/        # 5 skill (masing-masing <nama>/SKILL.md)
+    └── skills/        # 6 skill (masing-masing <nama>/SKILL.md)
 ```
 
 ## Upload ke GitHub
@@ -75,7 +76,7 @@ suruh security-tester audit folder src/auth
 @agent-doz-agent:code-reviewer review perubahan gw
 ```
 
-`backend-engineer`, `frontend-engineer`, dan `devops-engineer` otomatis membawa skill pattern masing-masing.
+Semua agent engineer otomatis membawa skill pattern masing-masing + `engineering-workflow`. Setiap agent menutup laporannya dengan bagian **Handoff** yang menyarankan agent berikutnya (misalnya backend-engineer → qa-tester → security-tester → code-reviewer).
 
 ## Update
 
