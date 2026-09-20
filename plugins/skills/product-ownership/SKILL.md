@@ -1,161 +1,91 @@
 ---
 name: product-ownership
-description: Kerangka kerja Product Owner profesional (Scrum Guide 2020 + praktik industri). Mencakup Product Goal, analisis dampak fitur (user, bisnis, teknis, data, risiko), user story INVEST, acceptance criteria Given/When/Then, story splitting, Definition of Ready, prioritas & pengurutan backlog, penentuan agent yang dibutuhkan, serta penerimaan hasil (accept/reject). Pakai saat user mau mendiskusikan fitur baru, minta "impact-nya apa", "bikin user story", "acceptance criteria", "refinement", atau "scope MVP".
+description: Teknik Product Owner profesional (Scrum Guide 2020 + praktik industri) - dimensi analisis dampak, user story INVEST, acceptance criteria Given/When/Then, story splitting vertikal, Definition of Ready, prioritas backlog, dan penerimaan hasil. Pakai saat mendiskusikan fitur baru, minta "impact-nya apa", "bikin user story", "acceptance criteria", "refinement", atau "scope MVP". Ini referensi teknik; alur kerja dan format laporan diatur agent product-owner.
+effort: high
 ---
 
 # Product Ownership
 
-Product Owner (PO) **bertanggung jawab memaksimalkan nilai produk** dari pekerjaan tim. Caranya lewat pengelolaan Product Backlog yang efektif:
+PO **memaksimalkan nilai produk**: menetapkan Product Goal, membuat item backlog yang jelas, mengurutkannya, dan menjaganya transparan.
 
-1. Menetapkan dan mengomunikasikan **Product Goal**.
-2. Membuat dan mengomunikasikan item backlog dengan jelas.
-3. **Mengurutkan** item backlog.
-4. Memastikan backlog transparan, terlihat, dan dipahami tim.
+PO memutuskan **apa** dan **kenapa**. Tim engineering memutuskan **bagaimana**. PO tidak mendikte implementasi, tapi wajib memastikan requirement cukup jelas untuk dikerjakan tanpa menebak.
 
-PO memutuskan **apa** dan **kenapa**. Tim engineering memutuskan **bagaimana**. PO tidak mendikte implementasi, tapi wajib memastikan requirement cukup jelas untuk dikerjakan.
+## 1. Urutan berpikir
 
-## 1. Alur diskusi fitur
+1. **Masalahnya apa?** Siapa yang mengalami, seberapa sering, apa buktinya, dan apa yang terjadi kalau tidak dibangun?
+2. **Mendekatkan ke Product Goal?** Kalau tidak, katakan terus terang.
+3. **Kondisi sekarang.** Jangan berasumsi fitur belum ada — cek dulu.
+4. **Dampak** (bagian 2) → **scope** (MVP / nanti / non-goal) → **story + AC** (bagian 3–4).
 
-Saat user membawa ide fitur, jangan langsung menulis task. Jalankan urutan ini:
+## 2. Dimensi dampak
 
-1. **Pahami masalahnya.** Siapa yang mengalami, masalah apa, seberapa sering, dan apa buktinya? Apa yang terjadi kalau fitur ini tidak dibangun?
-2. **Cek terhadap Product Goal.** Apakah fitur ini mendekatkan produk ke tujuannya? Kalau tidak, katakan terus terang.
-3. **Pelajari kondisi sekarang.** Baca `CLAUDE.md`, struktur project, model data, endpoint, dan halaman yang terkait. Jangan berasumsi fitur belum ada.
-4. **Analisis dampak** (bagian 2).
-5. **Ajukan pertanyaan terbuka** yang keputusannya ada di tangan user (aturan bisnis, siapa yang boleh akses, batasan). Beri rekomendasi untuk setiap pertanyaan supaya user tinggal setuju atau menolak.
-6. **Tentukan scope:** MVP (Must) vs nanti (Should/Could) vs tidak dikerjakan (Won't / non-goal).
-7. **Tulis user story + acceptance criteria** (bagian 3–4).
-8. **Tentukan agent yang dibutuhkan** (bagian 6), lalu cek Definition of Ready (bagian 5).
-
-## 2. Analisis dampak
-
-Isi setiap dimensi. Tulis "tidak ada" kalau memang tidak berdampak, jangan dilewati.
+Periksa semua, **tulis hanya yang terdampak**:
 
 | Dimensi | Pertanyaan |
 |---|---|
-| **User** | Segmen/role mana yang terdampak? Alur apa yang berubah? Ada user yang dirugikan? |
-| **Bisnis** | Metrik apa yang diharapkan naik (dan berapa)? Guardrail apa yang tidak boleh turun? Pengaruh ke pendapatan/biaya? |
-| **Frontend** | Halaman, komponen, state, dan routing mana yang berubah atau baru? |
-| **Backend** | Endpoint, service, job, dan integrasi mana yang berubah atau baru? Ada breaking change ke klien lain? |
-| **Data** | Tabel/kolom baru? Migration? Data lama perlu diisi ulang (backfill)? |
-| **Keamanan & privasi** | Menyentuh auth, role, data pribadi (UU PDP), payment, atau upload? |
-| **Operasional** | Perlu config/env baru, feature flag, monitoring, atau perubahan deploy? |
-| **Dependensi** | Bergantung pada fitur lain, pihak ketiga, atau keputusan yang belum diambil? |
+| **User** | Role mana yang terdampak? Alur apa yang berubah? Ada yang dirugikan? |
+| **Bisnis** | Metrik apa yang diharapkan naik? Guardrail apa yang tidak boleh turun? |
+| **Frontend** | Halaman, komponen, state, routing mana yang berubah? |
+| **Backend** | Endpoint, service, job, integrasi mana yang berubah? Breaking change ke klien lain? |
+| **Data** | Tabel/kolom baru? Migration? Data lama perlu backfill? |
+| **Keamanan & privasi** | Auth, role, data pribadi (UU PDP), payment, upload? |
+| **Operasional** | Config/env baru, feature flag, monitoring, perubahan deploy? |
+| **Dependensi** | Bergantung fitur lain, pihak ketiga, atau keputusan yang belum diambil? |
 
-Tutup dengan **tingkat risiko** (rendah/sedang/tinggi) dan **estimasi ukuran kasar** (S/M/L/XL) beserta alasannya.
+Tutup dengan **risiko** (rendah/sedang/tinggi) dan **ukuran kasar** (S/M/L/XL).
 
-## 3. User story
+## 3. User story (INVEST)
 
-Format: **Sebagai** <role spesifik>, **saya ingin** <kemampuan>, **supaya** <manfaat/nilai>.
+**Sebagai** <role spesifik>, **saya ingin** <kemampuan>, **supaya** <manfaat>.
 
-Setiap story harus memenuhi **INVEST**:
-
-- **Independent:** bisa dikerjakan dan dirilis tanpa menunggu story lain sebisa mungkin.
-- **Negotiable:** menjelaskan kebutuhan, bukan spesifikasi implementasi.
-- **Valuable:** memberi nilai yang terlihat ke user atau bisnis.
-- **Estimable:** cukup jelas untuk diestimasi.
-- **Small:** selesai dalam satu sprint (idealnya 1–3 hari kerja).
-- **Testable:** ada kriteria jelas kapan dianggap selesai.
+- **I**ndependent — bisa dirilis tanpa menunggu story lain.
+- **N**egotiable — menjelaskan kebutuhan, bukan implementasi.
+- **V**aluable — nilainya terlihat oleh user atau bisnis.
+- **E**stimable — cukup jelas untuk diestimasi.
+- **S**mall — selesai 1–3 hari kerja.
+- **T**estable — jelas kapan dianggap selesai.
 
 ## 4. Acceptance criteria
-
-Pakai format **Given / When / Then**, satu skenario per perilaku:
 
 ```
 Skenario: <nama>
 Given <kondisi awal>
-When <aksi user/sistem>
+When <aksi>
 Then <hasil yang bisa diamati>
 ```
 
-Wajib mencakup:
+Wajib mencakup: happy path · validasi gagal (kosong, format salah, batas maksimum) · hak akses (401, 403, data milik orang lain) · empty state, 404, error server · aturan bisnis spesifik.
 
-- Happy path.
-- Validasi gagal (input kosong, format salah, batas maksimum).
-- Hak akses: tidak login (401), role tidak berhak (403), data milik orang lain.
-- Data kosong (empty state), tidak ditemukan (404), dan error jaringan/server.
-- Aturan bisnis spesifik (batas jumlah, status yang boleh berpindah, dll.).
-
-Hindari kriteria yang tidak bisa diuji seperti "cepat" atau "user friendly". Ubah jadi terukur, misalnya "hasil tampil < 1 detik untuk 1.000 produk".
+Hindari kriteria yang tidak bisa diuji ("cepat", "user friendly"). Ubah jadi terukur: "hasil tampil < 1 detik untuk 1.000 produk".
 
 ## 5. Definition of Ready
 
-Story siap dikerjakan kalau:
-
-- [ ] Masalah dan nilai jelas, terkait Product Goal.
-- [ ] Acceptance criteria lengkap dan bisa diuji.
-- [ ] Desain UI/alur ada, atau cukup dijelaskan dengan teks.
+- [ ] Masalah dan nilainya jelas, terkait Product Goal.
+- [ ] AC lengkap dan bisa diuji.
+- [ ] Desain UI/alur ada, atau cukup dijelaskan teks.
 - [ ] Kontrak API disepakati (untuk fitur FE + BE).
-- [ ] Dependensi dan pertanyaan terbuka sudah terjawab.
-- [ ] Ukuran cukup kecil. Kalau tidak, pecah dulu (bagian 7).
+- [ ] Dependensi dan pertanyaan terbuka sudah terjawab **atau punya default yang dipakai**.
+- [ ] Ukurannya kecil. Kalau tidak, pecah (bagian 6).
 
-## 6. Serah terima ke tim teknis
+## 6. Story splitting
 
-PO tidak menulis kontrak API atau peta file. Itu tugas `system-analyst`, yang menghasilkan satu file spec (`docs/specs/<slug>.md`) sebagai acuan bersama FE dan BE supaya keduanya bisa dikerjakan paralel.
-
-Yang diserahkan PO: user story, acceptance criteria, scope, asumsi, dan **rencana agent** (agent mana yang dibutuhkan):
-
-| Kondisi | Agent |
-|---|---|
-| Desain teknis besar: ≥3 endpoint, migration/perubahan skema, atau domain rumit | `system-analyst` (sebelum engineer). Untuk 1–2 endpoint dengan pola jelas, kontrak cukup ditulis thread utama |
-| Ada perubahan server/API/DB | `backend-engineer` |
-| Ada perubahan UI | `frontend-engineer` |
-| Ada env/config/CI/deploy baru | `devops-engineer` |
-| Ada logika baru atau acceptance criteria | `qa-tester` |
-| Menyentuh auth/role/input ke DB/upload/payment/data pribadi/webhook/secret | `security-tester` |
-| Selalu setelah ada perubahan kode | `code-reviewer` |
-
-## 7. Story splitting
-
-Kalau story terlalu besar, pecah secara **vertikal** (tiap potongan tetap memberi nilai end-to-end), bukan per lapisan teknis. Pola:
+Pecah **vertikal** — tiap potongan tetap bernilai end-to-end, bukan per lapisan teknis:
 
 - **Alur kerja:** langkah minimal dulu, variasi belakangan.
-- **Aturan bisnis:** aturan paling umum dulu, pengecualian belakangan.
-- **Variasi data/input:** satu jenis dulu (misalnya satu metode bayar).
-- **Operasi CRUD:** buat + lihat dulu, ubah + hapus belakangan.
-- **Happy path dulu,** penanganan edge case sebagai story terpisah kalau besar.
-- **Spike:** kalau ada ketidakpastian teknis, buat story riset berbatas waktu dulu.
+- **Aturan bisnis:** aturan umum dulu, pengecualian belakangan.
+- **Variasi data:** satu jenis dulu (misalnya satu metode bayar).
+- **CRUD:** buat + lihat dulu, ubah + hapus belakangan.
+- **Happy path dulu,** edge case jadi story terpisah kalau besar.
+- **Spike:** ketidakpastian teknis → story riset berbatas waktu dulu.
 
-## 8. Prioritas & pengurutan
+## 7. Prioritas
 
-- Urutkan berdasarkan nilai, risiko, dependensi, dan biaya. Pakai RICE/WSJF/MoSCoW dari skill `business-thinking` kalau perlu membandingkan beberapa item.
-- Kerjakan item berisiko tinggi atau yang paling tidak pasti lebih awal supaya cepat belajar.
+- Urutkan berdasarkan nilai, risiko, dependensi, dan biaya. RICE/WSJF/MoSCoW ada di skill `business-thinking` kalau perlu membandingkan beberapa item.
+- Kerjakan yang paling berisiko atau paling tidak pasti lebih awal supaya cepat belajar.
 - Setiap item yang masuk berarti ada yang tidak dikerjakan. Sebutkan trade-off-nya.
 
-## 9. Penerimaan hasil
+## 8. Penerimaan hasil
 
-Setelah fitur selesai dikerjakan:
-
-- Cek setiap acceptance criteria satu per satu: **lolos / gagal / belum bisa dicek**.
-- Keputusan: **Accept**, **Accept dengan catatan** (sisa kecil jadi item backlog baru), atau **Reject** (sebutkan kriteria yang gagal).
-- Catat metrik yang harus dipantau setelah rilis dan kapan dievaluasi.
-
-## 10. Format keluaran
-
-```
-## Ringkasan fitur
-<masalah, untuk siapa, nilai yang diharapkan>
-
-## Analisis dampak
-<tabel bagian 2 + risiko + estimasi ukuran>
-
-## Pertanyaan terbuka
-1. <pertanyaan> — Rekomendasi: <jawaban yang disarankan + alasan>
-
-## Scope
-- MVP: ...
-- Nanti: ...
-- Non-goal: ...
-
-## User story & acceptance criteria
-<story + skenario Given/When/Then>
-
-## Metrik sukses
-<metrik utama + target + guardrail>
-
-## Rencana agent
-<agent yang dibutuhkan (bagian 6), urutan & mana yang paralel>
-
-## Definition of Ready
-<checklist bagian 5 — mana yang belum terpenuhi>
-```
+- Cek tiap AC satu per satu: **lolos / gagal / belum bisa dicek**.
+- Keputusan: **Accept** · **Accept dengan catatan** (sisa kecil jadi backlog) · **Reject** (sebutkan kriteria yang gagal).
+- Catat metrik yang dipantau setelah rilis dan kapan dievaluasi.

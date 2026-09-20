@@ -17,6 +17,8 @@ Kenali bahasa project dari file yang ada, lalu baca file yang cocok **sebelum me
 |---|---|
 | `*.sln`, `*.slnx`, `*.csproj`, `Program.cs` | [references/dotnet.md](references/dotnet.md) |
 
+Ada juga [references/runtime.md](references/runtime.md) (caching, background job, observability) yang dibaca **berdasarkan kebutuhan**, bukan berdasarkan bahasa.
+
 Kalau bahasanya belum punya file referensi, pakai aturan dasar ini dan ikuti idiom umum bahasa tersebut.
 
 ## 1. Arsitektur
@@ -141,37 +143,15 @@ Semua error dikembalikan dengan format standar `application/problem+json`:
 - **Graceful shutdown:** saat menerima SIGTERM, berhenti menerima request dan selesaikan yang sedang berjalan.
 - **Konsistensi DB ↔ event:** kalau perubahan DB harus diikuti publish event, pakai **transactional outbox**, bukan publish di tengah transaksi.
 
-## 8. Caching
+## 8. Caching, async job & observability
 
-- Pola cache-aside: baca cache → kalau miss, baca DB → tulis ke cache dengan TTL.
-- Invalidasi saat data berubah. Key punya namespace dan versi (`v1:order:123`).
-- Jangan menaruh data per-user atau per-tenant di key global.
-- Waspadai **cache stampede:** pakai lock atau TTL dengan jitter.
-- Cache hanya dipakai untuk masalah performa yang terukur, bukan dipasang di mana-mana.
+Baca [references/runtime.md](references/runtime.md) **kalau** pekerjaanmu menyentuh cache, queue/background job, atau logging/metric/tracing. Aturan minimum yang berlaku selalu:
 
-## 9. Async & background job
+- **Log terstruktur (JSON)** dengan `traceId`. **Jangan log** password, token, OTP, atau PII.
+- Job dan operasi yang bisa di-retry harus **idempotent**.
+- Cache hanya untuk masalah performa yang **terukur**, bukan dipasang di mana-mana.
 
-- Pekerjaan lambat atau yang tidak perlu ditunggu user (email, laporan, webhook keluar) dikirim ke queue.
-- Job harus **idempotent**, punya retry dengan backoff, dead-letter queue, dan batas waktu.
-- Message membawa ID unik supaya consumer bisa men-deduplikasi.
-- Job terjadwal (cron) harus aman kalau berjalan dobel. Pakai lock terdistribusi kalau perlu.
-
-## 10. Observability
-
-- **Log terstruktur (JSON)** yang berisi `timestamp`, `level`, `message`, `traceId`, `userId`/`tenantId` (kalau aman), dan `durationMs`.
-- **Level log:**
-  - `error`: butuh tindakan
-  - `warn`: anomali yang ditangani
-  - `info`: event bisnis penting
-  - `debug`: hanya untuk development
-- **Jangan log** password, token, nomor kartu, OTP, atau PII yang tidak perlu. Mask kalau memang harus dicatat.
-- **Tracing & metric** pakai OpenTelemetry. Metric RED per endpoint: rate, errors, duration (p50/p95/p99).
-- **Health check:**
-  - `/health/live`: proses hidup.
-  - `/health/ready`: DB/cache/dependency siap. Dipakai load balancer.
-- `traceId` diteruskan ke layanan lain dan dikembalikan di response error.
-
-## 11. Testing
+## 9. Testing
 
 - **Unit test:** business logic di service. Dependency eksternal di-mock seperlunya.
 - **Integration test:** endpoint + DB sungguhan (Testcontainers atau DB test). Ini yang paling berharga untuk backend.
@@ -180,7 +160,7 @@ Semua error dikembalikan dengan format standar `application/problem+json`:
 - Setiap bug fix disertai regression test.
 - Test harus independen dan deterministik: data di-seed per test, dan waktu memakai clock yang bisa di-mock.
 
-## 12. Kualitas kode
+## 10. Kualitas kode
 
 - Fungsi kecil dengan satu tanggung jawab. Early return, hindari nesting yang dalam.
 - Nama deskriptif sesuai bahasa domain bisnis, tanpa singkatan yang tidak umum.
@@ -189,3 +169,13 @@ Semua error dikembalikan dengan format standar `application/problem+json`:
 - Linter + formatter + analyzer dijalankan di CI, dan warning ditangani.
 - Komentar menjelaskan **kenapa**, bukan **apa**. Dokumentasikan API publik dan keputusan yang tidak jelas.
 - Mengikuti prinsip YAGNI: jangan membuat abstraksi untuk kebutuhan yang belum ada.
+
+### SOLID (secukupnya)
+
+- **SRP** — satu class punya satu alasan untuk berubah. Service yang menangani order, email, dan laporan sekaligus dipecah.
+- **OCP** — aturan yang terus bertambah (metode bayar, jenis diskon, provider) diperluas lewat strategy/handler yang didaftarkan, bukan dengan `if`/`switch` yang tumbuh tiap ada kasus baru.
+- **LSP** — implementasi tidak mempersempit kontrak interface-nya: tidak melempar "not supported", dan tidak mengubah makna return value.
+- **ISP** — interface kecil sesuai kebutuhan pemanggil. Lebih baik `IOrderReader` + `IOrderWriter` daripada satu `IOrderRepository` berisi 20 method yang cuma dipakai sebagian.
+- **DIP** — service bergantung pada abstraksi (`IPaymentGateway`, `IClock`), bukan pada `DbContext`/HTTP client/`DateTime.UtcNow` secara langsung. Ini yang membuat business logic bisa di-test tanpa infrastruktur.
+
+**Rem YAGNI — ini yang membedakan SOLID dari over-engineering:** buat abstraksi baru hanya kalau **sudah ada ≥2 implementasi nyata**, atau abstraksi itu memang dibutuhkan untuk test. Satu implementasi + satu interface "buat jaga-jaga" adalah biaya tanpa manfaat. Refactor ke SOLID saat kebutuhan keduanya muncul, bukan sebelumnya.

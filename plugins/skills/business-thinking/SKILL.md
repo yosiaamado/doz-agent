@@ -1,7 +1,7 @@
 ---
 name: business-thinking
 description: Kerangka berpikir bisnis dan produk profesional. Mencakup discovery & validasi ide, PRD/one-pager, prioritas fitur (RICE, WSJF), model bisnis & unit economics, pricing, metrik (North Star, OKR, AARRR), eksperimen/A-B test, build vs buy, pasar & kompetisi, dan kepatuhan (UU PDP). Pakai saat user membahas ide bisnis/startup, fitur mana yang dibangun duluan, MVP, monetisasi, target pasar, go-to-market, roadmap, atau "apakah ini worth it".
-model: opus
+effort: high
 ---
 
 # Business Thinking

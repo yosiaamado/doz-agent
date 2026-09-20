@@ -8,13 +8,13 @@ Kumpulan subagent + skill Claude Code pribadi. Upload sekali ke GitHub, lalu ins
 
 | Agent | Role | Bisa edit file? |
 |---|---|---|
-| `product-owner` | Analisis dampak fitur, scope, user story INVEST + acceptance criteria, rencana agent yang dibutuhkan, dan accept/reject hasil | ❌ read-only |
+| `product-owner` | **Sekali jalan:** analisis dampak, scope, user story INVEST + acceptance criteria, keputusan + default, rencana agent, dan accept/reject hasil | ❌ read-only |
 | `system-analyst` | Kontrak API, model data, peta file BE/FE di satu file spec (`docs/specs/<slug>.md`). **Opsional** — hanya untuk desain besar (≥3 endpoint, migration, domain rumit) | 📝 hanya file spec |
 | `qa-tester` | Strategi test berbasis risiko, teknik desain test (BVA, decision table), laporan bug severity + priority | ✅ |
 | `security-tester` | Threat model STRIDE + audit OWASP Top 10:2025 / ASVS 5.0 | ❌ read-only |
 | `code-reviewer` | Review ala Google eng practices, komentar berlabel blocking/non-blocking | ❌ read-only |
-| `backend-engineer` | API, service, DB, migration, queue: requirement → desain → kode + test → verifikasi | ✅ |
-| `frontend-engineer` | UI, komponen, state, form, WCAG 2.2 AA, Core Web Vitals | ✅ |
+| `backend-engineer` | API, service, DB, migration, queue: requirement → desain → kode + test → verifikasi. 🧠 punya memory peta alur kode | ✅ |
+| `frontend-engineer` | UI, komponen, state, form, WCAG 2.2 AA, Core Web Vitals. 🧠 punya memory peta komponen | ✅ |
 | `devops-engineer` | Docker, CI/CD, deploy, IaC, observability, SLO, dengan aturan keselamatan production | ✅ |
 
 **Skill** (`plugins/skills/`)
@@ -65,19 +65,54 @@ Cukup satu perintah, atau tulis biasa "kerjain fitur X sampai selesai":
 
 Mau diskusi dulu tanpa implementasi? Pakai `/doz-agent:product-ownership <ide>` (bolak-balik di chat utama), lalu lanjutkan dengan `ship-feature`.
 
+## Memory: agent yang ingat alur kode
+
+`backend-engineer` dan `frontend-engineer` pakai `memory: project`, jadi mereka menyimpan **peta alur kode per project** di `.claude/agent-memory/<agent>/` (ikut git, bisa di-review di PR).
+
+```
+.claude/agent-memory/backend-engineer/
+├── MEMORY.md     # router tipis, maks 60 baris: konvensi repo + 1 baris per modul
+└── orders.md     # detail per modul, maks 15 baris
+```
+
+**Kapan ditulis:** setelah build/test hijau, sebelum menulis laporan — jadi yang tersimpan sudah terbukti benar, bukan tebakan.
+
+**Kapan dibaca:** paling awal, sebelum eksplorasi apa pun. Agent memverifikasi satu anchor (grep satu nama simbol dari catatan); kalau tidak cocok, catatannya diabaikan, dicari ulang, lalu diperbarui. **Kode selalu menang atas memory.**
+
+Isinya nama simbol + path + jebakan, **bukan nomor baris** (paling cepat basi) dan bukan potongan kode. Tiap catatan menyimpan commit SHA, jadi basi bisa dicek dengan `git log --oneline <sha>..HEAD -- <path>`.
+
+Fitur pertama di satu area belum ada hematnya — untungnya mulai terasa dari sentuhan kedua.
+
 ## Hemat token
 
-- Model: `security-tester` pakai Opus; agent lain pakai Sonnet.
-- Setiap agent punya bagian **Hemat token**: mulai dari file spec/brief (tidak menjelajahi ulang), BE dan FE tidak saling membaca kode, scope verifikasi = diff, test terkait saja selama iterasi, output test disaring, dan laporan padat.
-- Skill pattern hanya di-preload ke engineer yang memakainya; skill lain dimuat lewat tool `Skill` saat dibutuhkan.
-- `ship-feature` tidak memanggil agent untuk perubahan kecil, `system-analyst` hanya untuk desain besar, dan `security-tester` hanya jalan kalau perubahan menyentuh area sensitif.
+**Model & effort:** peran yang menentukan kualitas seluruh rantai pakai Opus, peran eksekusi pakai Sonnet.
+
+| Agent | Model | Effort | maxTurns |
+|---|---|---|---|
+| `product-owner` | opus | high | 15 |
+| `system-analyst` | opus | high | 25 |
+| `code-reviewer` | opus | high | 25 |
+| `security-tester` | opus | high | 30 |
+| `backend-engineer`, `frontend-engineer` | sonnet | medium | 50 |
+| `qa-tester`, `devops-engineer` | sonnet | medium | 40 |
+
+Alasannya: kontrak API yang salah bikin rework 2 agent — jauh lebih mahal dari selisih model. `maxTurns` mencegah agent menjelajah tanpa henti, dan tiap agent punya aturan **"buntu setelah ~15 pencarian → berhenti dan lapor"**.
+
+**Yang paling menghemat, urut dari yang terbesar:**
+
+1. **Peta file di brief.** Engineer cuma boleh menyentuh file yang disebut di situ (+ maks 3 file konteks). Ini yang memotong eksplorasi dari nol — biaya terbesar di seluruh alur.
+2. **Memory peta kode** di BE/FE, buat area yang pernah disentuh.
+3. **Tidak memanggil agent untuk hal yang bisa dikerjakan thread utama.** `ship-feature` menulis kontrak sendiri untuk 1–2 endpoint, dan mengerjakan perubahan Kecil tanpa agent sama sekali.
+4. **PO sekali jalan.** Maksimal 3 pertanyaan, semuanya punya default, jadi tidak ada panggilan kedua.
+5. **Skill dimuat kondisional.** `references/dotnet.md` cuma kalau menulis C#; `references/runtime.md` cuma kalau menyentuh cache/queue/observability; agent verifikasi memuat skill pattern cuma kalau diff menyentuh stack itu.
+6. **Laporan dibatasi** (engineer 200 kata, QA/devops 250) dan `prompt-cache 1 jam` aktif di semua agent.
 
 **Kebiasaan di sisi user yang paling berpengaruh:**
 
 1. **Satu fitur, satu session.** Seluruh isi chat dikirim ulang tiap giliran, jadi session panjang membuat setiap langkah makin mahal. Kalau terpaksa panjang, jalankan `/compact`.
-2. **`CLAUDE.md` di tiap folder kerja** (BE dan FE terpisah). Jalankan `/init` sekali di masing-masing; setelah itu semua agent berhenti menebak stack dan perintah build/test.
-3. **Pecah fitur besar jadi potongan vertikal** yang tetap bernilai. Dua alur ringan lebih murah daripada satu rantai penuh yang panjang.
-4. **Lewati product-owner kalau requirement sudah jelas di kepalamu.** PO berguna saat masih kabur, bukan formalitas.
+2. **`CLAUDE.md` di tiap folder kerja** (BE dan FE terpisah). Jalankan `/init` sekali di masing-masing.
+3. **Pecah fitur besar jadi potongan vertikal** yang tetap bernilai.
+4. **Lewati product-owner kalau requirement sudah jelas di kepalamu.**
 5. **Jangan ulang rantai penuh untuk perbaikan kecil.** Cukup agent yang menemukan masalahnya yang mengecek ulang.
 
 ## Upload ke GitHub
@@ -131,8 +166,8 @@ Edit file, lalu commit & push. Di mesin yang sudah install, jalankan:
 
 ## Nambah agent / skill baru
 
-- Agent: buat `plugins/agents/<nama>.md` (frontmatter: `name`, `description`, `tools`, `model`)
-- Skill: buat `plugins/skills/<nama>/SKILL.md` (frontmatter: `name`, `description`)
+- Agent: buat `plugins/agents/<nama>.md` (frontmatter: `name`, `description`, `tools`, `model`, `effort`, `maxTurns`, `color`, opsional `skills`, `memory`, `experimental.cacheTtl`)
+- Skill: buat `plugins/skills/<nama>/SKILL.md` (frontmatter: `name`, `description`, opsional `effort`, `model`, `argument-hint`)
 - Aturan backend untuk bahasa baru (misalnya Go, Node): buat `plugins/skills/backend-patterns/references/<bahasa>.md`, lalu tambahkan barisnya di tabel "Aturan per bahasa" di `backend-patterns/SKILL.md`
 - Naikkan `version` di `plugin.json`, lalu push.
 

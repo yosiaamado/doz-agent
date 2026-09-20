@@ -37,6 +37,14 @@ src/
 - **Tangani semua state UI:** loading (skeleton), empty (ada ajakan aksi), error (pesan manusiawi + retry), success, dan disabled/submitting. Perhatikan juga teks panjang, data banyak, dan gambar yang gagal dimuat.
 - Kalau project memakai Storybook, dokumentasikan komponen UI generik di sana.
 
+### Clean code & SOLID untuk komponen
+
+- **Satu tanggung jawab per komponen.** Komponen yang mengambil data, mengatur form, dan menggambar tabel sekaligus dipecah: container (data) + presentational (tampilan).
+- **Logika di hook, tampilan di komponen.** Komponen yang isinya penuh `useEffect` dan transformasi data berarti hook-nya belum dipisah. Hook juga yang membuat logikanya bisa di-test tanpa render.
+- **Props kecil dan spesifik.** Jangan mengoper seluruh objek hanya karena butuh dua field. Varian dibuat lewat composition (`<Card><Card.Footer/></Card>`), bukan tumpukan prop boolean (`isCompact`, `isInline`, `isBordered`).
+- **Bergantung ke abstraksi, bukan detail.** Komponen memanggil `wishlistApi.list()`, bukan `fetch()` langsung. Ganti endpoint atau tambah header cukup di satu tempat.
+- **Rem YAGNI:** komponen "generik" dibuat setelah ada **≥2 pemakaian nyata**. Sebelum itu, komponen khusus fitur lebih murah dan lebih mudah diubah.
+
 ## 3. State management
 
 | Jenis state | Tempat |
