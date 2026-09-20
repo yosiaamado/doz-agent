@@ -1,6 +1,6 @@
 ---
 name: product-ownership
-description: Kerangka kerja Product Owner profesional (Scrum Guide 2020 + praktik industri). Mencakup Product Goal, analisis dampak fitur (user, bisnis, teknis, data, risiko), user story INVEST, acceptance criteria Given/When/Then, story splitting, Definition of Ready, prioritas & pengurutan backlog, pemecahan task ke frontend/backend dengan kontrak API di depan, serta penerimaan hasil (accept/reject). Pakai saat user mau mendiskusikan fitur baru, minta "impact-nya apa", "breakdown task", "bikin user story", "acceptance criteria", "refinement", "scope MVP", atau mau membagi kerjaan ke agent FE dan BE.
+description: Kerangka kerja Product Owner profesional (Scrum Guide 2020 + praktik industri). Mencakup Product Goal, analisis dampak fitur (user, bisnis, teknis, data, risiko), user story INVEST, acceptance criteria Given/When/Then, story splitting, Definition of Ready, prioritas & pengurutan backlog, penentuan agent yang dibutuhkan, serta penerimaan hasil (accept/reject). Pakai saat user mau mendiskusikan fitur baru, minta "impact-nya apa", "bikin user story", "acceptance criteria", "refinement", atau "scope MVP".
 ---
 
 # Product Ownership
@@ -25,7 +25,7 @@ Saat user membawa ide fitur, jangan langsung menulis task. Jalankan urutan ini:
 5. **Ajukan pertanyaan terbuka** yang keputusannya ada di tangan user (aturan bisnis, siapa yang boleh akses, batasan). Beri rekomendasi untuk setiap pertanyaan supaya user tinggal setuju atau menolak.
 6. **Tentukan scope:** MVP (Must) vs nanti (Should/Could) vs tidak dikerjakan (Won't / non-goal).
 7. **Tulis user story + acceptance criteria** (bagian 3–4).
-8. **Pecah jadi task FE/BE** (bagian 6), lalu cek Definition of Ready (bagian 5).
+8. **Tentukan agent yang dibutuhkan** (bagian 6), lalu cek Definition of Ready (bagian 5).
 
 ## 2. Analisis dampak
 
@@ -89,39 +89,21 @@ Story siap dikerjakan kalau:
 - [ ] Dependensi dan pertanyaan terbuka sudah terjawab.
 - [ ] Ukuran cukup kecil. Kalau tidak, pecah dulu (bagian 7).
 
-## 6. Pemecahan task ke frontend & backend
+## 6. Serah terima ke tim teknis
 
-Aturan:
+PO tidak menulis kontrak API atau peta file. Itu tugas `system-analyst`, yang menghasilkan satu file spec (`docs/specs/<slug>.md`) sebagai acuan bersama FE dan BE supaya keduanya bisa dikerjakan paralel.
 
-- **Kontrak API di depan.** Tulis method, path, request, response, error, dan authorization sebelum FE/BE mulai. Dengan kontrak ini FE bisa jalan paralel dengan mock.
-- **Urutan umum:** BE (skema + API) → FE (integrasi). Kalau kontrak sudah fix, FE boleh mulai paralel pakai data mock.
-- Setiap task punya: tujuan, file/area yang kemungkinan disentuh, acceptance criteria yang relevan, dan dependensi.
-- Task harus bisa diserahkan ke agent tanpa konteks tambahan. Tulis brief-nya lengkap.
+Yang diserahkan PO: user story, acceptance criteria, scope, asumsi, dan **rencana agent** (agent mana yang dibutuhkan):
 
-Format brief per task:
-
-```
-### [BE-1] <judul>
-Agent: backend-engineer
-Tujuan: <1-2 kalimat>
-Konteks: <project, stack, file/area terkait>
-Kontrak API: <method, path, request, response, error, auth>
-Perubahan data: <tabel/kolom/migration>
-Acceptance criteria: <daftar skenario yang harus lolos>
-Dependensi: <task lain / tidak ada>
-Di luar scope: <yang tidak boleh dikerjakan>
-```
-
-Agent tersedia untuk eksekusi:
-
-| Agent | Tugas |
+| Kondisi | Agent |
 |---|---|
-| `backend-engineer` | API, service, DB, migration |
-| `frontend-engineer` | UI, komponen, state, integrasi API |
-| `devops-engineer` | Config/env, CI/CD, deploy, infra |
-| `qa-tester` | Test berdasarkan acceptance criteria |
-| `security-tester` | Audit kalau menyentuh auth/input/data pribadi/payment |
-| `code-reviewer` | Review sebelum commit/merge |
+| Desain teknis besar: ≥3 endpoint, migration/perubahan skema, atau domain rumit | `system-analyst` (sebelum engineer). Untuk 1–2 endpoint dengan pola jelas, kontrak cukup ditulis thread utama |
+| Ada perubahan server/API/DB | `backend-engineer` |
+| Ada perubahan UI | `frontend-engineer` |
+| Ada env/config/CI/deploy baru | `devops-engineer` |
+| Ada logika baru atau acceptance criteria | `qa-tester` |
+| Menyentuh auth/role/input ke DB/upload/payment/data pribadi/webhook/secret | `security-tester` |
+| Selalu setelah ada perubahan kode | `code-reviewer` |
 
 ## 7. Story splitting
 
@@ -171,11 +153,8 @@ Setelah fitur selesai dikerjakan:
 ## Metrik sukses
 <metrik utama + target + guardrail>
 
-## Kontrak API
-| Method | Path | Request | Response | Error | Auth |
-
-## Rencana task
-<brief per task (bagian 6), urutan & mana yang bisa paralel>
+## Rencana agent
+<agent yang dibutuhkan (bagian 6), urutan & mana yang paralel>
 
 ## Definition of Ready
 <checklist bagian 5 — mana yang belum terpenuhi>
