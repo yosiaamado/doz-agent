@@ -1,7 +1,7 @@
 ---
 name: analytical-thinking
 description: Kerangka berpikir analitis untuk memecah masalah kompleks, debugging sistematis, root cause analysis, estimasi, membandingkan opsi/trade-off, dan mengambil keputusan berbasis bukti (termasuk pre-mortem dan ADR). Pakai saat user minta "analisis", "kenapa ini terjadi", "bandingkan opsi", "mana yang lebih baik", "estimasi", saat bug sulit dilacak, atau saat keputusan teknis punya banyak faktor.
-model: opus
+effort: high
 ---
 
 # Analytical Thinking
