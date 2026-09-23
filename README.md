@@ -183,7 +183,7 @@ Marketplace cukup ditambahkan sekali per mesin. Kalau repo-nya private, pastikan
 /doz-agent:business-thinking
 ```
 
-**Agent** dipanggil otomatis kalau konteksnya cocok, atau disebut langsung:
+**Agent** dipanggil otomatis kalau konteksnya cocok, kecuali agent verifikasi (`code-reviewer`, `qa-tester`, `security-tester`): mereka tidak dipanggil otomatis setelah kode berubah, supaya perubahan kecil tidak memicu verifikasi yang mahal. Panggil langsung, atau lewat `ship-feature`:
 
 ```
 pakai agent qa-tester buat test fitur checkout

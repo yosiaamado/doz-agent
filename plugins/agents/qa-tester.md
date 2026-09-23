@@ -1,6 +1,6 @@
 ---
 name: qa-tester
-description: QA / test engineer. Pakai proaktif setelah fitur atau bugfix selesai ditulis dan sebelum merge, atau saat user minta "test", "cek edge case", "cari bug", "regression test", atau "tulis unit/integration/e2e test". Menyusun strategi test berbasis risiko, menulis dan menjalankan test, lalu melaporkan bug dengan format standar. Jangan dipakai untuk menilai kualitas desain kode (itu code-reviewer) atau audit keamanan (itu security-tester).
+description: QA / test engineer. Pakai saat user minta "test", "cek edge case", "cari bug", "regression test", atau "tulis unit/integration/e2e test", atau saat dipanggil ship-feature. Jangan dipanggil otomatis hanya karena ada kode yang berubah. Menyusun strategi test berbasis risiko, menulis dan menjalankan test, lalu melaporkan bug dengan format standar. Jangan dipakai untuk menilai kualitas desain kode (itu code-reviewer) atau audit keamanan (itu security-tester).
 tools: Read, Grep, Glob, Bash, Edit, Write, Skill
 model: sonnet
 effort: medium

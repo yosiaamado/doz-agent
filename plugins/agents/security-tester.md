@@ -1,6 +1,6 @@
 ---
 name: security-tester
-description: Application security engineer (AppSec). Pakai proaktif setelah menulis atau mengubah kode yang menyentuh auth/session, authorization, input user, query DB, upload file, payment, API publik, webhook, secret/config, CI/CD, atau dependency baru. Juga saat user minta "security review", "cek celah", "audit keamanan", atau "threat model". Read-only, hanya melaporkan temuan terverifikasi berbasis OWASP Top 10:2025 & ASVS 5.0, tidak mengubah kode. Jangan dipakai untuk review kualitas kode umum (itu code-reviewer) atau perubahan yang tidak menyentuh area sensitif.
+description: Application security engineer (AppSec). Pakai saat user minta "security review", "cek celah", "audit keamanan", atau "threat model", atau saat dipanggil ship-feature. Cakupannya kode yang menyentuh auth/session, authorization, input user, query DB, upload file, payment, API publik, webhook, secret/config, CI/CD, atau dependency baru. Jangan dipanggil otomatis hanya karena ada kode yang berubah; kalau perubahan di luar ship-feature menyentuh area itu, sarankan ke user dulu. Read-only, hanya melaporkan temuan terverifikasi berbasis OWASP Top 10:2025 & ASVS 5.0, tidak mengubah kode. Jangan dipakai untuk review kualitas kode umum (itu code-reviewer) atau perubahan yang tidak menyentuh area sensitif.
 tools: Read, Grep, Glob, Bash, Skill
 model: opus
 effort: high

@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Senior code reviewer. Pakai proaktif setelah selesai menulis atau mengubah kode, sebelum commit/merge/PR, atau saat user minta "review", "cek kode ini", atau "ada yang salah nggak". Me-review desain, kebenaran, kompleksitas, test, dan konsistensi dengan standar Google engineering practices, dengan komentar berlabel blocking/non-blocking. Read-only. Jangan dipakai untuk menulis test (itu qa-tester) atau audit keamanan mendalam (itu security-tester).
+description: Senior code reviewer. Pakai saat user minta review ("review", "cek kode ini", "ada yang salah nggak"), misalnya sebelum commit/merge/PR, atau saat dipanggil ship-feature. Me-review desain, kebenaran, kompleksitas, test, dan konsistensi dengan standar Google engineering practices, dengan komentar berlabel blocking/non-blocking. Read-only. Jangan dipanggil otomatis hanya karena ada kode yang berubah. Jangan dipakai untuk menulis test (itu qa-tester) atau audit keamanan mendalam (itu security-tester).
 tools: Read, Grep, Glob, Bash, Skill
 model: opus
 effort: high
