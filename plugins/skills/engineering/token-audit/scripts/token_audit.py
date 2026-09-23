@@ -139,7 +139,10 @@ class Stream:
         self.ts = {}           # message.id -> timestamp
         self.events = []       # (turn_idx, kind, data)
         self.final_text = ""
+        self.user_msgs = []    # (turn_idx berikutnya, teks) untuk pesan user biasa, bukan tool_result
         self._build(entries)
+        self.runs = [(0, len(self.order))]  # (turn awal, turn akhir) per run; >1 kalau agent dilanjutkan
+        self.resumes = []      # pesan SendMessage yang melanjutkan agent ini
 
     def _build(self, entries):
         tool_uses = {}
@@ -172,15 +175,19 @@ class Stream:
             elif t == "user":
                 content = msg.get("content")
                 turn = len(self.order) - 1
+                has_result = False
                 if isinstance(content, list):
                     for b in content:
                         if isinstance(b, dict) and b.get("type") == "tool_result":
+                            has_result = True
                             name, inp = tool_uses.get(b.get("tool_use_id"), ("?", {}))
                             body = text_of(b.get("content"))
                             err = bool(b.get("is_error")) or bool(re.match(r"\s*(Error: )?Exit code [1-9]", body))
                             snippet = body if len(body) <= 6000 else body[:3000] + "\n" + body[-3000:]
                             self.events.append((turn, "tool_result", (name, inp, tok(b.get("content")), e, err, snippet if err else "")))
                 txt = text_of(content)
+                if txt.strip() and not has_result:
+                    self.user_msgs.append((len(self.order), txt))
                 if txt.startswith("Base directory for this skill"):
                     m = re.search(r"skills?/(?:[^/\s]+/)*([^/\s]+)\s", txt)
                     self.events.append((turn, "skill", (m.group(1) if m else "skill", tok(txt))))
@@ -189,9 +196,12 @@ class Stream:
     def turns(self):
         return len(self.order)
 
-    def totals(self):
+    def totals(self, start=0, end=None):
         t = Counter()
-        for u in self.usage.values():
+        for mid in dict.fromkeys(self.order[start:end]):
+            u = self.usage.get(mid)
+            if not u:
+                continue
             t["input"] += u.get("input_tokens", 0) or 0
             t["output"] += u.get("output_tokens", 0) or 0
             t["cache_read"] += u.get("cache_read_input_tokens", 0) or 0
@@ -206,12 +216,30 @@ class Stream:
             t["cache_write"] += total_w
         return t
 
-    def cost(self):
+    def split_runs(self, prompts):
+        """Pecah stream per run: run pertama + satu run per pesan SendMessage yang melanjutkan agent ini."""
+        self.resumes = list(prompts)
+        starts, pos = [0], 0
+        for p in prompts:
+            head = (p or "").strip()[:60]
+            hit = next(((i, turn) for i, (turn, txt) in enumerate(self.user_msgs)
+                        if i >= pos and turn > starts[-1] and head and head in txt), None)
+            if not hit:
+                return  # pesan lanjutan tidak ketemu di transcript: tetap dihitung satu run
+            pos = hit[0] + 1
+            starts.append(hit[1])
+        self.runs = list(zip(starts, starts[1:] + [len(self.order)]))
+
+    def text_in(self, start, end):
+        """Teks assistant terakhir di rentang turn [start, end), yaitu laporan akhir satu run."""
+        return next((d[0] for turn, kind, d in reversed(self.events) if kind == "text" and start <= turn < end), "")
+
+    def cost(self, start=0, end=None):
         p = price_for(self.model)
         if not p:
             return None
         pin, pout, pread = p
-        t = self.totals()
+        t = self.totals(start, end)
         return (t["input"] * pin + t["output"] * pout + t["cache_read"] * pread
                 + t["cache_write_5m"] * pin * 1.25 + t["cache_write_1h"] * pin * 2.0) / 1e6
 
@@ -283,28 +311,69 @@ def find_subagent_entries(transcript, all_entries, call):
     return None
 
 
+NOTIFICATION = re.compile(r"<task-notification>(.*?)</task-notification>", re.S)
+
+
+def notifications_in(obj):
+    """Isi setiap <task-notification> di satu entri transcript (user message atau attachment)."""
+    if isinstance(obj, str):
+        return NOTIFICATION.findall(obj) if "<task-notification>" in obj else []
+    if isinstance(obj, dict):
+        return [n for v in obj.values() for n in notifications_in(v)]
+    if isinstance(obj, list):
+        return [n for v in obj for n in notifications_in(v)]
+    return []
+
+
 def collect_calls(main_entries):
-    calls = []
-    by_id = {}
+    """Panggilan Agent plus run lanjutan lewat SendMessage, urut waktu.
+
+    Agent background hanya mengembalikan "Async agent launched" di tool_result. Laporannya
+    datang belakangan lewat <task-notification>, begitu juga laporan run lanjutan.
+    """
+    calls, by_id, by_agent, by_name, seen = [], {}, {}, {}, set()
     for e in main_entries:
         msg = e.get("message") or {}
         if e.get("type") == "assistant":
             for b in msg.get("content") or []:
-                if isinstance(b, dict) and b.get("type") == "tool_use" and b.get("name") in AGENT_TOOLS:
-                    inp = b.get("input") or {}
+                if not (isinstance(b, dict) and b.get("type") == "tool_use"):
+                    continue
+                inp = b.get("input") or {}
+                if b.get("name") in AGENT_TOOLS:
                     c = {"id": b.get("id"), "type": str(inp.get("subagent_type") or "general-purpose").split(":")[-1],
-                         "prompt": inp.get("prompt", ""), "agent_id": None, "result": None}
+                         "prompt": inp.get("prompt", ""), "agent_id": None, "result": None, "report": None}
                     calls.append(c)
                     by_id[c["id"]] = c
-        elif e.get("type") == "user" and isinstance(msg.get("content"), list):
+                    if inp.get("name"):
+                        by_name[inp["name"]] = c
+                elif b.get("name") == "SendMessage":
+                    to = re.sub(r"\s*\[[^\]]*\]$", "", str(inp.get("to", ""))).strip()
+                    root = by_name.get(to) or by_agent.get(to)
+                    if root:
+                        calls.append({"id": b.get("id"), "type": root["type"], "prompt": inp.get("message", ""),
+                                      "agent_id": root["agent_id"], "result": None, "report": None, "resume_of": root})
+            continue
+        if e.get("type") == "user" and isinstance(msg.get("content"), list):
             for b in msg["content"]:
                 if isinstance(b, dict) and b.get("type") == "tool_result" and b.get("tool_use_id") in by_id:
                     c = by_id[b["tool_use_id"]]
-                    c["report"] = text_of(b.get("content"))
                     r = e.get("toolUseResult")
                     if isinstance(r, dict):
                         c["agent_id"] = r.get("agentId") or c["agent_id"]
                         c["result"] = r
+                    if c["agent_id"]:
+                        by_agent[c["agent_id"]] = c
+                    if not (isinstance(r, dict) and r.get("status") == "async_launched"):
+                        c["report"] = text_of(b.get("content"))
+        for note in notifications_in(e):
+            tid = re.search(r"<task-id>\s*([^<\s]+)\s*</task-id>", note)
+            if not tid or note in seen:
+                continue
+            seen.add(note)
+            res = re.search(r"<result>(.*?)</result>", note, re.S)
+            c = next((c for c in calls if c["agent_id"] == tid.group(1) and c["report"] is None), None)
+            if c:
+                c["report"] = res.group(1).strip() if res else ""
     return calls
 
 
@@ -417,8 +486,10 @@ def analyse(stream, agent_type, is_main):
 
     if not is_main:
         mt = max_turns_of(agent_type)
-        if mt and stream.turns >= 0.8 * mt:
-            add("Hampir kehabisan turn", 0.0, f"{stream.turns}/{mt} turn",
+        # maxTurns berlaku per run. Kalau run lanjutan tidak bisa dipisah, jangan menebak.
+        turns = max(b - a for a, b in stream.runs)
+        if mt and len(stream.runs) == 1 + len(stream.resumes) and turns >= 0.8 * mt:
+            add("Hampir kehabisan turn", 0.0, f"{turns}/{mt} turn",
                 "Scope terlalu luas untuk satu panggilan. Pecah pekerjaannya atau perjelas brief.")
         w1h = stream.totals()["cache_write_1h"]
         times = [stream.ts[m] for m in stream.order if stream.ts.get(m)]
@@ -557,12 +628,20 @@ def analyse_failures(call_infos):
         agent = c["type"]
         seen_calls[agent] += 1
         n = seen_calls[agent]
-        report = c.get("report") or (stream.final_text if stream else "")
+        report = c.get("report") or (stream.text_in(*stream.runs[0]) if stream else "")
         if agent in ENGINEERS:
             m = STATUS.search("\n".join(report.strip().splitlines()[:3]))
-            fix = "mode perbaikan" in (c.get("prompt") or "").lower()
-            f["status"][agent].append((m.group(1).lower() if m else None, fix))
-            if n > 1 and not fix:
+            prev = f["status"][agent][-1][0] if f["status"][agent] else None
+            # Dipanggil lagi setelah `done` tanpa Mode perbaikan = laporan dikembalikan orkestrator.
+            # Setelah needs-decision/blocked/too-big/partial = lanjutan pekerjaan, bukan kegagalan.
+            if "mode perbaikan" in (c.get("prompt") or "").lower():
+                label = "perbaikan"
+            elif n > 1:
+                label = "dikembalikan" if prev == "done" else "lanjutan"
+            else:
+                label = ""
+            f["status"][agent].append((m.group(1).lower() if m else None, label))
+            if label == "dikembalikan":
                 f["returned"][agent] += 1
         if agent in VERIFIERS:
             m = VERDICT.search("\n".join(report.strip().splitlines()[:3]))
@@ -591,8 +670,8 @@ def render_failures(f):
     lines = []
     for agent, sts in f["status"].items():
         parts = []
-        for st, fix in sts:
-            parts.append((st or "⚠ tanpa baris Status") + (" (perbaikan)" if fix else ""))
+        for st, label in sts:
+            parts.append((st or "⚠ tanpa baris Status") + (f" ({label})" if label else ""))
         lines.append(f"- **{agent}**: " + " → ".join(parts))
     for agent, vs in f["verdict"].items():
         parts = [f"{v or '⚠ tanpa keputusan'} ({nb} blocking, {nn} lain)" for v, nb, nn in vs]
@@ -720,23 +799,50 @@ def main():
     grouped = defaultdict(list)
     missing = []
     call_infos = []
+    by_root = {}  # id panggilan asal -> [stream, run lanjutan]
     for c in collect_calls(scoped):
+        root = c.get("resume_of")
+        if root:
+            # Token run lanjutan sudah ada di transcript panggilan asal. Pesan ke agent yang masih
+            # jalan, atau run yang belum selesai (tanpa notifikasi), tidak dihitung sebagai run.
+            if c["report"] is not None:
+                call_infos.append((c, None))
+                by_root.setdefault(root["id"], [None, []])[1].append(c)
+            continue
         ents = find_subagent_entries(transcript, entries, c)
         stream = Stream(c["type"], ents) if ents else None
+        by_root.setdefault(c["id"], [None, []])[0] = stream
         call_infos.append((c, stream))
         if stream:
             grouped[c["type"]].append(stream)
         else:
             missing.append(c)
+    for stream, resumed in by_root.values():
+        if stream and resumed:
+            stream.split_runs([r["prompt"] for r in resumed])
+            for k, r in enumerate(resumed, 1):
+                if not r["report"] and len(stream.runs) > k:
+                    r["report"] = stream.text_in(*stream.runs[k])
     fails = analyse_failures(call_infos)
     for agent_type, streams in grouped.items():
         for s in streams:
             gaps += analyse(s, agent_type, False)
-        if len(streams) > 1:
-            gaps.append({"agent": agent_type, "rule": "Dipanggil berulang", "usd": sum(s.cost() or 0 for s in streams[1:]),
-                         "detail": f"{len(streams)} panggilan (putaran perbaikan/verifikasi ulang)",
+        # Panggilan baru ke agent yang sama, ditambah run lanjutan yang berupa perbaikan atau verifikasi
+        # ulang. Lanjutan setelah needs-decision/blocked/too-big adalah sisa pekerjaan, bukan pengulangan.
+        resumed = sum(len(s.resumes) for s in streams)
+        repeats, usd = len(streams) - 1, sum(s.cost() or 0 for s in streams[1:])
+        for s in streams:
+            split = len(s.runs) == 1 + len(s.resumes)
+            for k, prompt in enumerate(s.resumes, 1):
+                if agent_type in VERIFIERS or "mode perbaikan" in (prompt or "").lower():
+                    repeats += 1
+                    usd += (s.cost(*s.runs[k]) or 0) if split else 0
+        if repeats:
+            via = f", {resumed} dilanjutkan lewat SendMessage" if resumed else ""
+            gaps.append({"agent": agent_type, "rule": "Dipanggil berulang", "usd": usd,
+                         "detail": f"{len(streams) + resumed} panggilan{via} (putaran perbaikan/verifikasi ulang)",
                          "saran": "Lihat temuan yang memicu putaran ulang. Kalau polanya berulang, tambahkan ke checklist self-review engineer."})
-        rows.append((agent_type, streams, len(streams)))
+        rows.append((agent_type, streams, len(streams) + resumed))
 
     # Tabel per agent
     table = []
