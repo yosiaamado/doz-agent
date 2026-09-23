@@ -1,6 +1,6 @@
 ---
 name: token-audit
-description: Audit token dan kegagalan satu workflow Claude Code dari transcript session — token dan perkiraan biaya per agent, gap terbesar (file besar dibaca utuh, output command panjang, eksplorasi panjang, cache miss, narasi, laporan panjang, putaran perbaikan), kegagalan agent (status blocked/tanpa status, temuan blocking per kategori, test/build gagal, temuan muncul lagi), pola kegagalan berulang lintas workflow, dan saran perbaikan per file agent. Dipanggil otomatis di akhir ship-feature. Pakai juga saat user bilang "token audit", "berapa token yang kepake", "kenapa boros", "agent mana yang paling mahal", atau memanggil /token-audit.
+description: Audit token dan kegagalan satu workflow Claude Code dari transcript session — token dan perkiraan biaya per agent, gap terbesar (file besar dibaca utuh, output command panjang, eksplorasi panjang, cache miss, narasi, laporan panjang, putaran perbaikan), kegagalan agent (status blocked/tanpa status, temuan blocking per kategori, test/build gagal, temuan muncul lagi), pola kegagalan berulang lintas workflow, dan saran perbaikan per file agent. Dipanggil otomatis di akhir ship-feature ukuran Sedang/Besar. Pakai juga saat user bilang "token audit", "berapa token yang kepake", "kenapa boros", "agent mana yang paling mahal", atau memanggil /token-audit.
 argument-hint: "[--workflow NAMA | --all | --since ISO-TIME | --transcript PATH | --compare]"
 ---
 
