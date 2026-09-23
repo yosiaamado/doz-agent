@@ -176,8 +176,10 @@ class Stream:
                     for b in content:
                         if isinstance(b, dict) and b.get("type") == "tool_result":
                             name, inp = tool_uses.get(b.get("tool_use_id"), ("?", {}))
-                            err = bool(b.get("is_error")) or bool(re.match(r"\s*(Error: )?Exit code [1-9]", text_of(b.get("content"))))
-                            self.events.append((turn, "tool_result", (name, inp, tok(b.get("content")), e, err)))
+                            body = text_of(b.get("content"))
+                            err = bool(b.get("is_error")) or bool(re.match(r"\s*(Error: )?Exit code [1-9]", body))
+                            snippet = body if len(body) <= 6000 else body[:3000] + "\n" + body[-3000:]
+                            self.events.append((turn, "tool_result", (name, inp, tok(b.get("content")), e, err, snippet if err else "")))
                 txt = text_of(content)
                 if txt.startswith("Base directory for this skill"):
                     m = re.search(r"skills?/(?:[^/\s]+/)*([^/\s]+)\s", txt)
@@ -445,32 +447,56 @@ STATUS = re.compile(r"^\W*Status:\s*\**\s*(done|blocked|needs-decision|too-big)"
 VERDICT = re.compile(r"^\W*(Keputusan|Rekomendasi):\s*(.+)$", re.I | re.M)
 
 # (kategori, kata kunci, saran). Urutan menentukan: kecocokan pertama menang.
+# Saran selalu berupa aturan proses umum untuk agent, bukan perbaikan error project tertentu.
 CATEGORIES = [
     ("loop/data korup", ["infinite", "loop", "rekursi", "recursion", "siklus", "cycle", "korup", "corrupt", "orphan"],
-     "Perjelas aturan traversal data di checklist self-review (batas kedalaman / visited set) dan catat contohnya di Jebakan modul."),
+     "Jadikan wajib di self-review: setiap loop/rekursi atas data tersimpan punya batas atau visited set, plus satu test dengan data korup (siklus/orphan)."),
     ("test lama", ["test lama", "existing test", "test yang ada", "test yang sudah ada", "pasti gagal", "failing test", "snapshot", "regresi", "regression"],
-     "Self-review 'Test lama' belum efektif: suite penuh harus benar-benar dijalankan, dan test yang memakai simbol yang diubah di-grep sebelum melapor."),
+     "Sebelum edit, grep test yang memakai simbol yang akan diubah dan catat di rencana; setelah edit, suite penuh wajib hijau sebelum melapor."),
     ("null/no-op", ["null", "no-op", "noop", "diam-diam", "silent", "tidak berfungsi", "tidak berefek", "undefined", "dikosongkan", "reset"],
-     "Tambahkan contoh konkret aksi 'mengosongkan' dari project ini ke `Pelajaran review` dan checklist self-review."),
+     "Untuk setiap field yang bisa diubah, wajib ada test varian 'mengosongkan' (null / hapus / reset) sebelum implementasi dianggap selesai."),
     ("authorization/IDOR", ["idor", "authoriz", "otorisasi", "milik user lain", "role", "permission", "401", "403"],
-     "Tulis aturan akses per resource (siapa boleh apa) di spec, dan jadikan item eksplisit di self-review."),
+     "Setiap endpoint baru wajib punya test akses resource milik user lain (IDOR) dan role salah, bukan hanya 401."),
     ("security", ["injection", "xss", "csrf", "secret", "ssrf", "token", "password", "hash"],
-     "Pastikan security-tester dipanggil untuk area ini dan tambahkan aturan spesifik stack ke skill pattern."),
+     "Area sensitif harus selalu memicu security-tester di ship-feature; tambahkan aturan pencegahannya ke skill pattern stack terkait."),
     ("transaksi/concurrency", ["race", "concurren", "transaksi", "transaction", "atomic", "idempoten", "deadlock", "lock"],
-     "Tulis keputusan transaksi/idempotency di bagian Keputusan spec supaya engineer tidak menebak."),
+     "Desain singkat engineer wajib menyebut batas transaksi dan idempotency untuk setiap operasi tulis multi-langkah."),
     ("validasi", ["validasi", "validation", "sanitiz", "sanitasi", "input"],
-     "Tulis aturan validasi per field di Kontrak API spec."),
+     "Validasi di boundary wajib diturunkan dari kontrak per field, dengan satu test negatif per aturan."),
     ("kontrak", ["kontrak", "contract", "spec", "status code", "response", "field", "tipe", "type mismatch"],
-     "Lengkapi contoh request/response/error di spec; ketidaksesuaian kontrak jangan diputuskan engineer sendiri."),
+     "Engineer wajib membandingkan response nyata dengan contoh di kontrak (path, field, status, error) sebelum melapor."),
     ("state UI", ["loading", "empty", "error state", "disabled", "double submit", "state ui", "retry"],
-     "Masukkan daftar state UI wajib ke AC/Peta file frontend."),
+     "Laporan frontend wajib menyebut bukti tiap state UI (loading/empty/error/disabled), bukan hanya daftar yang 'ditangani'."),
     ("aksesibilitas", ["aksesibilitas", "a11y", "aria", "keyboard", "fokus", "focus", "label", "kontras"],
-     "Tambahkan cek a11y spesifik (label, fokus, keyboard) ke checklist self-review frontend."),
+     "Self-review frontend wajib mengecek label, urutan fokus, dan navigasi keyboard untuk setiap komponen interaktif baru."),
     ("performa", ["n+1", "index", "performa", "performance", "lambat", "slow", "query dalam loop"],
-     "Tambahkan aturan N+1/index/I-O dalam loop ke checklist self-review backend."),
+     "Self-review backend wajib mengecek query/I-O di dalam loop dan index untuk kolom filter baru."),
 ]
 CAT_SARAN = {c: s for c, _, s in CATEGORIES}
-CAT_SARAN["lain"] = "Baca baris temuannya di findings.csv; kalau polanya jelas, tambahkan aturan ke checklist self-review atau kategori baru di script."
+CAT_SARAN["lain"] = "Belum terkategori: baca teks temuannya di findings.csv. Kalau polanya muncul di beberapa project, jadikan aturan umum di checklist self-review."
+
+# Penyebab test/build gagal. agent=True berarti kesalahan kode agent; False berarti lingkungan project.
+BUILD_CAUSES = [
+    ("lingkungan", False, re.compile(r"(ECONNREFUSED|connection refused|could not connect|command not found|is not recognized|"
+                                     r"permission denied|timed? ?out|no space left|network|docker|ENOENT|address already in use)", re.I),
+     "Bukan kesalahan kode agent. Pastikan perintah & prasyarat test (DB, service) tertulis di CLAUDE.md project."),
+    ("kompilasi/tipe", True, re.compile(r"(error (CS|TS)\d+|SyntaxError|TypeError|cannot find symbol|undefined (reference|method|variable)|"
+                                        r"is not defined|has no attribute|ImportError|ModuleNotFoundError|Cannot find module|compil)", re.I),
+     "Agent menulis banyak kode sebelum mengecek kompilasi. Aturan umum: jalankan build/type-check setelah tiap file selesai, sebelum test."),
+    ("test gagal", True, re.compile(r"(Assert|Expected|AssertionError|FAIL|Failed|✕|×|not ok)", re.I),
+     "Agent baru menjalankan test di akhir. Aturan umum: tulis/jalankan test untuk AC yang sedang dikerjakan sebelum lanjut ke AC berikutnya."),
+    ("lint", True, re.compile(r"(lint|eslint|ruff|prettier|stylecop|warning as error)", re.I),
+     "Jalankan formatter/lint untuk file yang diubah sebelum build penuh, atau pasang hook format otomatis di project."),
+]
+
+
+def build_cause(text):
+    lines = [l.strip() for l in (text or "").splitlines() if l.strip() and not re.match(r"^(Error: )?Exit code \d+$", l.strip())]
+    for cause, fault, rx, _ in BUILD_CAUSES:
+        for l in lines:
+            if rx.search(l):
+                return cause, fault, l[:90]
+    return "lain", True, (lines[0][:90] if lines else "(output kosong)")
 
 
 def categorize(text):
@@ -540,14 +566,15 @@ def analyse_failures(call_infos):
                     f["reappeared"].append(x)
             f["findings"] += found
         if stream:
-            fails, last_err = 0, None
+            causes, last_err = [], None
             for _, kind, data in stream.events:
                 if kind == "tool_result" and data[0] == "Bash" and BUILD_CMD.search(str(data[1].get("command", ""))):
                     last_err = data[4]
-                    fails += 1 if data[4] else 0
-            if fails:
-                prev = f["build_fail"].get(agent, (0, None))
-                f["build_fail"][agent] = (prev[0] + fails, last_err)
+                    if data[4]:
+                        causes.append(build_cause(data[5]))
+            if causes:
+                prev = f["build_fail"].get(agent, ([], None))
+                f["build_fail"][agent] = (prev[0] + causes, last_err)
     return f
 
 
@@ -568,8 +595,13 @@ def render_failures(f):
             per[x["owner"]][x["category"]] += 1
         for owner, cats in per.items():
             lines.append(f"- Blocking untuk **{owner}**: " + " · ".join(f"{c} {n}" for c, n in cats.most_common()))
-    for agent, (n, last_err) in f["build_fail"].items():
-        lines.append(f"- **{agent}**: test/build gagal {n}x di dalam agent, " + ("⚠ berakhir merah" if last_err else "akhirnya hijau"))
+    for agent, (causes, last_err) in f["build_fail"].items():
+        lines.append(f"- **{agent}**: test/build gagal {len(causes)}x di dalam agent, " + ("⚠ berakhir merah" if last_err else "akhirnya hijau"))
+        for cause, _, ev in list(dict.fromkeys(causes))[:2]:
+            lines.append(f"  ↳ {cause}: `{ev}`")
+        repeated = [ev for ev, n in Counter(ev for _, _, ev in causes).items() if n >= 2]
+        if repeated:
+            lines.append(f"  ↳ error yang sama muncul {max(Counter(ev for _, _, ev in causes).values())}x")
     for agent, n in f["returned"].items():
         lines.append(f"- **{agent}**: dipanggil ulang {n}x tanpa \"Mode perbaikan\" (laporan dikembalikan orkestrator)")
     for x in f["reappeared"]:
@@ -588,9 +620,19 @@ def failure_saran(f):
             out.append((agent, "Too-big", "Pecah pekerjaan lebih kecil di tahap sizing ship-feature."))
     for agent in f["returned"]:
         out.append((agent, "Laporan dikembalikan", "Laporan belum memenuhi syarat (misalnya Peta AC → test hilang). Pastikan template Laporan di file agent diikuti."))
-    for agent, (n, last_err) in f["build_fail"].items():
-        if last_err:
+    for agent, (causes, last_err) in f["build_fail"].items():
+        if last_err and causes[-1][1]:
             out.append((agent, "Test/build berakhir merah", "Agent melapor dengan test/build merah. Gate Verifikasi di file agent belum dipatuhi."))
+        per_cause = Counter(c for c, _, _ in causes)
+        for cause, fault, _ in dict.fromkeys(causes):
+            saran = next(t for c, _, _, t in BUILD_CAUSES if c == cause) if cause != "lain" else None
+            # Gagal sekali di tengah iterasi itu wajar; saran hanya kalau berulang, berakhir merah, atau masalah lingkungan.
+            if saran and (per_cause[cause] >= 2 or (last_err and causes[-1][0] == cause) or not fault):
+                target = agent if fault else "project"
+                out.append((target, f"Test/build gagal: {cause}", saran))
+        counts = Counter(ev for _, _, ev in causes)
+        if counts and max(counts.values()) >= 2:
+            out.append((agent, "Error sama berulang", "Agent mencoba ulang tanpa diagnosa. Aturan umum: error yang sama 2x → berhenti, pakai analytical-thinking, baru ubah kode."))
     if f["reappeared"]:
         owners = {x["owner"] for x in f["reappeared"]}
         for o in owners:
@@ -598,7 +640,7 @@ def failure_saran(f):
     return out
 
 
-def log_findings(log_dir, run_key, f, scope):
+def log_findings(log_dir, run_key, f, scope, project):
     """Catat temuan ke findings.csv dan kembalikan pola berulang lintas workflow."""
     path = os.path.join(log_dir, "findings.csv")
     history = []
@@ -617,25 +659,32 @@ def log_findings(log_dir, run_key, f, scope):
             with open(path, "a", newline="", encoding="utf-8") as fh:
                 w = csv.writer(fh)
                 if new:
-                    w.writerow(["date", "run", "scope", "source", "id", "blocking", "owner", "category", "path", "text"])
+                    w.writerow(["date", "run", "project", "scope", "source", "id", "blocking", "owner", "category", "path", "text"])
                 now = datetime.now(timezone.utc).isoformat(timespec="seconds")
                 for x in f["findings"]:
-                    w.writerow([now, run_key, scope, x["source"], x["id"], int(x["blocking"]), x["owner"],
+                    w.writerow([now, run_key, project, scope, x["source"], x["id"], int(x["blocking"]), x["owner"],
                                 x["category"], x["path"], x["text"]])
     except OSError:
         pass
     runs = list(dict.fromkeys(r["run"] for r in history))[-4:] + [run_key]
-    by_key = defaultdict(set)
+    by_key = defaultdict(lambda: {"runs": set(), "projects": set(), "ev": []})
     for r in history:
         if r["run"] in runs and r.get("blocking") == "1":
-            by_key[(r["owner"], r["category"])].add(r["run"])
+            k = by_key[(r["owner"], r["category"])]
+            k["runs"].add(r["run"])
+            k["projects"].add(r.get("project") or "?")
+            k["ev"].append((r.get("project") or "?", r["id"], os.path.basename(r["path"].split(":")[0]), r["text"]))
     for x in f["findings"]:
         if x["blocking"]:
-            by_key[(x["owner"], x["category"])].add(run_key)
+            k = by_key[(x["owner"], x["category"])]
+            k["runs"].add(run_key)
+            k["projects"].add(project)
+            k["ev"].append((project, x["id"], os.path.basename(x["file"]), x["text"]))
     pola = []
-    for (owner, cat), rs in by_key.items():
-        if len(rs) >= 2 and (run_key in rs or len(rs) >= 3):
-            pola.append((owner, cat, len(rs), len(runs)))
+    for (owner, cat), k in by_key.items():
+        if len(k["runs"]) >= 2 and (run_key in k["runs"] or len(k["runs"]) >= 3):
+            ev = list(dict.fromkeys(k["ev"]))[-2:]
+            pola.append((owner, cat, len(k["runs"]), len(runs), len(k["projects"]), ev))
     return sorted(pola, key=lambda p: -p[2])
 
 
@@ -745,16 +794,22 @@ def main():
     sid = os.path.splitext(os.path.basename(transcript))[0]
     run_key = f"{sid}|{start.isoformat() if start else ''}"
     log_dir = os.path.join(config_dir(), "doz-agent")
-    pola = [] if a.no_log else log_findings(log_dir, run_key, fails, scope)
+    project = next((os.path.basename(e["cwd"]) for e in scoped if e.get("cwd")), "?")
+    pola = [] if a.no_log else log_findings(log_dir, run_key, fails, scope, project)
     if pola:
         out += ["", "### Pola kegagalan berulang"]
-        for owner, cat, n, total in pola:
-            out.append(f"- **{owner}** · {cat}: blocking di {n} dari {total} workflow terakhir")
+        for owner, cat, n, total, nproj, ev in pola:
+            lintas = f", {nproj} project" if nproj > 1 else ""
+            out.append(f"- **{owner}** · {cat}: blocking di {n} dari {total} workflow terakhir{lintas}")
+            for proj, fid, fname, text in ev:
+                out.append(f"  ↳ {proj} {fid} {fname}: {text[:70]}")
 
     def target_of(agent):
+        if agent == "project":
+            return "CLAUDE.md project (bukan agent)"
         return "thread utama / skill workflow" if agent == "main" else f"`plugins/agents/{agent}.md`"
 
-    saran = [(owner, f"Pola berulang: {cat}", CAT_SARAN.get(cat, CAT_SARAN["lain"])) for owner, cat, _, _ in pola]
+    saran = [(owner, f"Pola berulang: {cat}", CAT_SARAN.get(cat, CAT_SARAN["lain"])) for owner, cat, *_ in pola]
     saran += failure_saran(fails)
     seen = set()
     for g in gaps:
@@ -762,6 +817,7 @@ def main():
         if key not in seen and len(seen) < a.top:
             seen.add(key)
             saran.append((g["agent"], g["rule"], g["saran"]))
+    saran = list(dict.fromkeys(saran))
     if saran:
         out += ["", "### Saran perbaikan (kegagalan dulu, lalu token)"]
         for agent, rule, text in saran:

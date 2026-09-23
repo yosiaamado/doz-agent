@@ -101,7 +101,9 @@ Setiap `ship-feature` ditutup dengan **token audit**. Script `token-audit` memba
 - **Gap terbesar, diurutkan dari dampaknya.** Konten yang masuk konteks dibaca ulang dari cache di setiap turn berikutnya, jadi file besar di awal ikut dihitung sampai akhir.
 - **Saran perbaikan** yang menunjuk ke file agent yang perlu diubah.
 - **Kegagalan & temuan**, dibaca dari format laporan agent: status engineer (`blocked`, atau tanpa status sama sekali), keputusan reviewer/QA/security, temuan blocking per engineer dan kategori (test lama, null/no-op, loop/data korup, authorization, dst.), test/build yang gagal di dalam agent, laporan yang dikembalikan orkestrator, dan temuan yang muncul lagi setelah diperbaiki.
-- **Pola kegagalan berulang**: kategori blocking yang sama untuk engineer yang sama di ≥2 dari 5 workflow terakhir. Saran dari pola ini ditampilkan paling atas, karena mengurangi putaran perbaikan biasanya lebih hemat daripada memangkas token.
+- **Pola kegagalan berulang**: kategori blocking yang sama untuk engineer yang sama di ≥2 dari 5 workflow terakhir, dicatat lintas project. Saran dari pola ini ditampilkan paling atas, karena mengurangi putaran perbaikan biasanya lebih hemat daripada memangkas token.
+- **Bukti singkat**: setiap kegagalan disertai satu baris penyebab dari data asli, misalnya error kompilasi, nama test yang gagal, atau temuan aslinya beserta nama project.
+- **Saran selalu umum**: yang diperbaiki adalah aturan kerja agent di plugin ini, bukan error project tertentu, supaya agent tetap berlaku untuk project lain. Kegagalan karena lingkungan (DB mati, perintah tidak ada) diarahkan ke `CLAUDE.md` project.
 - **Tren** dibanding run sebelumnya. Log disimpan di `~/.claude/doz-agent/token-audit.csv` (token) dan `findings.csv` (temuan).
 
 Pakai ini sebelum mengubah prompt agent. Perbaiki gap yang terbesar dulu, lalu bandingkan tren di run berikutnya.
