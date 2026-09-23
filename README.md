@@ -142,7 +142,8 @@ Alasannya: kontrak API yang salah bikin rework 2 agent — jauh lebih mahal dari
 3. **Tidak memanggil agent untuk hal yang bisa dikerjakan thread utama.** `ship-feature` menulis kontrak sendiri untuk 1–2 endpoint, dan mengerjakan perubahan Kecil tanpa agent sama sekali.
 4. **PO sekali jalan.** Maksimal 3 pertanyaan, semuanya punya default, jadi tidak ada panggilan kedua.
 5. **Skill dimuat kondisional.** `references/dotnet.md` cuma kalau menulis C#; `references/runtime.md` cuma kalau menyentuh cache/queue/observability; agent verifikasi memuat skill pattern cuma kalau diff menyentuh stack itu.
-6. **Laporan dibatasi** (engineer, QA, devops 250 kata) dan `prompt-cache 1 jam` aktif di semua agent.
+6. **Laporan dibatasi** (engineer, QA, devops 250 kata).
+7. **Cache 1 jam hanya di agent yang menjalankan build/test panjang** (engineer, QA, devops). Cache write 1 jam ditagih 2× harga input (5 menit: 1,25×), dan baru balik modal kalau ada jeda 5–60 menit antar-request. Agent lain (PO, system-analyst, reviewer, security) memakai default 5 menit, karena di dalam satu run jarak antar-request cuma hitungan detik. `token-audit` menandai agent yang membayar TTL 1 jam tanpa jeda ≥5 menit.
 
 **Kebiasaan di sisi user yang paling berpengaruh:**
 
@@ -203,7 +204,7 @@ Edit file, lalu commit & push. Di mesin yang sudah install, jalankan:
 
 ## Nambah agent / skill baru
 
-- Agent: buat `plugins/agents/<nama>.md` (frontmatter: `name`, `description`, `tools`, `model`, `effort`, `maxTurns`, `color`, opsional `skills`, `memory`, `experimental.cacheTtl`)
+- Agent: buat `plugins/agents/<nama>.md` (frontmatter: `name`, `description`, `tools`, `model`, `effort`, `maxTurns`, `color`, opsional `skills`, `memory`, `experimental.cacheTtl` — isi `1h` hanya kalau agent-nya menjalankan build/test yang bisa lebih dari 5 menit)
 - Skill: buat `plugins/skills/<bidang>/<nama>/SKILL.md` (frontmatter: `name`, `description`, opsional `effort`, `model`, `argument-hint`). Bidang baru cukup bikin folder baru; nama pemanggilan tetap `doz-agent:<nama>` karena diambil dari frontmatter `name`, bukan dari path
 - Aturan backend untuk bahasa baru (misalnya Go, Node): buat `plugins/skills/engineering/backend-patterns/references/<bahasa>.md`, lalu tambahkan barisnya di tabel "Aturan per bahasa" di `backend-patterns/SKILL.md`
 - Naikkan `version` di `plugin.json`, lalu push.

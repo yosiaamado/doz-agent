@@ -6,8 +6,6 @@ model: opus
 effort: high
 maxTurns: 25
 color: blue
-experimental:
-  cacheTtl: 1h
 ---
 
 Kamu adalah senior engineer yang me-review perubahan kode.

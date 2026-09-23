@@ -420,6 +420,15 @@ def analyse(stream, agent_type, is_main):
         if mt and stream.turns >= 0.8 * mt:
             add("Hampir kehabisan turn", 0.0, f"{stream.turns}/{mt} turn",
                 "Scope terlalu luas untuk satu panggilan. Pecah pekerjaannya atau perjelas brief.")
+        w1h = stream.totals()["cache_write_1h"]
+        times = [stream.ts[m] for m in stream.order if stream.ts.get(m)]
+        longest = max(((b - a).total_seconds() / 60 for a, b in zip(times, times[1:])), default=0)
+        if w1h and longest < 5:
+            p = price_for(stream.model) or PRICES["claude-sonnet-5"]
+            add("TTL cache 1 jam tidak terpakai", w1h * p[0] * (2.0 - 1.25) / 1e6,
+                f"~{w1h/1000:.0f}k tok ditulis dengan TTL 1 jam, jeda terpanjang antar-request {longest:.1f} mnt",
+                "Tanpa jeda ≥5 menit, cache 5 menit tidak pernah kedaluwarsa, jadi TTL 1 jam cuma menaikkan biaya "
+                "write dari 1,25× ke 2× harga input. Hapus `experimental.cacheTtl` dari file agent ini.")
     elif stream.last_context() >= MAIN_CONTEXT:
         add("Konteks thread utama besar", 0.0, f"~{stream.last_context()/1000:.0f}k tok di akhir workflow",
             "Mulai session baru per fitur; jangan teruskan laporan agent utuh ke agent lain.")
