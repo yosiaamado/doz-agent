@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Token audit untuk satu workflow Claude Code (misalnya /ship-feature).
+"""Token & failure audit untuk satu workflow Claude Code (misalnya /ship-feature).
 
 Membaca transcript JSONL Claude Code, menghitung token per agent dari angka
-`usage` API (persis), lalu mencari pola boros (perkiraan ukuran hasil tool =
-karakter / 4) dan memberi saran perbaikan per agent.
+`usage` API (persis), mencari pola boros (perkiraan ukuran hasil tool =
+karakter / 4), membaca kegagalan dari format laporan agent (Status, Keputusan,
+temuan CR-n/QA-BUG-n/SEC-n, test/build yang gagal), lalu memberi saran
+perbaikan per agent. Temuan dicatat ke findings.csv untuk mendeteksi pola
+kegagalan yang berulang lintas workflow.
 
 Pemakaian:
   token_audit.py                      # workflow terakhir (default: ship-feature) di session terbaru
@@ -173,7 +176,8 @@ class Stream:
                     for b in content:
                         if isinstance(b, dict) and b.get("type") == "tool_result":
                             name, inp = tool_uses.get(b.get("tool_use_id"), ("?", {}))
-                            self.events.append((turn, "tool_result", (name, inp, tok(b.get("content")), e)))
+                            err = bool(b.get("is_error")) or bool(re.match(r"\s*(Error: )?Exit code [1-9]", text_of(b.get("content"))))
+                            self.events.append((turn, "tool_result", (name, inp, tok(b.get("content")), e, err)))
                 txt = text_of(content)
                 if txt.startswith("Base directory for this skill"):
                     m = re.search(r"skills?/(?:[^/\s]+/)*([^/\s]+)\s", txt)
@@ -294,6 +298,7 @@ def collect_calls(main_entries):
             for b in msg["content"]:
                 if isinstance(b, dict) and b.get("type") == "tool_result" and b.get("tool_use_id") in by_id:
                     c = by_id[b["tool_use_id"]]
+                    c["report"] = text_of(b.get("content"))
                     r = e.get("toolUseResult")
                     if isinstance(r, dict):
                         c["agent_id"] = r.get("agentId") or c["agent_id"]
@@ -342,7 +347,7 @@ def analyse(stream, agent_type, is_main):
             if has_tool:
                 narration += tok(text)
         elif kind == "tool_result":
-            name, inp, size, _ = data
+            name, inp, size = data[:3]
             if name == "Read":
                 path = inp.get("file_path", "?")
                 full = not inp.get("offset") and not inp.get("limit")
@@ -427,6 +432,213 @@ def fmt_usd(x):
     return "–" if x is None else f"${x:.2f}"
 
 
+# ---------------------------------------------------------------------------
+# Kegagalan & temuan: dibaca dari format laporan agent (Status/Keputusan/ID temuan)
+
+ENGINEERS = {"backend-engineer", "frontend-engineer", "devops-engineer"}
+VERIFIERS = {"code-reviewer", "qa-tester", "security-tester"}
+FE_EXT = (".tsx", ".jsx", ".vue", ".svelte", ".css", ".scss", ".sass", ".less", ".html")
+DEVOPS_PATH = re.compile(r"(Dockerfile|\.ya?ml$|\.github/|\.tf$|compose|helm/|k8s/)", re.I)
+BUILD_CMD = re.compile(r"\b(test|tests|build|lint|tsc|pytest|jest|vitest|playwright|dotnet|mvn|gradle|cargo|go (test|build|vet)|npm|pnpm|yarn|make|eslint|ruff|mypy)\b")
+FINDING = re.compile(r"^\s*[-*]?\s*`?(?P<id>(?:CR|QA-BUG|SEC)-\d+)`?\s+`?(?P<path>[^\s`]+?)`?:?\s+(?P<rest>.+)$")
+STATUS = re.compile(r"^\W*Status:\s*\**\s*(done|blocked|needs-decision|too-big)", re.I | re.M)
+VERDICT = re.compile(r"^\W*(Keputusan|Rekomendasi):\s*(.+)$", re.I | re.M)
+
+# (kategori, kata kunci, saran). Urutan menentukan: kecocokan pertama menang.
+CATEGORIES = [
+    ("loop/data korup", ["infinite", "loop", "rekursi", "recursion", "siklus", "cycle", "korup", "corrupt", "orphan"],
+     "Perjelas aturan traversal data di checklist self-review (batas kedalaman / visited set) dan catat contohnya di Jebakan modul."),
+    ("test lama", ["test lama", "existing test", "test yang ada", "test yang sudah ada", "pasti gagal", "failing test", "snapshot", "regresi", "regression"],
+     "Self-review 'Test lama' belum efektif: suite penuh harus benar-benar dijalankan, dan test yang memakai simbol yang diubah di-grep sebelum melapor."),
+    ("null/no-op", ["null", "no-op", "noop", "diam-diam", "silent", "tidak berfungsi", "tidak berefek", "undefined", "dikosongkan", "reset"],
+     "Tambahkan contoh konkret aksi 'mengosongkan' dari project ini ke `Pelajaran review` dan checklist self-review."),
+    ("authorization/IDOR", ["idor", "authoriz", "otorisasi", "milik user lain", "role", "permission", "401", "403"],
+     "Tulis aturan akses per resource (siapa boleh apa) di spec, dan jadikan item eksplisit di self-review."),
+    ("security", ["injection", "xss", "csrf", "secret", "ssrf", "token", "password", "hash"],
+     "Pastikan security-tester dipanggil untuk area ini dan tambahkan aturan spesifik stack ke skill pattern."),
+    ("transaksi/concurrency", ["race", "concurren", "transaksi", "transaction", "atomic", "idempoten", "deadlock", "lock"],
+     "Tulis keputusan transaksi/idempotency di bagian Keputusan spec supaya engineer tidak menebak."),
+    ("validasi", ["validasi", "validation", "sanitiz", "sanitasi", "input"],
+     "Tulis aturan validasi per field di Kontrak API spec."),
+    ("kontrak", ["kontrak", "contract", "spec", "status code", "response", "field", "tipe", "type mismatch"],
+     "Lengkapi contoh request/response/error di spec; ketidaksesuaian kontrak jangan diputuskan engineer sendiri."),
+    ("state UI", ["loading", "empty", "error state", "disabled", "double submit", "state ui", "retry"],
+     "Masukkan daftar state UI wajib ke AC/Peta file frontend."),
+    ("aksesibilitas", ["aksesibilitas", "a11y", "aria", "keyboard", "fokus", "focus", "label", "kontras"],
+     "Tambahkan cek a11y spesifik (label, fokus, keyboard) ke checklist self-review frontend."),
+    ("performa", ["n+1", "index", "performa", "performance", "lambat", "slow", "query dalam loop"],
+     "Tambahkan aturan N+1/index/I-O dalam loop ke checklist self-review backend."),
+]
+CAT_SARAN = {c: s for c, _, s in CATEGORIES}
+CAT_SARAN["lain"] = "Baca baris temuannya di findings.csv; kalau polanya jelas, tambahkan aturan ke checklist self-review atau kategori baru di script."
+
+
+def categorize(text):
+    t = text.lower()
+    for cat, keys, _ in CATEGORIES:
+        if any(k in t for k in keys):
+            return cat
+    return "lain"
+
+
+def owner_of(path, rest):
+    m = re.search(r"→\s*`?([\w-]+-engineer)", rest)
+    if m:
+        return m.group(1)
+    if DEVOPS_PATH.search(path):
+        return "devops-engineer"
+    if path.lower().split(":")[0].endswith(FE_EXT):
+        return "frontend-engineer"
+    return "backend-engineer"
+
+
+def parse_findings(report, source_agent, call_no):
+    out = []
+    for line in (report or "").splitlines():
+        m = FINDING.match(line)
+        if not m:
+            continue
+        fid, path, rest = m.group("id"), m.group("path"), m.group("rest")
+        head = rest.lower()[:40]
+        if fid.startswith("CR-"):
+            blocking = "🔴" in rest or "blocking" in head
+        elif fid.startswith("SEC-"):
+            blocking = bool(re.search(r"\b(critical|high)\b", head))
+        else:
+            blocking = "🔴" in rest or bool(re.search(r"\b(critical|high)\b", head))
+        text = re.sub(r"^[^\w`]*(blocking|suggestion|question|nit|critical|high|medium|low)[^:]*:\s*", "", rest, flags=re.I)
+        out.append({"id": fid, "path": path, "file": path.split(":")[0], "blocking": blocking,
+                    "owner": owner_of(path, rest), "category": categorize(rest), "text": text.strip()[:160],
+                    "source": source_agent, "call": call_no})
+    return out
+
+
+def analyse_failures(call_infos):
+    """call_infos: list of (call dict, Stream|None) dalam urutan panggilan."""
+    f = {"status": defaultdict(list), "verdict": defaultdict(list), "findings": [], "returned": Counter(),
+         "build_fail": {}, "reappeared": []}
+    seen_calls = Counter()
+    for c, stream in call_infos:
+        agent = c["type"]
+        seen_calls[agent] += 1
+        n = seen_calls[agent]
+        report = c.get("report") or (stream.final_text if stream else "")
+        if agent in ENGINEERS:
+            m = STATUS.search("\n".join(report.strip().splitlines()[:3]))
+            fix = "mode perbaikan" in (c.get("prompt") or "").lower()
+            f["status"][agent].append((m.group(1).lower() if m else None, fix))
+            if n > 1 and not fix:
+                f["returned"][agent] += 1
+        if agent in VERIFIERS:
+            m = VERDICT.search("\n".join(report.strip().splitlines()[:3]))
+            found = parse_findings(report, agent, n)
+            nb = sum(1 for x in found if x["blocking"])
+            f["verdict"][agent].append((re.split(r"\s+[—-]\s+|:", m.group(2))[0].strip()[:40] if m else None, nb, len(found) - nb))
+            earlier = {(x["source"], x["file"], x["category"]) for x in f["findings"] if x["blocking"]}
+            for x in found:
+                if x["blocking"] and n > 1 and (x["source"], x["file"], x["category"]) in earlier:
+                    f["reappeared"].append(x)
+            f["findings"] += found
+        if stream:
+            fails, last_err = 0, None
+            for _, kind, data in stream.events:
+                if kind == "tool_result" and data[0] == "Bash" and BUILD_CMD.search(str(data[1].get("command", ""))):
+                    last_err = data[4]
+                    fails += 1 if data[4] else 0
+            if fails:
+                prev = f["build_fail"].get(agent, (0, None))
+                f["build_fail"][agent] = (prev[0] + fails, last_err)
+    return f
+
+
+def render_failures(f):
+    lines = []
+    for agent, sts in f["status"].items():
+        parts = []
+        for st, fix in sts:
+            parts.append((st or "⚠ tanpa baris Status") + (" (perbaikan)" if fix else ""))
+        lines.append(f"- **{agent}**: " + " → ".join(parts))
+    for agent, vs in f["verdict"].items():
+        parts = [f"{v or '⚠ tanpa keputusan'} ({nb} blocking, {nn} lain)" for v, nb, nn in vs]
+        lines.append(f"- **{agent}**: " + " → ".join(parts))
+    blocking = [x for x in f["findings"] if x["blocking"]]
+    if blocking:
+        per = defaultdict(Counter)
+        for x in blocking:
+            per[x["owner"]][x["category"]] += 1
+        for owner, cats in per.items():
+            lines.append(f"- Blocking untuk **{owner}**: " + " · ".join(f"{c} {n}" for c, n in cats.most_common()))
+    for agent, (n, last_err) in f["build_fail"].items():
+        lines.append(f"- **{agent}**: test/build gagal {n}x di dalam agent, " + ("⚠ berakhir merah" if last_err else "akhirnya hijau"))
+    for agent, n in f["returned"].items():
+        lines.append(f"- **{agent}**: dipanggil ulang {n}x tanpa \"Mode perbaikan\" (laporan dikembalikan orkestrator)")
+    for x in f["reappeared"]:
+        lines.append(f"- ⚠ Temuan muncul lagi setelah perbaikan: {x['id']} `{x['path']}` ({x['category']})")
+    return lines
+
+
+def failure_saran(f):
+    out = []
+    for agent, sts in f["status"].items():
+        if any(st is None for st, _ in sts):
+            out.append((agent, "Tanpa baris Status", "Agent berhenti tanpa laporan berformat (mungkin mentok maxTurns). Cek bagian Laporan dan budget turn-nya."))
+        if any(st in ("blocked", "needs-decision") for st, _ in sts):
+            out.append((agent, "Blocked/needs-decision", "Keputusan yang ditanyakan engineer seharusnya sudah ada di spec. Tambahkan ke Keputusan & asumsi di brief berikutnya."))
+        if any(st == "too-big" for st, _ in sts):
+            out.append((agent, "Too-big", "Pecah pekerjaan lebih kecil di tahap sizing ship-feature."))
+    for agent in f["returned"]:
+        out.append((agent, "Laporan dikembalikan", "Laporan belum memenuhi syarat (misalnya Peta AC → test hilang). Pastikan template Laporan di file agent diikuti."))
+    for agent, (n, last_err) in f["build_fail"].items():
+        if last_err:
+            out.append((agent, "Test/build berakhir merah", "Agent melapor dengan test/build merah. Gate Verifikasi di file agent belum dipatuhi."))
+    if f["reappeared"]:
+        owners = {x["owner"] for x in f["reappeared"]}
+        for o in owners:
+            out.append((o, "Temuan muncul lagi", "Perbaikan tidak menyentuh akar masalah. Di Mode perbaikan, minta regression test yang mereproduksi temuan sebelum fix."))
+    return out
+
+
+def log_findings(log_dir, run_key, f, scope):
+    """Catat temuan ke findings.csv dan kembalikan pola berulang lintas workflow."""
+    path = os.path.join(log_dir, "findings.csv")
+    history = []
+    logged = False
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as fh:
+            for r in csv.DictReader(fh):
+                if r.get("run") == run_key:
+                    logged = True
+                    continue
+                history.append(r)
+    try:
+        if not logged and f["findings"]:
+            os.makedirs(log_dir, exist_ok=True)
+            new = not os.path.exists(path)
+            with open(path, "a", newline="", encoding="utf-8") as fh:
+                w = csv.writer(fh)
+                if new:
+                    w.writerow(["date", "run", "scope", "source", "id", "blocking", "owner", "category", "path", "text"])
+                now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+                for x in f["findings"]:
+                    w.writerow([now, run_key, scope, x["source"], x["id"], int(x["blocking"]), x["owner"],
+                                x["category"], x["path"], x["text"]])
+    except OSError:
+        pass
+    runs = list(dict.fromkeys(r["run"] for r in history))[-4:] + [run_key]
+    by_key = defaultdict(set)
+    for r in history:
+        if r["run"] in runs and r.get("blocking") == "1":
+            by_key[(r["owner"], r["category"])].add(r["run"])
+    for x in f["findings"]:
+        if x["blocking"]:
+            by_key[(x["owner"], x["category"])].add(run_key)
+    pola = []
+    for (owner, cat), rs in by_key.items():
+        if len(rs) >= 2 and (run_key in rs or len(rs) >= 3):
+            pola.append((owner, cat, len(rs), len(runs)))
+    return sorted(pola, key=lambda p: -p[2])
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--transcript")
@@ -449,12 +661,16 @@ def main():
 
     grouped = defaultdict(list)
     missing = []
+    call_infos = []
     for c in collect_calls(scoped):
         ents = find_subagent_entries(transcript, entries, c)
-        if ents:
-            grouped[c["type"]].append(Stream(c["type"], ents))
+        stream = Stream(c["type"], ents) if ents else None
+        call_infos.append((c, stream))
+        if stream:
+            grouped[c["type"]].append(stream)
         else:
             missing.append(c)
+    fails = analyse_failures(call_infos)
     for agent_type, streams in grouped.items():
         for s in streams:
             gaps += analyse(s, agent_type, False)
@@ -519,26 +735,41 @@ def main():
         if signals:
             out += ["", "Sinyal lain: " + " · ".join(f"**{g['agent']}** {g['rule'].lower()} ({g['detail']})" for g in signals[:4])]
         gaps = costed + signals
-
-        # Saran per agent (dedupe per aturan)
-        out += ["", "### Saran perbaikan"]
-        seen = set()
-        for g in gaps:
-            key = (g["agent"], g["rule"])
-            if key in seen or len(seen) >= a.top:
-                continue
-            seen.add(key)
-            target = "thread utama / skill workflow" if g["agent"] == "main" else f"`plugins/agents/{g['agent']}.md`"
-            out.append(f"- {target} · **{g['rule']}**: {g['saran']}")
     else:
         out += ["", "Tidak ada pola boros yang melewati ambang."]
 
+    fail_lines = render_failures(fails)
+    if fail_lines:
+        out += ["", "### Kegagalan & temuan"] + fail_lines
+
+    sid = os.path.splitext(os.path.basename(transcript))[0]
+    run_key = f"{sid}|{start.isoformat() if start else ''}"
+    log_dir = os.path.join(config_dir(), "doz-agent")
+    pola = [] if a.no_log else log_findings(log_dir, run_key, fails, scope)
+    if pola:
+        out += ["", "### Pola kegagalan berulang"]
+        for owner, cat, n, total in pola:
+            out.append(f"- **{owner}** · {cat}: blocking di {n} dari {total} workflow terakhir")
+
+    def target_of(agent):
+        return "thread utama / skill workflow" if agent == "main" else f"`plugins/agents/{agent}.md`"
+
+    saran = [(owner, f"Pola berulang: {cat}", CAT_SARAN.get(cat, CAT_SARAN["lain"])) for owner, cat, _, _ in pola]
+    saran += failure_saran(fails)
+    seen = set()
+    for g in gaps:
+        key = (g["agent"], g["rule"])
+        if key not in seen and len(seen) < a.top:
+            seen.add(key)
+            saran.append((g["agent"], g["rule"], g["saran"]))
+    if saran:
+        out += ["", "### Saran perbaikan (kegagalan dulu, lalu token)"]
+        for agent, rule, text in saran:
+            out.append(f"- {target_of(agent)} · **{rule}**: {text}")
+
     # Log tren
     if not a.no_log:
-        log_dir = os.path.join(config_dir(), "doz-agent")
         log = os.path.join(log_dir, "token-audit.csv")
-        sid = os.path.splitext(os.path.basename(transcript))[0]
-        run_key = f"{sid}|{start.isoformat() if start else ''}"
         prev = defaultdict(list)
         logged = False
         if os.path.exists(log):

@@ -1,10 +1,10 @@
 ---
 name: token-audit
-description: Audit pemakaian token satu workflow Claude Code dari transcript session — token dan perkiraan biaya per agent, gap terbesar (file besar dibaca utuh, output command panjang, eksplorasi panjang, cache miss, narasi, laporan panjang, putaran perbaikan), dan saran perbaikan per file agent. Dipanggil otomatis di akhir ship-feature. Pakai juga saat user bilang "token audit", "berapa token yang kepake", "kenapa boros", "agent mana yang paling mahal", atau memanggil /token-audit.
+description: Audit token dan kegagalan satu workflow Claude Code dari transcript session — token dan perkiraan biaya per agent, gap terbesar (file besar dibaca utuh, output command panjang, eksplorasi panjang, cache miss, narasi, laporan panjang, putaran perbaikan), kegagalan agent (status blocked/tanpa status, temuan blocking per kategori, test/build gagal, temuan muncul lagi), pola kegagalan berulang lintas workflow, dan saran perbaikan per file agent. Dipanggil otomatis di akhir ship-feature. Pakai juga saat user bilang "token audit", "berapa token yang kepake", "kenapa boros", "agent mana yang paling mahal", atau memanggil /token-audit.
 argument-hint: "[--workflow NAMA | --all | --since ISO-TIME | --transcript PATH]"
 ---
 
-# Token Audit
+# Token & Failure Audit
 
 Jalankan script di folder skill ini (lihat "Base directory for this skill" di atas):
 
@@ -32,6 +32,9 @@ Tanpa argumen, script mengaudit **workflow `ship-feature` terakhir** di session 
 
 - **% biaya per agent** menunjukkan agent mana yang paling layak dioptimasi.
 - **Gap** diurutkan dari perkiraan dampaknya. Konten yang masuk konteks lebih awal dibaca ulang dari cache di setiap turn berikutnya, jadi satu file besar di awal bisa lebih mahal daripada banyak file kecil di akhir.
-- **Tren** muncul setelah ada minimal 2 run sebelumnya. Log disimpan di `~/.claude/doz-agent/token-audit.csv`.
+- **Kegagalan & temuan** dibaca dari format laporan agent: `Status:` engineer, `Keputusan:`/`Rekomendasi:` verifikator, baris temuan `CR-n`/`QA-BUG-n`/`SEC-n`, test/build yang gagal di dalam agent, engineer yang dipanggil ulang tanpa "Mode perbaikan", dan temuan blocking yang muncul lagi setelah diperbaiki. Agent yang tidak mengikuti format laporan akan tampil sebagai "⚠ tanpa baris Status/keputusan".
+- **Kategori temuan** (test lama, null/no-op, loop/data korup, authorization, validasi, kontrak, dst.) ditebak dari kata kunci, jadi hasilnya kasar. Yang tidak cocok masuk "lain".
+- **Pola kegagalan berulang** muncul kalau kategori blocking yang sama untuk engineer yang sama terjadi di ≥2 dari 5 workflow terakhir. Ini dasar saran perbaikan yang paling kuat, dan selalu ditampilkan paling atas di bagian saran.
+- **Tren** muncul setelah ada minimal 2 run sebelumnya. Log disimpan di `~/.claude/doz-agent/token-audit.csv` (token) dan `findings.csv` (temuan).
 - Harga $ adalah harga list API. Langganan Pro/Max tidak ditagih per token, jadi angka $ hanya pembanding antar agent. Harga ada di `PRICES` di dalam script.
 - Kolom `*` artinya transcript subagent tidak ditemukan. Angkanya diambil dari ringkasan hasil Agent, tanpa analisis gap.

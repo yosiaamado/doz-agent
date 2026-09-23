@@ -24,7 +24,7 @@ Skill dikelompokkan per bidang. Nama folder bidang tidak memengaruhi cara pemang
 | Skill | Bidang | Isi |
 |---|---|---|
 | `ship-feature` | engineering | **Titik masuk utama.** Orkestrator satu perintah: ukur pekerjaan (kecil/sedang/besar), jalankan hanya agent yang dibutuhkan (PO → SA → BE ∥ FE → verifikasi paralel → acceptance), loop perbaikan, berhenti hanya untuk keputusan bisnis |
-| `token-audit` | engineering | Audit token satu workflow dari transcript: token & perkiraan biaya per agent, gap terbesar (file besar dibaca utuh, output panjang, eksplorasi, cache miss, narasi, laporan panjang, putaran perbaikan) dan saran per file agent. Otomatis di akhir `ship-feature`; manual: `/doz-agent:token-audit [--all]` |
+| `token-audit` | engineering | Audit token & kegagalan satu workflow dari transcript: token & perkiraan biaya per agent, gap terbesar (file besar dibaca utuh, output panjang, eksplorasi, cache miss, narasi, laporan panjang), kegagalan agent & temuan blocking per kategori, pola kegagalan berulang lintas workflow, dan saran per file agent. Otomatis di akhir `ship-feature`; manual: `/doz-agent:token-audit [--all]` |
 | `product-ownership` | product | Kerangka kerja PO (Scrum Guide 2020): analisis dampak, INVEST, Given/When/Then, story splitting, DoR, penentuan agent, penerimaan hasil |
 | `engineering-workflow` | engineering | Alur kerja tim: DoR/DoD, branching, Conventional Commits, PR, code review, ADR, SemVer, incident & postmortem |
 | `backend-patterns` | engineering | Aturan dasar backend (REST, RFC 9457, migration zero-downtime, OWASP, resiliency, OpenTelemetry) + aturan per bahasa di `references/` (.NET, dll.) |
@@ -100,7 +100,9 @@ Setiap `ship-feature` ditutup dengan **token audit**. Script `token-audit` memba
 - **Token per agent** dari angka `usage` API (persis) dan perkiraan biayanya (harga list API, hanya sebagai pembanding).
 - **Gap terbesar, diurutkan dari dampaknya.** Konten yang masuk konteks dibaca ulang dari cache di setiap turn berikutnya, jadi file besar di awal ikut dihitung sampai akhir.
 - **Saran perbaikan** yang menunjuk ke file agent yang perlu diubah.
-- **Tren** dibanding run sebelumnya. Log disimpan di `~/.claude/doz-agent/token-audit.csv`.
+- **Kegagalan & temuan**, dibaca dari format laporan agent: status engineer (`blocked`, atau tanpa status sama sekali), keputusan reviewer/QA/security, temuan blocking per engineer dan kategori (test lama, null/no-op, loop/data korup, authorization, dst.), test/build yang gagal di dalam agent, laporan yang dikembalikan orkestrator, dan temuan yang muncul lagi setelah diperbaiki.
+- **Pola kegagalan berulang**: kategori blocking yang sama untuk engineer yang sama di ≥2 dari 5 workflow terakhir. Saran dari pola ini ditampilkan paling atas, karena mengurangi putaran perbaikan biasanya lebih hemat daripada memangkas token.
+- **Tren** dibanding run sebelumnya. Log disimpan di `~/.claude/doz-agent/token-audit.csv` (token) dan `findings.csv` (temuan).
 
 Pakai ini sebelum mengubah prompt agent. Perbaiki gap yang terbesar dulu, lalu bandingkan tren di run berikutnya.
 
