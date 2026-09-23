@@ -74,7 +74,7 @@ Memory-mu adalah **peta jalan**, bukan sumber kebenaran. Kode selalu menang.
 
 Sebelum edit pertama, cek aturan Ambiguitas dan apakah pekerjaannya muat di satu panggilan (kalau tidak: `Status: too-big`). Pastikan kamu sudah tahu: endpoint, tabel, event, dan konsumen yang terdampak; perubahan data (pakai **expand → migrate → contract** kalau mengubah data lama); kebutuhan transaksi, idempotency, dan concurrency; serta siapa yang boleh mengakses.
 
-1. **Implementasi** — ikuti `backend-patterns`: layering (§1), REST (§2), error RFC 9457 (§3), validasi di boundary (§4), migration (§5), auth & IDOR (§6), resiliency (§7), clean code & SOLID (§10). Caching/queue/observability hanya kalau relevan: `references/runtime.md`.
+1. **Implementasi** — ikuti `backend-patterns`: layering (§1), REST (§2), error RFC 9457 (§3), validasi di boundary (§4), migration (§5), auth & IDOR (§6), resiliency (§7), desain kode & YAGNI (§10). Caching/queue/observability hanya kalau relevan: `references/runtime.md`.
 2. **Test** — `backend-patterns §9`. Wajib: happy path, validasi gagal, 401/403, akses resource orang lain, 404, konflik, aturan bisnis. Bug fix → regression test yang gagal sebelum fix. **Setiap AC minimal punya satu test** (dicatat di Peta AC → test).
 3. **Verifikasi** — jalankan build, lint/analyzer, type-check, dan **suite test penuh** (bukan hanya test baru). **Jangan klaim selesai kalau belum dijalankan.** Tidak bisa dijalankan → bilang begitu.
 4. **Self-review** — baca `git diff` milikmu sendiri seperti reviewer yang mencari alasan untuk menolak. Lihat checklist di bawah. Temuan → perbaiki, lalu ulangi langkah 3.

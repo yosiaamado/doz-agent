@@ -29,7 +29,7 @@ Skill dikelompokkan per bidang. Nama folder bidang tidak memengaruhi cara pemang
 | `engineering-workflow` | engineering | Alur kerja tim: DoR/DoD, branching, Conventional Commits, PR, code review, ADR, SemVer, incident & postmortem |
 | `backend-patterns` | engineering | Aturan dasar backend (REST, RFC 9457, migration zero-downtime, OWASP, resiliency, OpenTelemetry) + aturan per bahasa di `references/` (.NET, dll.) |
 | `frontend-patterns` | engineering | Struktur, state, form, WCAG 2.2 AA, Core Web Vitals, CSP, testing trophy |
-| `devops-patterns` | engineering | Docker, CI/CD + supply chain, deploy & rollback, K8s, Terraform, SLO, DR, metrik DORA |
+| `devops-patterns` | engineering | Docker, CI/CD + supply chain, deploy & rollback, K8s, Terraform, SLO & alert, backup/DR |
 | `analytical-thinking` | thinking | MECE, hipotesis, root cause, estimasi Fermi, matriks keputusan, pre-mortem |
 | `business-thinking` | product | Validasi ide, PRD, RICE/WSJF, unit economics, pricing, OKR, A/B test, build vs buy, UU PDP |
 | `rab-kontraktor-advisor` | consultant | Konteks produk RAB generator untuk kontraktor kecil: standar AHSP/HSPK/SNI, BOQ/AACE, pola data & UX software estimasi |
@@ -142,7 +142,7 @@ Alasannya: kontrak API yang salah bikin rework 2 agent — jauh lebih mahal dari
 3. **Tidak memanggil agent untuk hal yang bisa dikerjakan thread utama.** `ship-feature` menulis kontrak sendiri untuk 1–2 endpoint, dan mengerjakan perubahan Kecil tanpa agent sama sekali.
 4. **PO sekali jalan.** Maksimal 3 pertanyaan, semuanya punya default, jadi tidak ada panggilan kedua.
 5. **Engineer dilanjutkan, bukan dipanggil ulang.** Setelah `needs-decision`, `blocked`, laporan partial, laporan dikembalikan, atau temuan yang butuh pemahaman desain, `ship-feature` melanjutkan engineer yang sama lewat `SendMessage`, jadi hasil eksplorasinya tidak dibuang. Verifikasi ulang tetap panggilan baru dengan scope sempit.
-6. **Skill dimuat kondisional.** `references/dotnet.md` cuma kalau menulis C#; `references/runtime.md` cuma kalau menyentuh cache/queue/observability; agent verifikasi memuat skill pattern cuma kalau diff menyentuh stack itu.
+6. **Skill ramping, dimuat seperlunya.** Engineer selalu membawa skill pattern-nya (`skills:` memuat isi penuh), jadi isinya hanya keputusan default dan jebakan, bukan tutorial, plus larangan menambahkan pola itu ke project yang belum memakainya. `references/dotnet.md` cuma kalau menulis C#; `references/runtime.md` cuma kalau menyentuh cache/queue/observability; agent verifikasi memuat skill pattern cuma kalau diff menyentuh stack itu.
 7. **Laporan dibatasi** (engineer, QA, devops 250 kata).
 8. **Cache 1 jam hanya di agent yang menjalankan build/test panjang** (engineer, QA, devops). Cache write 1 jam ditagih 2× harga input (5 menit: 1,25×), dan baru balik modal kalau ada jeda 5–60 menit antar-request, misalnya engineer yang dilanjutkan setelah verifikasi. Agent lain (PO, system-analyst, reviewer, security) memakai default 5 menit, karena di dalam satu run jarak antar-request cuma hitungan detik. `token-audit` menandai agent yang membayar TTL 1 jam tanpa jeda ≥5 menit.
 
@@ -211,3 +211,5 @@ Edit file, lalu commit & push. Di mesin yang sudah install, jalankan:
 - Naikkan `version` di `plugin.json`, lalu push.
 
 Tips: `description` menentukan kapan agent/skill dipakai otomatis. Tulis secara spesifik **kapan** harus dipakai, bukan cuma namanya.
+
+Isi skill cukup keputusan tim dan jebakan yang pernah terjadi. Penjelasan umum (definisi SOLID, daftar status HTTP, ambang Core Web Vitals) tidak perlu: model sudah tahu, dan teks yang tidak relevan cenderung ikut diterapkan di tempat yang salah.

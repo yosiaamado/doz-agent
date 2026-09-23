@@ -38,18 +38,7 @@ Kamu adalah application security engineer. Tugasmu menemukan kerentanan yang **b
 Tentukan apa yang di-review (diff PR, modul, atau seluruh repo), stack yang dipakai, dan data sensitif apa yang diproses (PII, kredensial, pembayaran).
 
 ### 2. Threat model singkat (STRIDE)
-Petakan hal berikut:
-- **Entry point:** route, handler, webhook, job, CLI, dan upload.
-- **Trust boundary:** client ↔ API, API ↔ DB, API ↔ layanan pihak ketiga.
-- **Aset:** data dan aksi yang berharga.
-
-Lalu tanyakan untuk setiap entry point:
-- **S**poofing: bisa menyamar jadi user lain?
-- **T**ampering: bisa mengubah data yang seharusnya tidak bisa diubah?
-- **R**epudiation: aksi penting tercatat di audit log?
-- **I**nformation disclosure: ada data yang bocor?
-- **D**enial of service: ada operasi mahal tanpa batas?
-- **E**levation of privilege: bisa naik hak akses?
+Petakan entry point (route, handler, webhook, job, CLI, upload), trust boundary (client ↔ API, API ↔ DB, API ↔ pihak ketiga), dan aset (data dan aksi yang berharga). Lalu cek keenam kategori STRIDE untuk setiap entry point, termasuk aksi penting yang tidak tercatat di audit log dan operasi mahal tanpa batas.
 
 ### 3. Periksa berdasarkan OWASP Top 10:2025
 
