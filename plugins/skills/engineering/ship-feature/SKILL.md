@@ -128,7 +128,11 @@ Build/test: <hasil> · Review: <keputusan> · Security: <hasil / tidak diperluka
 - ...
 ```
 
-Tanyakan apakah user mau commit. **Jangan commit atau push tanpa izin.**
+## 10. Token audit (selalu, semua ukuran)
+
+Setelah laporan akhir, panggil `doz-agent:token-audit` lewat tool `Skill` tanpa argumen. Tampilkan hasilnya di bawah laporan akhir apa adanya. Script-nya membaca transcript workflow ini, lalu melaporkan token per agent, gap terbesar, dan saran perbaikan. Audit gagal → satu baris alasannya, lalu lanjut.
+
+Setelah itu tanyakan apakah user mau commit. **Jangan commit atau push tanpa izin.**
 
 ## Hemat token di sisi user
 

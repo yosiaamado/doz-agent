@@ -24,6 +24,7 @@ Skill dikelompokkan per bidang. Nama folder bidang tidak memengaruhi cara pemang
 | Skill | Bidang | Isi |
 |---|---|---|
 | `ship-feature` | engineering | **Titik masuk utama.** Orkestrator satu perintah: ukur pekerjaan (kecil/sedang/besar), jalankan hanya agent yang dibutuhkan (PO → SA → BE ∥ FE → verifikasi paralel → acceptance), loop perbaikan, berhenti hanya untuk keputusan bisnis |
+| `token-audit` | engineering | Audit token satu workflow dari transcript: token & perkiraan biaya per agent, gap terbesar (file besar dibaca utuh, output panjang, eksplorasi, cache miss, narasi, laporan panjang, putaran perbaikan) dan saran per file agent. Otomatis di akhir `ship-feature`; manual: `/doz-agent:token-audit [--all]` |
 | `product-ownership` | product | Kerangka kerja PO (Scrum Guide 2020): analisis dampak, INVEST, Given/When/Then, story splitting, DoR, penentuan agent, penerimaan hasil |
 | `engineering-workflow` | engineering | Alur kerja tim: DoR/DoD, branching, Conventional Commits, PR, code review, ADR, SemVer, incident & postmortem |
 | `backend-patterns` | engineering | Aturan dasar backend (REST, RFC 9457, migration zero-downtime, OWASP, resiliency, OpenTelemetry) + aturan per bahasa di `references/` (.NET, dll.) |
@@ -42,7 +43,7 @@ doz-agent/
     ├── .claude-plugin/plugin.json
     ├── agents/                  # 8 subagent (file datar, tanpa subfolder)
     └── skills/
-        ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature
+        ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature, token-audit
         ├── product/             # product-ownership, business-thinking
         ├── thinking/            # analytical-thinking
         └── consultant/          # rab-kontraktor-advisor (skill domain per produk/klien)
@@ -91,6 +92,17 @@ Isinya nama simbol + path + jebakan, **bukan nomor baris** (paling cepat basi) d
 Fitur pertama di satu area belum ada hematnya — untungnya mulai terasa dari sentuhan kedua.
 
 **Belajar dari review:** saat dipanggil di loop perbaikan, engineer menyimpan **pola** temuan reviewer/QA (bukan hanya fix-nya) — yang spesifik modul ke `Jebakan`, yang umum ke bagian `Pelajaran review` di `MEMORY.md` (maks 10 baris). Kesalahan yang sama tidak terulang di fitur berikutnya.
+
+## Mengukur token
+
+Setiap `ship-feature` ditutup dengan **token audit**. Script `token-audit` membaca transcript Claude Code (`~/.claude/projects/...`), lalu menampilkan:
+
+- **Token per agent** dari angka `usage` API (persis) dan perkiraan biayanya (harga list API, hanya sebagai pembanding).
+- **Gap terbesar, diurutkan dari dampaknya.** Konten yang masuk konteks dibaca ulang dari cache di setiap turn berikutnya, jadi file besar di awal ikut dihitung sampai akhir.
+- **Saran perbaikan** yang menunjuk ke file agent yang perlu diubah.
+- **Tren** dibanding run sebelumnya. Log disimpan di `~/.claude/doz-agent/token-audit.csv`.
+
+Pakai ini sebelum mengubah prompt agent. Perbaiki gap yang terbesar dulu, lalu bandingkan tren di run berikutnya.
 
 ## Format laporan agent
 
