@@ -17,18 +17,21 @@ Kumpulan subagent + skill Claude Code pribadi. Upload sekali ke GitHub, lalu ins
 | `frontend-engineer` | UI, komponen, state, form, WCAG 2.2 AA, Core Web Vitals. 🧠 punya memory peta komponen | ✅ |
 | `devops-engineer` | Docker, CI/CD, deploy, IaC, observability, SLO, dengan aturan keselamatan production | ✅ |
 
-**Skill** (`plugins/skills/`)
+**Skill** (`plugins/skills/<bidang>/<nama>/SKILL.md`)
 
-| Skill | Isi |
-|---|---|
-| `ship-feature` | **Titik masuk utama.** Orkestrator satu perintah: ukur pekerjaan (kecil/sedang/besar), jalankan hanya agent yang dibutuhkan (PO → SA → BE ∥ FE → verifikasi paralel → acceptance), loop perbaikan, berhenti hanya untuk keputusan bisnis |
-| `product-ownership` | Kerangka kerja PO (Scrum Guide 2020): analisis dampak, INVEST, Given/When/Then, story splitting, DoR, penentuan agent, penerimaan hasil |
-| `engineering-workflow` | Alur kerja tim: DoR/DoD, branching, Conventional Commits, PR, code review, ADR, SemVer, incident & postmortem |
-| `backend-patterns` | Aturan dasar backend (REST, RFC 9457, migration zero-downtime, OWASP, resiliency, OpenTelemetry) + aturan per bahasa di `references/` (.NET, dll.) |
-| `frontend-patterns` | Struktur, state, form, WCAG 2.2 AA, Core Web Vitals, CSP, testing trophy |
-| `devops-patterns` | Docker, CI/CD + supply chain, deploy & rollback, K8s, Terraform, SLO, DR, metrik DORA |
-| `analytical-thinking` | MECE, hipotesis, root cause, estimasi Fermi, matriks keputusan, pre-mortem |
-| `business-thinking` | Validasi ide, PRD, RICE/WSJF, unit economics, pricing, OKR, A/B test, build vs buy, UU PDP |
+Skill dikelompokkan per bidang. Nama folder bidang tidak memengaruhi cara pemanggilan: skill tetap dipanggil `doz-agent:<nama>`.
+
+| Skill | Bidang | Isi |
+|---|---|---|
+| `ship-feature` | engineering | **Titik masuk utama.** Orkestrator satu perintah: ukur pekerjaan (kecil/sedang/besar), jalankan hanya agent yang dibutuhkan (PO → SA → BE ∥ FE → verifikasi paralel → acceptance), loop perbaikan, berhenti hanya untuk keputusan bisnis |
+| `product-ownership` | product | Kerangka kerja PO (Scrum Guide 2020): analisis dampak, INVEST, Given/When/Then, story splitting, DoR, penentuan agent, penerimaan hasil |
+| `engineering-workflow` | engineering | Alur kerja tim: DoR/DoD, branching, Conventional Commits, PR, code review, ADR, SemVer, incident & postmortem |
+| `backend-patterns` | engineering | Aturan dasar backend (REST, RFC 9457, migration zero-downtime, OWASP, resiliency, OpenTelemetry) + aturan per bahasa di `references/` (.NET, dll.) |
+| `frontend-patterns` | engineering | Struktur, state, form, WCAG 2.2 AA, Core Web Vitals, CSP, testing trophy |
+| `devops-patterns` | engineering | Docker, CI/CD + supply chain, deploy & rollback, K8s, Terraform, SLO, DR, metrik DORA |
+| `analytical-thinking` | thinking | MECE, hipotesis, root cause, estimasi Fermi, matriks keputusan, pre-mortem |
+| `business-thinking` | product | Validasi ide, PRD, RICE/WSJF, unit economics, pricing, OKR, A/B test, build vs buy, UU PDP |
+| `rab-kontraktor-advisor` | consultant | Konteks produk RAB generator untuk kontraktor kecil: standar AHSP/HSPK/SNI, BOQ/AACE, pola data & UX software estimasi |
 
 ## Struktur
 
@@ -37,8 +40,12 @@ doz-agent/
 ├── .claude-plugin/marketplace.json
 └── plugins/
     ├── .claude-plugin/plugin.json
-    ├── agents/        # 8 subagent
-    └── skills/        # 8 skill (masing-masing <nama>/SKILL.md)
+    ├── agents/                  # 8 subagent (file datar, tanpa subfolder)
+    └── skills/
+        ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature
+        ├── product/             # product-ownership, business-thinking
+        ├── thinking/            # analytical-thinking
+        └── consultant/          # rab-kontraktor-advisor (skill domain per produk/klien)
 ```
 
 ## Alur kerja fitur
@@ -167,8 +174,8 @@ Edit file, lalu commit & push. Di mesin yang sudah install, jalankan:
 ## Nambah agent / skill baru
 
 - Agent: buat `plugins/agents/<nama>.md` (frontmatter: `name`, `description`, `tools`, `model`, `effort`, `maxTurns`, `color`, opsional `skills`, `memory`, `experimental.cacheTtl`)
-- Skill: buat `plugins/skills/<nama>/SKILL.md` (frontmatter: `name`, `description`, opsional `effort`, `model`, `argument-hint`)
-- Aturan backend untuk bahasa baru (misalnya Go, Node): buat `plugins/skills/backend-patterns/references/<bahasa>.md`, lalu tambahkan barisnya di tabel "Aturan per bahasa" di `backend-patterns/SKILL.md`
+- Skill: buat `plugins/skills/<bidang>/<nama>/SKILL.md` (frontmatter: `name`, `description`, opsional `effort`, `model`, `argument-hint`). Bidang baru cukup bikin folder baru; nama pemanggilan tetap `doz-agent:<nama>` karena diambil dari frontmatter `name`, bukan dari path
+- Aturan backend untuk bahasa baru (misalnya Go, Node): buat `plugins/skills/engineering/backend-patterns/references/<bahasa>.md`, lalu tambahkan barisnya di tabel "Aturan per bahasa" di `backend-patterns/SKILL.md`
 - Naikkan `version` di `plugin.json`, lalu push.
 
 Tips: `description` menentukan kapan agent/skill dipakai otomatis. Tulis secara spesifik **kapan** harus dipakai, bukan cuma namanya.
