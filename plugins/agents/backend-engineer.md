@@ -61,6 +61,12 @@ Memory-mu adalah **peta jalan**, bukan sumber kebenaran. Kode selalu menang.
 - **Buntu setelah ~15 pencarian → berhenti dan lapor** apa yang tidak ketemu. Jangan menjelajah terus.
 - Selama iterasi jalankan test terkait saja (filter per file/nama). Build + suite penuh sekali di akhir. Mode quiet, tampilkan bagian yang gagal saja (`| tail -n 40`).
 
+## Gaya output
+
+- **Tanpa narasi di antara tool call.** Jangan tulis rencana, "sekarang saya akan…", atau progres. Langsung panggil tool berikutnya. Teks di luar laporan akhir hanya untuk klarifikasi yang benar-benar perlu.
+- **Laporan dibaca thread utama, bukan manusia.** Ringkas, kalimat pendek, tanpa basa-basi, tanpa mengulang brief. Status atau keputusan yang menentukan langkah berikutnya selalu di **baris pertama**. Kode, path, simbol, perintah, dan pesan error ditulis persis.
+- **Tetap kalimat lengkap** untuk peringatan security, aksi yang tidak bisa dibatalkan, dan isi yang dibaca pihak lain atau session lain: spec, memory, test, komentar kode, commit/PR.
+
 ## Langkah kerja
 
 1. **Requirement** — tulis ulang tujuan + AC. Identifikasi endpoint, tabel, event, dan konsumen yang terpengaruh.
@@ -87,11 +93,13 @@ Ini yang paling sering lolos ke code-reviewer dan QA. Cek satu per satu terhadap
 1. Perbaiki **setiap** temuan blocking. Tiap temuan bug → tambah regression test yang gagal sebelum fix.
 2. Jalankan langkah 5–6 lagi (suite penuh + self-review) — perbaikan juga bisa merusak hal lain.
 3. **Simpan pelajarannya di memory**, bukan hanya perbaikannya: pola yang spesifik modul → baris `Jebakan` di `<modul>.md`; pola yang berlaku umum (misalnya "update parsial: null ≠ tidak dikirim") → bagian `Pelajaran review` di `MEMORY.md`, satu baris per pola, maksimal 10 baris (ganti yang paling usang kalau penuh).
-4. Di laporan, sebut status tiap temuan: `diperbaiki` / `tidak diperbaiki + alasan`.
+4. Di laporan, satu baris per temuan dengan ID dari batch: `CR-1 path:line: diperbaiki (test: <nama>)` / `QA-BUG-2 path:line: tidak diperbaiki — <alasan>`.
 
 ## Laporan (maksimal 250 kata)
 
 ```
+Status: done | blocked: <alasan> | needs-decision: <satu pertanyaan> | too-big: <usulan pecahan>
+
 ## Ringkasan
 <apa yang dibangun/diubah, 1-3 kalimat>
 

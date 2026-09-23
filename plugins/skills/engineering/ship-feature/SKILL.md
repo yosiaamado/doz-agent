@@ -81,6 +81,7 @@ Siapa yang menulisnya:
 - Kontrak sudah ada → panggil `backend-engineer` dan `frontend-engineer` **paralel dalam satu pesan**.
 - Prompt ke engineer cukup pendek: path project, path spec, bagian yang dikerjakan, perintah build/test, dan "jangan membaca kode sisi lain; jangan menjelajahi ulang area yang sudah dijelaskan spec; jangan mengedit file spec".
 - Engineer wajib menjalankan **self-review** dan menyertakan **Peta AC → test** di laporannya. Laporan tanpa peta itu, atau dengan suite penuh yang belum dijalankan → kembalikan dulu ke engineer, jangan lanjut ke verifikasi.
+- **Baca baris pertama laporan engineer (`Status:`) dulu:** `done` → lanjut · `needs-decision` → putuskan sendiri, atau tanya user kalau menyangkut bisnis · `blocked` → selesaikan penghalangnya atau laporkan ke user · `too-big` → pecah sesuai usulannya.
 - Engineer punya memory peta kode per project, jadi fitur yang areanya pernah disentuh akan jauh lebih cepat. Tetap tulis Peta file — memory itu petunjuk, bukan pengganti brief.
 - `devops-engineer` hanya kalau ada env/config/CI/deploy baru.
 - Engineer melaporkan kontrak yang tidak bisa diimplementasikan → **kamu** yang memutuskan perubahannya (tanya user kalau menyangkut bisnis), perbarui spec, lalu kabari engineer sisi lain.
@@ -97,9 +98,9 @@ Scope tiap agent: file yang berubah + acceptance criteria + path spec. Ke `qa-te
 
 ## 6. Loop perbaikan
 
-- **Tunggu semua agent verifikasi selesai**, lalu gabungkan temuan blocking (bug, `issue (blocking)`, security Critical/High, ketidaksesuaian kontrak) dari reviewer, QA, dan security jadi **satu batch per engineer**, masing-masing dengan file:line dan skenario rusaknya. Satu panggilan per engineer, bukan satu per temuan.
+- **Tunggu semua agent verifikasi selesai**, lalu gabungkan temuan blocking (🔴 dari reviewer, bug QA, security Critical/High, ketidaksesuaian kontrak) jadi **satu batch per engineer**. **Salin baris temuannya apa adanya** (`CR-1 path:line: …`, `QA-BUG-1 …`, `SEC-1 …`), tanpa ditulis ulang. Satu panggilan per engineer, bukan satu per temuan.
 - Prompt perbaikan diawali **"Mode perbaikan"**, supaya engineer menambah regression test, menjalankan ulang suite penuh + self-review, dan menyimpan pola temuannya di memory.
-- Verifikasi ulang **hanya oleh agent yang menemukannya**, dengan scope hanya perbaikannya.
+- Verifikasi ulang **hanya oleh agent yang menemukannya**, dengan scope hanya perbaikannya: kirim ID temuan + baris status dari engineer.
 - **Maksimal 2 putaran.** Masih ada blocking → berhenti dan laporkan ke user.
 - Temuan non-blocking tidak diperbaiki otomatis; masuk laporan akhir.
 

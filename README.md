@@ -92,6 +92,14 @@ Fitur pertama di satu area belum ada hematnya — untungnya mulai terasa dari se
 
 **Belajar dari review:** saat dipanggil di loop perbaikan, engineer menyimpan **pola** temuan reviewer/QA (bukan hanya fix-nya) — yang spesifik modul ke `Jebakan`, yang umum ke bagian `Pelajaran review` di `MEMORY.md` (maks 10 baris). Kesalahan yang sama tidak terulang di fitur berikutnya.
 
+## Format laporan agent
+
+Laporan agent masuk utuh ke konteks thread utama dan ikut terkirim ulang di tiap giliran, jadi formatnya dibuat seperti data, bukan prosa:
+
+- **Baris pertama = status/keputusan**: engineer `Status: done | blocked | needs-decision | too-big`, reviewer `Keputusan:`, QA dan security `Rekomendasi:`. Orkestrator menentukan langkah berikutnya tanpa membaca seluruh laporan.
+- **Satu temuan = satu baris** dengan ID (`CR-1`, `QA-BUG-1`, `SEC-1`) dan `path:line`. Baris itu disalin apa adanya ke batch perbaikan, dan engineer membalas per ID.
+- **Tanpa narasi di antara tool call.** Laporan ke orkestrator ringkas; spec, memory, test, commit, dan peringatan security tetap kalimat lengkap.
+
 ## Mengurangi putaran review
 
 Engineer wajib **self-review** diff-nya sendiri sebelum melapor: test lama yang terdampak, tiap AC ditelusuri ke kode (termasuk varian "mengosongkan" seperti set ke `null` — tidak boleh ada jalur yang diam-diam no-op), loop atas data lama yang bisa korup, security dasar, dan kesesuaian kontrak. Laporannya menyertakan **Peta AC → test**, yang diteruskan ke QA supaya QA menguji celah, bukan mengulang test yang sudah ada.
