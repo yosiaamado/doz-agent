@@ -32,6 +32,12 @@ Kamu memutuskan **apa** dan **kenapa**. `system-analyst` menentukan desain tekni
 - Kalau setelah budget itu masih ada yang belum jelas, **berhenti mencari** — tulis sebagai asumsi atau pertanyaan.
 - **Laporan maksimal 400 kata.** Baris tabel yang tidak berdampak **dihapus**, bukan ditulis "tidak ada".
 
+## Gaya output
+
+- **Tanpa narasi di antara tool call.** Jangan tulis rencana, "sekarang saya akan…", atau progres. Langsung panggil tool berikutnya. Teks di luar laporan akhir hanya untuk klarifikasi yang benar-benar perlu.
+- **Laporan dibaca thread utama, bukan manusia.** Ringkas, kalimat pendek, tanpa basa-basi, tanpa mengulang brief. Status atau keputusan yang menentukan langkah berikutnya selalu di **baris pertama**. Kode, path, simbol, perintah, dan pesan error ditulis persis.
+- **Tetap kalimat lengkap** untuk peringatan security, aksi yang tidak bisa dibatalkan, dan isi yang dibaca pihak lain atau session lain: spec, memory, test, komentar kode, commit/PR.
+
 ## Output — Refinement (default)
 
 ```

@@ -90,6 +90,20 @@ Isinya nama simbol + path + jebakan, **bukan nomor baris** (paling cepat basi) d
 
 Fitur pertama di satu area belum ada hematnya — untungnya mulai terasa dari sentuhan kedua.
 
+**Belajar dari review:** saat dipanggil di loop perbaikan, engineer menyimpan **pola** temuan reviewer/QA (bukan hanya fix-nya) — yang spesifik modul ke `Jebakan`, yang umum ke bagian `Pelajaran review` di `MEMORY.md` (maks 10 baris). Kesalahan yang sama tidak terulang di fitur berikutnya.
+
+## Format laporan agent
+
+Laporan agent masuk utuh ke konteks thread utama dan ikut terkirim ulang di tiap giliran, jadi formatnya dibuat seperti data, bukan prosa:
+
+- **Baris pertama = status/keputusan**: engineer `Status: done | blocked | needs-decision | too-big`, reviewer `Keputusan:`, QA dan security `Rekomendasi:`. Orkestrator menentukan langkah berikutnya tanpa membaca seluruh laporan.
+- **Satu temuan = satu baris** dengan ID (`CR-1`, `QA-BUG-1`, `SEC-1`) dan `path:line`. Baris itu disalin apa adanya ke batch perbaikan, dan engineer membalas per ID.
+- **Tanpa narasi di antara tool call.** Laporan ke orkestrator ringkas; spec, memory, test, commit, dan peringatan security tetap kalimat lengkap.
+
+## Mengurangi putaran review
+
+Engineer wajib **self-review** diff-nya sendiri sebelum melapor: test lama yang terdampak, tiap AC ditelusuri ke kode (termasuk varian "mengosongkan" seperti set ke `null` — tidak boleh ada jalur yang diam-diam no-op), loop atas data lama yang bisa korup, security dasar, dan kesesuaian kontrak. Laporannya menyertakan **Peta AC → test**, yang diteruskan ke QA supaya QA menguji celah, bukan mengulang test yang sudah ada.
+
 ## Hemat token
 
 **Model & effort:** peran yang menentukan kualitas seluruh rantai pakai Opus, peran eksekusi pakai Sonnet.
@@ -112,7 +126,7 @@ Alasannya: kontrak API yang salah bikin rework 2 agent — jauh lebih mahal dari
 3. **Tidak memanggil agent untuk hal yang bisa dikerjakan thread utama.** `ship-feature` menulis kontrak sendiri untuk 1–2 endpoint, dan mengerjakan perubahan Kecil tanpa agent sama sekali.
 4. **PO sekali jalan.** Maksimal 3 pertanyaan, semuanya punya default, jadi tidak ada panggilan kedua.
 5. **Skill dimuat kondisional.** `references/dotnet.md` cuma kalau menulis C#; `references/runtime.md` cuma kalau menyentuh cache/queue/observability; agent verifikasi memuat skill pattern cuma kalau diff menyentuh stack itu.
-6. **Laporan dibatasi** (engineer 200 kata, QA/devops 250) dan `prompt-cache 1 jam` aktif di semua agent.
+6. **Laporan dibatasi** (engineer, QA, devops 250 kata) dan `prompt-cache 1 jam` aktif di semua agent.
 
 **Kebiasaan di sisi user yang paling berpengaruh:**
 
