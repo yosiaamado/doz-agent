@@ -118,7 +118,7 @@ Laporan agent masuk utuh ke konteks thread utama dan ikut terkirim ulang di tiap
 
 ## Mengurangi putaran review
 
-Engineer wajib **self-review** diff-nya sendiri sebelum melapor: test lama yang terdampak, tiap AC ditelusuri ke kode (termasuk varian "mengosongkan" seperti set ke `null` — tidak boleh ada jalur yang diam-diam no-op), loop atas data lama yang bisa korup, security dasar, dan kesesuaian kontrak. Laporannya menyertakan **Peta AC → test**, yang diteruskan ke QA supaya QA menguji celah, bukan mengulang test yang sudah ada.
+Engineer wajib **self-review** diff-nya sendiri sebelum melapor: test lama yang terdampak, tiap AC ditelusuri ke kode (termasuk varian "mengosongkan" seperti set ke `null` — tidak boleh ada jalur yang diam-diam no-op), loop atas data lama yang bisa korup, security dasar, dan kesesuaian kontrak. Laporannya menyertakan **Peta AC → test**, yang diteruskan ke QA supaya QA menguji celah, bukan mengulang test yang sudah ada. Baris Verifikasi-nya (hasil build + suite penuh) juga diteruskan ke reviewer dan QA, jadi suite yang sudah hijau tidak dijalankan ulang: reviewer fokus ke desain dan kebenaran, QA cukup menjalankan test baru + modul yang terdampak.
 
 ## Hemat token
 

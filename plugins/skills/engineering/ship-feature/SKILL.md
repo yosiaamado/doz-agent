@@ -90,7 +90,7 @@ Siapa yang menulisnya:
 
 ## 5. Verifikasi (paralel, satu pesan)
 
-Scope tiap agent: file yang berubah + acceptance criteria + path spec. Ke `qa-tester` sertakan juga **Peta AC → test** dari laporan engineer, supaya QA menguji celahnya, bukan mengulang test yang sudah ada.
+Scope tiap agent: file yang berubah + acceptance criteria + path spec + **baris Verifikasi dari laporan engineer** (hasil build/test), supaya reviewer dan QA tidak menjalankan ulang suite yang sudah hijau. Ke `qa-tester` sertakan juga **Peta AC → test** dari laporan engineer, supaya QA menguji celahnya, bukan mengulang test yang sudah ada.
 
 | Agent | Kapan |
 |---|---|

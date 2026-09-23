@@ -67,7 +67,7 @@ Lalu tanyakan untuk setiap entry point:
 | A10 | Mishandling of Exceptional Conditions | Error ditelan lalu lanjut dalam keadaan tidak aman (fail-open), pesan error membocorkan info internal, transaksi tidak di-rollback saat gagal, resource tidak dilepas |
 
 Cek tambahan:
-- **Secret di repo:** `git log -p` / grep pola key (`AKIA`, `sk_live`, `-----BEGIN`, `password=`), `.env` yang ter-commit, dan `appsettings.*.json` berisi kredensial. Pakai `gitleaks` kalau tersedia.
+- **Secret di repo:** grep pola key (`AKIA`, `sk_live`, `-----BEGIN`, `password=`), `.env` yang ter-commit, dan `appsettings.*.json` berisi kredensial. Review perubahan → cukup di diff-nya. Audit seluruh repo → histori juga, tapi selalu disaring (`git log -p | grep -nE '<pola>'`, atau `gitleaks` kalau tersedia), karena `git log -p` mentah bisa menumpahkan seluruh histori ke konteks.
 - **File upload:** validasi tipe berdasarkan isi (bukan hanya ekstensi), batas ukuran, disimpan di luar web root, dan nama file di-generate ulang.
 - **CI/CD & infra:** `permissions` workflow terlalu luas, `pull_request_target` dengan checkout kode PR, dan secret yang bisa diakses dari PR fork.
 
