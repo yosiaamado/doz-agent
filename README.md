@@ -85,7 +85,7 @@ Mau diskusi dulu tanpa implementasi? Pakai `/doz-agent:product-ownership <ide>` 
 
 **Kapan ditulis:** setelah build/test hijau, sebelum menulis laporan — jadi yang tersimpan sudah terbukti benar, bukan tebakan.
 
-**Kapan dibaca:** paling awal, sebelum eksplorasi apa pun. Agent memverifikasi satu anchor (grep satu nama simbol dari catatan); kalau tidak cocok, catatannya diabaikan, dicari ulang, lalu diperbarui. **Kode selalu menang atas memory.**
+**Kapan dibaca:** `MEMORY.md` dimuat otomatis oleh Claude Code di awal setiap panggilan (makanya dibatasi 60 baris). File detail modul dibaca paling awal, sebelum eksplorasi apa pun. Agent memverifikasi satu anchor (grep satu nama simbol dari catatan); kalau tidak cocok, catatannya diabaikan, dicari ulang, lalu diperbarui. **Kode selalu menang atas memory.**
 
 Isinya nama simbol + path + jebakan, **bukan nomor baris** (paling cepat basi) dan bukan potongan kode. Tiap catatan menyimpan commit SHA, jadi basi bisa dicek dengan `git log --oneline <sha>..HEAD -- <path>`.
 

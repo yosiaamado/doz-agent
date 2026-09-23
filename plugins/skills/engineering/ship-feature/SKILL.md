@@ -27,7 +27,7 @@ Ini yang menentukan hemat atau borosnya seluruh alur:
 
 ## 1. Ukur pekerjaan (sendiri, tanpa agent)
 
-Baca `CLAUDE.md` dan eksplorasi secukupnya (dalam batas di atas). Simpan temuanmu untuk diteruskan ke agent berikutnya.
+`CLAUDE.md` sudah ada di konteksmu (yang di subfolder ikut dimuat saat file di sana dibaca), jadi jangan dibaca ulang. Eksplorasi secukupnya (dalam batas di atas), lalu simpan temuanmu untuk diteruskan ke agent berikutnya.
 
 | Ukuran | Ciri | Alur |
 |---|---|---|

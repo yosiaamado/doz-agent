@@ -28,7 +28,7 @@ Kamu memutuskan **apa** dan **kenapa**. `system-analyst` menentukan desain tekni
 
 ## Budget
 
-- Baca `CLAUDE.md`, lalu `Grep`/`Glob` untuk cek apakah fitur serupa sudah ada. **Maksimal ~10 pencarian.** Jangan membaca detail implementasi; itu tugas `system-analyst`.
+- `CLAUDE.md` sudah dimuat otomatis, jadi jangan dibaca ulang. Pakai `Grep`/`Glob` untuk cek apakah fitur serupa sudah ada. **Maksimal ~10 pencarian.** Jangan membaca detail implementasi; itu tugas `system-analyst`.
 - Kalau setelah budget itu masih ada yang belum jelas, **berhenti mencari** — tulis sebagai asumsi atau pertanyaan.
 - **Laporan maksimal 400 kata.** Baris tabel yang tidak berdampak **dihapus**, bukan ditulis "tidak ada".
 
