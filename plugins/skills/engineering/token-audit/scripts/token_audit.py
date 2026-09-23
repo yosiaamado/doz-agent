@@ -15,6 +15,7 @@ Pemakaian:
   token_audit.py --since 2026-09-23T10:00:00Z
   token_audit.py --transcript PATH    # transcript tertentu
   token_audit.py --no-log             # jangan tulis ke log tren
+  token_audit.py --compare            # bandingkan model engineer dari semua workflow yang tercatat
 """
 import argparse
 import csv
@@ -776,6 +777,67 @@ def log_findings(log_dir, run_key, f, scope, project):
     return sorted(pola, key=lambda p: -p[2])
 
 
+# ---------------------------------------------------------------------------
+# Ringkasan per workflow: dasar perbandingan model engineer (biaya per fitur, bukan per token)
+
+RUN_FIELDS = ["date", "run", "project", "scope", "engineer_model", "usd", "fix_rounds", "reverify", "blocking", "returned"]
+
+
+def run_summary(table, f, total_usd):
+    models = sorted({model for name, model, *_ in table if name in ENGINEERS and model not in (None, "?")})
+    return {"engineer_model": "+".join(models) or "-", "usd": f"{total_usd:.4f}",
+            "fix_rounds": sum(1 for sts in f["status"].values() for _, label in sts if label == "perbaikan"),
+            "reverify": sum(max(len(vs) - 1, 0) for vs in f["verdict"].values()),
+            "blocking": sum(1 for x in f["findings"] if x["blocking"]),
+            "returned": sum(f["returned"].values())}
+
+
+def log_run(log_dir, run_key, scope, project, summary):
+    path = os.path.join(log_dir, "runs.csv")
+    try:
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as fh:
+                if any(r.get("run") == run_key for r in csv.DictReader(fh)):
+                    return
+        os.makedirs(log_dir, exist_ok=True)
+        new = not os.path.exists(path)
+        with open(path, "a", newline="", encoding="utf-8") as fh:
+            w = csv.DictWriter(fh, fieldnames=RUN_FIELDS)
+            if new:
+                w.writeheader()
+            w.writerow({"date": datetime.now(timezone.utc).isoformat(timespec="seconds"), "run": run_key,
+                        "project": project, "scope": scope, **summary})
+    except OSError:
+        pass
+
+
+def compare_runs(log_dir):
+    path = os.path.join(log_dir, "runs.csv")
+    rows = []
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as fh:
+            rows = [r for r in csv.DictReader(fh) if r.get("engineer_model") not in (None, "", "-")]
+    if not rows:
+        return f"Belum ada workflow yang memakai engineer di {path}. Jalankan ship-feature beberapa kali dulu."
+    groups = defaultdict(list)
+    for r in rows:
+        groups[r["engineer_model"]].append(r)
+
+    def avg(rs, key):
+        return sum(float(r.get(key) or 0) for r in rs) / len(rs)
+
+    out = ["## Perbandingan model engineer (rata-rata per workflow)", "",
+           "| Model engineer | Workflow | ≈ $ | Putaran perbaikan | Verifikasi ulang | Temuan blocking | Laporan dikembalikan |",
+           "|---|---|---|---|---|---|---|"]
+    for model, rs in sorted(groups.items(), key=lambda g: avg(g[1], "usd")):
+        out.append(f"| {model} | {len(rs)} | {fmt_usd(avg(rs, 'usd'))} | {avg(rs, 'fix_rounds'):.1f} | "
+                   f"{avg(rs, 'reverify'):.1f} | {avg(rs, 'blocking'):.1f} | {avg(rs, 'returned'):.1f} |")
+    few = sorted(m for m, rs in groups.items() if len(rs) < 3)
+    if few:
+        out += ["", f"Belum cukup data untuk {', '.join(few)}: tunggu minimal 3 workflow per model, dengan ukuran fitur yang sebanding."]
+    return "\n".join(out)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--transcript")
@@ -784,7 +846,11 @@ def main():
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--no-log", action="store_true")
     ap.add_argument("--top", type=int, default=6)
+    ap.add_argument("--compare", action="store_true")
     a = ap.parse_args()
+    if a.compare:
+        print(compare_runs(os.path.join(config_dir(), "doz-agent")))
+        return
 
     transcript = a.transcript or find_transcript()
     entries = load_jsonl(transcript)
@@ -978,6 +1044,7 @@ def main():
                                 t["cache_write"], t["input"], f"{usd:.4f}" if usd is not None else ""])
         except OSError:
             pass
+        log_run(log_dir, run_key, scope, project, run_summary(table, fails, grand_usd))
 
     print("\n".join(out))
 

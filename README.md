@@ -104,7 +104,8 @@ Setiap `ship-feature` ditutup dengan **token audit**. Script `token-audit` memba
 - **Pola kegagalan berulang**: kategori blocking yang sama untuk engineer yang sama di ≥2 dari 5 workflow terakhir, dicatat lintas project. Saran dari pola ini ditampilkan paling atas, karena mengurangi putaran perbaikan biasanya lebih hemat daripada memangkas token.
 - **Bukti singkat**: setiap kegagalan disertai satu baris penyebab dari data asli, misalnya error kompilasi, nama test yang gagal, atau temuan aslinya beserta nama project.
 - **Saran selalu umum**: yang diperbaiki adalah aturan kerja agent di plugin ini, bukan error project tertentu, supaya agent tetap berlaku untuk project lain. Kegagalan karena lingkungan (DB mati, perintah tidak ada) diarahkan ke `CLAUDE.md` project.
-- **Tren** dibanding run sebelumnya. Log disimpan di `~/.claude/doz-agent/token-audit.csv` (token) dan `findings.csv` (temuan).
+- **Tren** dibanding run sebelumnya. Log disimpan di `~/.claude/doz-agent/token-audit.csv` (token), `findings.csv` (temuan), dan `runs.csv` (ringkasan per workflow).
+- **Perbandingan model engineer** lewat `/doz-agent:token-audit --compare`: rata-rata biaya, putaran perbaikan, verifikasi ulang, dan temuan blocking per model.
 
 Pakai ini sebelum mengubah prompt agent. Perbaiki gap yang terbesar dulu, lalu bandingkan tren di run berikutnya.
 
@@ -134,6 +135,17 @@ Engineer wajib **self-review** diff-nya sendiri sebelum melapor: test lama yang 
 | `qa-tester`, `devops-engineer` | sonnet | medium | 40 |
 
 Alasannya: kontrak API yang salah bikin rework 2 agent — jauh lebih mahal dari selisih model. `maxTurns` mencegah agent menjelajah tanpa henti, dan tiap agent punya aturan **"buntu setelah ~15 pencarian → berhenti dan lapor"**.
+
+Orkestrator (`ship-feature`) jalan di effort `high`, karena di alur default ia sendiri yang menulis kontrak API.
+
+**Eksperimen model engineer.** Opus sekarang cuma 2–2,5× harga Sonnet per token, sedangkan putaran perbaikan berasal dari engineer. Satu putaran = engineer + semua verifikator jalan ulang. Jadi yang dibandingkan adalah biaya per fitur selesai, bukan harga per token:
+
+```
+/doz-agent:ship-feature --engineer-model opus tambah fitur X
+/doz-agent:token-audit --compare
+```
+
+Jalankan 3–5 fitur dengan ukuran sebanding untuk tiap model (tanpa flag = model di frontmatter, yaitu Sonnet). Kalau Opus lebih murah per fitur karena putarannya lebih sedikit, ganti `model: opus` di `backend-engineer.md` dan `frontend-engineer.md`.
 
 **Yang paling menghemat, urut dari yang terbesar:**
 

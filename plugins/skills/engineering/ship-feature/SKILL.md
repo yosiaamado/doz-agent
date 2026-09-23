@@ -1,8 +1,8 @@
 ---
 name: ship-feature
 description: Titik masuk utama untuk mengerjakan fitur, perubahan, atau bugfix dari awal sampai selesai dengan satu perintah, memakai agent doz-agent secara hemat token. Mengukur pekerjaan (kecil/sedang/besar), lalu menjalankan hanya agent yang dibutuhkan (product-owner → kontrak API → backend-engineer ∥ frontend-engineer → code-reviewer ∥ qa-tester ∥ security-tester → acceptance), termasuk loop perbaikan, dan hanya berhenti untuk keputusan bisnis. Pakai saat user bilang "kerjain/tambahin/bikin fitur X", "ship", "sampai selesai", "end-to-end", atau memanggil /ship-feature. Jangan dipakai kalau user hanya mau diskusi, analisis, atau review tanpa implementasi.
-argument-hint: <deskripsi fitur/perubahan>
-effort: medium
+argument-hint: "[--engineer-model opus|sonnet] <deskripsi fitur/perubahan>"
+effort: high
 ---
 
 # Ship Feature
@@ -12,6 +12,8 @@ Kamu (thread utama) adalah orkestrator. Selesaikan permintaan berikut sampai tun
 **Permintaan:** $ARGUMENTS
 
 Kalau bagian di atas kosong, pakai permintaan user di pesan terakhir.
+
+Permintaan diawali `--engineer-model <opus|sonnet>` → itu eksperimen model, bukan bagian dari permintaan. Setiap panggilan baru ke engineer memakai model itu lewat parameter `model` di tool `Agent`. Hasilnya dibandingkan nanti dengan `/doz-agent:token-audit --compare`.
 
 Agent tidak bisa memanggil agent lain. Semua agent kamu panggil lewat tool `Agent` dengan `subagent_type` `doz-agent:<nama>`. User tidak perlu memilih agent.
 
