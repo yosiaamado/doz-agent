@@ -141,9 +141,10 @@ Alasannya: kontrak API yang salah bikin rework 2 agent — jauh lebih mahal dari
 2. **Memory peta kode** di BE/FE, buat area yang pernah disentuh.
 3. **Tidak memanggil agent untuk hal yang bisa dikerjakan thread utama.** `ship-feature` menulis kontrak sendiri untuk 1–2 endpoint, dan mengerjakan perubahan Kecil tanpa agent sama sekali.
 4. **PO sekali jalan.** Maksimal 3 pertanyaan, semuanya punya default, jadi tidak ada panggilan kedua.
-5. **Skill dimuat kondisional.** `references/dotnet.md` cuma kalau menulis C#; `references/runtime.md` cuma kalau menyentuh cache/queue/observability; agent verifikasi memuat skill pattern cuma kalau diff menyentuh stack itu.
-6. **Laporan dibatasi** (engineer, QA, devops 250 kata).
-7. **Cache 1 jam hanya di agent yang menjalankan build/test panjang** (engineer, QA, devops). Cache write 1 jam ditagih 2× harga input (5 menit: 1,25×), dan baru balik modal kalau ada jeda 5–60 menit antar-request. Agent lain (PO, system-analyst, reviewer, security) memakai default 5 menit, karena di dalam satu run jarak antar-request cuma hitungan detik. `token-audit` menandai agent yang membayar TTL 1 jam tanpa jeda ≥5 menit.
+5. **Engineer dilanjutkan, bukan dipanggil ulang.** Setelah `needs-decision`, `blocked`, laporan partial, laporan dikembalikan, atau temuan yang butuh pemahaman desain, `ship-feature` melanjutkan engineer yang sama lewat `SendMessage`, jadi hasil eksplorasinya tidak dibuang. Verifikasi ulang tetap panggilan baru dengan scope sempit.
+6. **Skill dimuat kondisional.** `references/dotnet.md` cuma kalau menulis C#; `references/runtime.md` cuma kalau menyentuh cache/queue/observability; agent verifikasi memuat skill pattern cuma kalau diff menyentuh stack itu.
+7. **Laporan dibatasi** (engineer, QA, devops 250 kata).
+8. **Cache 1 jam hanya di agent yang menjalankan build/test panjang** (engineer, QA, devops). Cache write 1 jam ditagih 2× harga input (5 menit: 1,25×), dan baru balik modal kalau ada jeda 5–60 menit antar-request, misalnya engineer yang dilanjutkan setelah verifikasi. Agent lain (PO, system-analyst, reviewer, security) memakai default 5 menit, karena di dalam satu run jarak antar-request cuma hitungan detik. `token-audit` menandai agent yang membayar TTL 1 jam tanpa jeda ≥5 menit.
 
 **Kebiasaan di sisi user yang paling berpengaruh:**
 

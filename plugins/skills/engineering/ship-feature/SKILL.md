@@ -79,9 +79,11 @@ Siapa yang menulisnya:
 ## 4. Eksekusi
 
 - Kontrak sudah ada → panggil `backend-engineer` dan `frontend-engineer` **paralel dalam satu pesan**.
+- Beri setiap engineer `name` unik saat dipanggil (misalnya `be-<slug>`, `fe-<slug>`) supaya bisa dilanjutkan nanti.
 - Prompt ke engineer cukup pendek: path project, path spec, bagian yang dikerjakan, perintah build/test, dan "jangan membaca kode sisi lain; jangan menjelajahi ulang area yang sudah dijelaskan spec; jangan mengedit file spec".
 - Engineer wajib menjalankan **self-review** dan menyertakan **Peta AC → test** di laporannya. Laporan tanpa peta itu, atau dengan suite penuh yang belum dijalankan → kembalikan dulu ke engineer, jangan lanjut ke verifikasi.
 - **Baca baris pertama laporan engineer (`Status:`) dulu:** `done` → lanjut · `needs-decision` → putuskan sendiri, atau tanya user kalau menyangkut bisnis · `blocked` → selesaikan penghalangnya atau laporkan ke user · `too-big` → pecah sesuai usulannya.
+- **Lanjutkan engineer yang sama, jangan panggil baru,** setelah `needs-decision` dijawab, `blocked` selesai, pecahan pertama `too-big` diputuskan, laporannya ditandai partial karena `maxTurns`, atau laporannya dikembalikan. Kirim lewat `SendMessage` ke `name`-nya (atau agentId-nya). Konteksnya (eksplorasi, keputusan, kode yang sudah ditulis) masih utuh, dan kalau belum lewat 1 jam cache-nya ikut terpakai, jadi engineer tidak mulai dari nol.
 - Engineer punya memory peta kode per project, jadi fitur yang areanya pernah disentuh akan jauh lebih cepat. Tetap tulis Peta file — memory itu petunjuk, bukan pengganti brief.
 - `devops-engineer` hanya kalau ada env/config/CI/deploy baru.
 - Engineer melaporkan kontrak yang tidak bisa diimplementasikan → **kamu** yang memutuskan perubahannya (tanya user kalau menyangkut bisnis), perbarui spec, lalu kabari engineer sisi lain.
@@ -99,8 +101,11 @@ Scope tiap agent: file yang berubah + acceptance criteria + path spec. Ke `qa-te
 ## 6. Loop perbaikan
 
 - **Tunggu semua agent verifikasi selesai**, lalu gabungkan temuan blocking (🔴 dari reviewer, bug QA, security Critical/High, ketidaksesuaian kontrak) jadi **satu batch per engineer**. **Salin baris temuannya apa adanya** (`CR-1 path:line: …`, `QA-BUG-1 …`, `SEC-1 …`), tanpa ditulis ulang. Satu panggilan per engineer, bukan satu per temuan.
+- Pilih cara mengirim batch ke engineer:
+  - Ada temuan yang butuh pemahaman desain (kontrak, alur lintas file, pendekatan yang salah) → **lanjutkan engineer yang sama** lewat `SendMessage`. Ia masih ingat kenapa kodenya ditulis begitu.
+  - Semua temuan lokal dan `path:line`-nya jelas → **panggilan baru**. Konteks lama engineer yang besar tidak perlu ikut dibaca ulang di setiap turn perbaikan.
 - Prompt perbaikan diawali **"Mode perbaikan"**, supaya engineer menambah regression test, menjalankan ulang suite penuh + self-review, dan menyimpan pola temuannya di memory.
-- Verifikasi ulang **hanya oleh agent yang menemukannya**, dengan scope hanya perbaikannya: kirim ID temuan + baris status dari engineer.
+- Verifikasi ulang **hanya oleh agent yang menemukannya**, lewat **panggilan baru** dengan scope hanya perbaikannya: kirim ID temuan + baris status dari engineer. Jangan lanjutkan verifikator lama: konteksnya besar dan cache 5 menitnya sudah kedaluwarsa.
 - **Maksimal 2 putaran.** Masih ada blocking → berhenti dan laporkan ke user.
 - Temuan non-blocking tidak diperbaiki otomatis; masuk laporan akhir.
 
