@@ -23,7 +23,7 @@ Memory-mu adalah **peta jalan**, bukan sumber kebenaran. Kode selalu menang.
 
 **Setelah verifikasi lolos (build/test hijau), sebelum menulis laporan:** perbarui memory. Jangan menulis sebelum itu — yang belum terbukti jangan disimpan.
 
-- `MEMORY.md` = router tipis, **maksimal 60 baris**: konvensi repo (perintah build/test, layering, format error, penamaan) + satu baris per modul yang menunjuk ke file detailnya.
+- `MEMORY.md` = router tipis, **maksimal 60 baris**: konvensi repo (perintah build/test, layering, format error, penamaan) + satu baris per modul yang menunjuk ke file detailnya + bagian `Pelajaran review` (lihat Mode perbaikan).
 - `<modul>.md` = detail, **maksimal 15 baris**, format:
 
   ```
@@ -66,11 +66,30 @@ Memory-mu adalah **peta jalan**, bukan sumber kebenaran. Kode selalu menang.
 1. **Requirement** — tulis ulang tujuan + AC. Identifikasi endpoint, tabel, event, dan konsumen yang terpengaruh.
 2. **Desain singkat** — kontrak API, perubahan data (pakai **expand → migrate → contract** kalau mengubah data lama), transaksi/idempotency/concurrency, dan siapa yang boleh mengakses. Perubahan besar atau berisiko: sampaikan rencananya dulu.
 3. **Implementasi** — ikuti `backend-patterns`: layering (§1), REST (§2), error RFC 9457 (§3), validasi di boundary (§4), migration (§5), auth & IDOR (§6), resiliency (§7), clean code & SOLID (§10). Caching/queue/observability hanya kalau relevan: `references/runtime.md`.
-4. **Test** — `backend-patterns §9`. Wajib: happy path, validasi gagal, 401/403, akses resource orang lain, 404, konflik, aturan bisnis. Bug fix → regression test yang gagal sebelum fix.
-5. **Verifikasi** — jalankan build, lint/analyzer, type-check, dan test. **Jangan klaim selesai kalau belum dijalankan.** Tidak bisa dijalankan → bilang begitu.
-6. **Perbarui memory**, lalu tulis laporan.
+4. **Test** — `backend-patterns §9`. Wajib: happy path, validasi gagal, 401/403, akses resource orang lain, 404, konflik, aturan bisnis. Bug fix → regression test yang gagal sebelum fix. **Setiap AC minimal punya satu test** (dicatat di Peta AC → test).
+5. **Verifikasi** — jalankan build, lint/analyzer, type-check, dan **suite test penuh** (bukan hanya test baru). **Jangan klaim selesai kalau belum dijalankan.** Tidak bisa dijalankan → bilang begitu.
+6. **Self-review** — baca `git diff` milikmu sendiri seperti reviewer yang mencari alasan untuk menolak. Lihat checklist di bawah. Temuan → perbaiki, lalu ulangi langkah 5.
+7. **Perbarui memory**, lalu tulis laporan.
 
-## Laporan (maksimal 200 kata)
+## Self-review (wajib sebelum laporan)
+
+Ini yang paling sering lolos ke code-reviewer dan QA. Cek satu per satu terhadap diff-mu:
+
+- **Test lama.** Grep test yang memakai simbol/endpoint/perilaku yang kamu ubah. Perilaku berubah **sengaja** → perbarui test-nya dan sebut di laporan. **Tidak sengaja** → itu bug, perbaiki kodenya. Suite penuh harus benar-benar hijau.
+- **Telusuri setiap AC ke kode**, termasuk varian yang "mengosongkan": set ke `null`, hapus relasi, kembali ke default/root. Bedakan **field tidak dikirim** vs **dikirim `null`** di update parsial. **Tidak boleh ada jalur yang diam-diam no-op** — permintaan yang tidak dijalankan harus menghasilkan error, bukan 200.
+- **Jangan anggap data lama valid.** Loop/rekursi atas data (traversal parent/child, graph, rantai referensi) wajib punya batas kedalaman atau himpunan `visited`, supaya data korup (siklus, orphan) tidak bikin infinite loop. Tangani juga null, duplikat, dan relasi yang sudah terhapus.
+- **Kebenaran umum** — error ditelan, `await` terlewat, transaksi tidak atomic, race/concurrency, idempotency, N+1.
+- **Security dasar** — authorization per resource (IDOR), validasi di boundary, tidak ada secret/data sensitif di log.
+- **Kontrak** — path, field, tipe, status, dan format error persis sesuai spec.
+
+## Mode perbaikan (dipanggil dengan temuan review/QA)
+
+1. Perbaiki **setiap** temuan blocking. Tiap temuan bug → tambah regression test yang gagal sebelum fix.
+2. Jalankan langkah 5–6 lagi (suite penuh + self-review) — perbaikan juga bisa merusak hal lain.
+3. **Simpan pelajarannya di memory**, bukan hanya perbaikannya: pola yang spesifik modul → baris `Jebakan` di `<modul>.md`; pola yang berlaku umum (misalnya "update parsial: null ≠ tidak dikirim") → bagian `Pelajaran review` di `MEMORY.md`, satu baris per pola, maksimal 10 baris (ganti yang paling usang kalau penuh).
+4. Di laporan, sebut status tiap temuan: `diperbaiki` / `tidak diperbaiki + alasan`.
+
+## Laporan (maksimal 250 kata)
 
 ```
 ## Ringkasan
@@ -85,8 +104,12 @@ Memory-mu adalah **peta jalan**, bukan sumber kebenaran. Kode selalu menang.
 ## Database
 <hanya kalau ada perubahan skema: migration, index, dampak data lama, rollback>
 
+## Peta AC → test
+- AC-1 <ringkas> → <nama test> · AC-2 → ... (AC tanpa test = belum selesai, atau tulis alasannya)
+
 ## Verifikasi
-- Build/lint: <hasil> · Test: <pass>/<total> · Belum dijalankan: <...>
+- Build/lint: <hasil> · Test (suite penuh): <pass>/<total> · Test lama yang diubah: <nama + alasan> · Belum dijalankan: <...>
+- Self-review: <temuan yang diperbaiki sendiri, kalau ada>
 
 ## Risiko, asumsi & TODO
 - <termasuk temuan di luar scope dan file konteks tambahan yang dibaca>
