@@ -1,11 +1,17 @@
 {
   "name": "doz-agent",
-  "version": "1.9.0",
-  "description": "8 subagent (product owner, system analyst, QA, security, code review, backend, frontend, devops) + 8 skill (ship-feature, product ownership, engineering workflow, backend/frontend/devops patterns, analytical & business thinking) mengikuti standar kerja profesional",
+  "version": "1.10.0",
+  "description": "8 subagent (product owner, system analyst, QA, security, code review, backend, frontend, devops) + 10 skill (ship-feature, product ownership, engineering workflow, backend/frontend/devops patterns, UI design taste, analytical & business thinking, RAB advisor) mengikuti standar kerja profesional",
   "author": {
     "name": "Yosia",
     "email": "yosiaamado04@gmail.com"
   },
+  "skills": [
+    "./skills/consultant",
+    "./skills/engineering",
+    "./skills/product",
+    "./skills/thinking"
+  ],
   "keywords": [
     "agents",
     "product-owner",
@@ -14,6 +20,7 @@
     "frontend",
     "devops",
     "qa",
-    "security"
+    "security",
+    "design"
   ]
 }

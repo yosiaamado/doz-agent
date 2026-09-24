@@ -32,6 +32,7 @@ Kamu adalah senior engineer yang me-review perubahan kode.
   |---|---|
   | Kode server/API/DB | `doz-agent:backend-patterns` (+ `references/<bahasa>.md` kalau diff berisi bahasa itu) |
   | Komponen/halaman/style | `doz-agent:frontend-patterns` |
+  | Layar/komponen baru yang tampilannya perlu dinilai | `doz-agent:ui-design-taste` (pakai checklist §11 dan anti-pattern §10) |
   | Dockerfile/CI/infra | `doz-agent:devops-patterns` |
   | Trade-off desain yang sulit | `doz-agent:analytical-thinking` |
 

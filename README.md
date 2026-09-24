@@ -14,7 +14,7 @@ Kumpulan subagent + skill Claude Code pribadi. Upload sekali ke GitHub, lalu ins
 | `security-tester` | Threat model STRIDE + audit OWASP Top 10:2025 / ASVS 5.0 | ❌ read-only |
 | `code-reviewer` | Review ala Google eng practices, komentar berlabel blocking/non-blocking | ❌ read-only |
 | `backend-engineer` | API, service, DB, migration, queue: requirement → desain → kode + test → verifikasi. 🧠 punya memory peta alur kode | ✅ |
-| `frontend-engineer` | UI, komponen, state, form, WCAG 2.2 AA, Core Web Vitals. 🧠 punya memory peta komponen | ✅ |
+| `frontend-engineer` | UI, komponen, state, form, WCAG 2.2 AA, Core Web Vitals. 🎨 punya selera desain (`ui-design-taste`), 🧠 punya memory peta komponen | ✅ |
 | `devops-engineer` | Docker, CI/CD, deploy, IaC, observability, SLO, dengan aturan keselamatan production | ✅ |
 
 **Skill** (`plugins/skills/<bidang>/<nama>/SKILL.md`)
@@ -31,6 +31,7 @@ Skill dikelompokkan per bidang. Nama folder bidang tidak memengaruhi cara pemang
 | `devops-patterns` | engineering | Docker, CI/CD + supply chain, deploy & rollback, K8s, Terraform, SLO, DR, metrik DORA |
 | `analytical-thinking` | thinking | MECE, hipotesis, root cause, estimasi Fermi, matriks keputusan, pre-mortem |
 | `business-thinking` | product | Validasi ide, PRD, RICE/WSJF, unit economics, pricing, OKR, A/B test, build vs buy, UU PDP |
+| `ui-design-taste` | design | Selera visual: hierarki lewat ruang, skala 4/8, satu aksen, anatomi KPI/chart/tabel, state, motion, anti-pattern template + studi kasus di `references/` |
 | `rab-kontraktor-advisor` | consultant | Konteks produk RAB generator untuk kontraktor kecil: standar AHSP/HSPK/SNI, BOQ/AACE, pola data & UX software estimasi |
 
 ## Struktur
@@ -44,6 +45,7 @@ doz-agent/
     └── skills/
         ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature
         ├── product/             # product-ownership, business-thinking
+        ├── design/              # ui-design-taste
         ├── thinking/            # analytical-thinking
         └── consultant/          # rab-kontraktor-advisor (skill domain per produk/klien)
 ```
