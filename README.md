@@ -24,11 +24,12 @@ Skill dikelompokkan per bidang. Nama folder bidang tidak memengaruhi cara pemang
 | Skill | Bidang | Isi |
 |---|---|---|
 | `ship-feature` | engineering | **Titik masuk utama.** Orkestrator satu perintah: ukur pekerjaan (kecil/sedang/besar), jalankan hanya agent yang dibutuhkan (PO → SA → BE ∥ FE → verifikasi paralel → acceptance), loop perbaikan, berhenti hanya untuk keputusan bisnis |
+| `token-audit` | engineering | Audit token & kegagalan satu workflow dari transcript: token & perkiraan biaya per agent, gap terbesar (file besar dibaca utuh, output panjang, eksplorasi, cache miss, narasi, laporan panjang), kegagalan agent & temuan blocking per kategori, pola kegagalan berulang lintas workflow, dan saran per file agent. Otomatis di akhir `ship-feature` ukuran Sedang/Besar; manual: `/doz-agent:token-audit [--all]` |
 | `product-ownership` | product | Kerangka kerja PO (Scrum Guide 2020): analisis dampak, INVEST, Given/When/Then, story splitting, DoR, penentuan agent, penerimaan hasil |
 | `engineering-workflow` | engineering | Alur kerja tim: DoR/DoD, branching, Conventional Commits, PR, code review, ADR, SemVer, incident & postmortem |
 | `backend-patterns` | engineering | Aturan dasar backend (REST, RFC 9457, migration zero-downtime, OWASP, resiliency, OpenTelemetry) + aturan per bahasa di `references/` (.NET, dll.) |
 | `frontend-patterns` | engineering | Struktur, state, form, WCAG 2.2 AA, Core Web Vitals, CSP, testing trophy |
-| `devops-patterns` | engineering | Docker, CI/CD + supply chain, deploy & rollback, K8s, Terraform, SLO, DR, metrik DORA |
+| `devops-patterns` | engineering | Docker, CI/CD + supply chain, deploy & rollback, K8s, Terraform, SLO & alert, backup/DR |
 | `analytical-thinking` | thinking | MECE, hipotesis, root cause, estimasi Fermi, matriks keputusan, pre-mortem |
 | `business-thinking` | product | Validasi ide, PRD, RICE/WSJF, unit economics, pricing, OKR, A/B test, build vs buy, UU PDP |
 | `ui-design-taste` | design | Selera visual: hierarki lewat ruang, skala 4/8, satu aksen, anatomi KPI/chart/tabel, state, motion, anti-pattern template + studi kasus di `references/` |
@@ -43,7 +44,7 @@ doz-agent/
     ├── .claude-plugin/plugin.json
     ├── agents/                  # 8 subagent (file datar, tanpa subfolder)
     └── skills/
-        ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature
+        ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature, token-audit
         ├── product/             # product-ownership, business-thinking
         ├── design/              # ui-design-taste
         ├── thinking/            # analytical-thinking
@@ -86,13 +87,29 @@ Mau diskusi dulu tanpa implementasi? Pakai `/doz-agent:product-ownership <ide>` 
 
 **Kapan ditulis:** setelah build/test hijau, sebelum menulis laporan — jadi yang tersimpan sudah terbukti benar, bukan tebakan.
 
-**Kapan dibaca:** paling awal, sebelum eksplorasi apa pun. Agent memverifikasi satu anchor (grep satu nama simbol dari catatan); kalau tidak cocok, catatannya diabaikan, dicari ulang, lalu diperbarui. **Kode selalu menang atas memory.**
+**Kapan dibaca:** `MEMORY.md` dimuat otomatis oleh Claude Code di awal setiap panggilan (makanya dibatasi 60 baris). File detail modul dibaca paling awal, sebelum eksplorasi apa pun. Agent memverifikasi satu anchor (grep satu nama simbol dari catatan); kalau tidak cocok, catatannya diabaikan, dicari ulang, lalu diperbarui. **Kode selalu menang atas memory.**
 
 Isinya nama simbol + path + jebakan, **bukan nomor baris** (paling cepat basi) dan bukan potongan kode. Tiap catatan menyimpan commit SHA, jadi basi bisa dicek dengan `git log --oneline <sha>..HEAD -- <path>`.
 
 Fitur pertama di satu area belum ada hematnya — untungnya mulai terasa dari sentuhan kedua.
 
 **Belajar dari review:** saat dipanggil di loop perbaikan, engineer menyimpan **pola** temuan reviewer/QA (bukan hanya fix-nya) — yang spesifik modul ke `Jebakan`, yang umum ke bagian `Pelajaran review` di `MEMORY.md` (maks 10 baris). Kesalahan yang sama tidak terulang di fitur berikutnya.
+
+## Mengukur token
+
+Setiap `ship-feature` ukuran Sedang/Besar ditutup dengan **token audit**. Script `token-audit` membaca transcript Claude Code (`~/.claude/projects/...`), lalu menampilkan:
+
+- **Token per agent** dari angka `usage` API (persis) dan perkiraan biayanya (harga list API, hanya sebagai pembanding).
+- **Gap terbesar, diurutkan dari dampaknya.** Konten yang masuk konteks dibaca ulang dari cache di setiap turn berikutnya, jadi file besar di awal ikut dihitung sampai akhir.
+- **Saran perbaikan** yang menunjuk ke file agent yang perlu diubah.
+- **Kegagalan & temuan**, dibaca dari format laporan agent: status engineer (`blocked`, atau tanpa status sama sekali), keputusan reviewer/QA/security, temuan blocking per engineer dan kategori (test lama, null/no-op, loop/data korup, authorization, dst.), test/build yang gagal di dalam agent, laporan yang dikembalikan orkestrator, dan temuan yang muncul lagi setelah diperbaiki.
+- **Pola kegagalan berulang**: kategori blocking yang sama untuk engineer yang sama di ≥2 dari 5 workflow terakhir, dicatat lintas project. Saran dari pola ini ditampilkan paling atas, karena mengurangi putaran perbaikan biasanya lebih hemat daripada memangkas token.
+- **Bukti singkat**: setiap kegagalan disertai satu baris penyebab dari data asli, misalnya error kompilasi, nama test yang gagal, atau temuan aslinya beserta nama project.
+- **Saran selalu umum**: yang diperbaiki adalah aturan kerja agent di plugin ini, bukan error project tertentu, supaya agent tetap berlaku untuk project lain. Kegagalan karena lingkungan (DB mati, perintah tidak ada) diarahkan ke `CLAUDE.md` project.
+- **Tren** dibanding run sebelumnya. Log disimpan di `~/.claude/doz-agent/token-audit.csv` (token), `findings.csv` (temuan), dan `runs.csv` (ringkasan per workflow).
+- **Perbandingan model engineer** lewat `/doz-agent:token-audit --compare`: rata-rata biaya, putaran perbaikan, verifikasi ulang, dan temuan blocking per model.
+
+Pakai ini sebelum mengubah prompt agent. Perbaiki gap yang terbesar dulu, lalu bandingkan tren di run berikutnya.
 
 ## Format laporan agent
 
@@ -104,7 +121,7 @@ Laporan agent masuk utuh ke konteks thread utama dan ikut terkirim ulang di tiap
 
 ## Mengurangi putaran review
 
-Engineer wajib **self-review** diff-nya sendiri sebelum melapor: test lama yang terdampak, tiap AC ditelusuri ke kode (termasuk varian "mengosongkan" seperti set ke `null` — tidak boleh ada jalur yang diam-diam no-op), loop atas data lama yang bisa korup, security dasar, dan kesesuaian kontrak. Laporannya menyertakan **Peta AC → test**, yang diteruskan ke QA supaya QA menguji celah, bukan mengulang test yang sudah ada.
+Engineer wajib **self-review** diff-nya sendiri sebelum melapor: test lama yang terdampak, tiap AC ditelusuri ke kode (termasuk varian "mengosongkan" seperti set ke `null` — tidak boleh ada jalur yang diam-diam no-op), loop atas data lama yang bisa korup, security dasar, dan kesesuaian kontrak. Laporannya menyertakan **Peta AC → test**, yang diteruskan ke QA supaya QA menguji celah, bukan mengulang test yang sudah ada. Baris Verifikasi-nya (hasil build + suite penuh) juga diteruskan ke reviewer dan QA, jadi suite yang sudah hijau tidak dijalankan ulang: reviewer fokus ke desain dan kebenaran, QA cukup menjalankan test baru + modul yang terdampak.
 
 ## Hemat token
 
@@ -121,14 +138,27 @@ Engineer wajib **self-review** diff-nya sendiri sebelum melapor: test lama yang 
 
 Alasannya: kontrak API yang salah bikin rework 2 agent — jauh lebih mahal dari selisih model. `maxTurns` mencegah agent menjelajah tanpa henti, dan tiap agent punya aturan **"buntu setelah ~15 pencarian → berhenti dan lapor"**.
 
+Orkestrator (`ship-feature`) jalan di effort `high`, karena di alur default ia sendiri yang menulis kontrak API.
+
+**Eksperimen model engineer.** Opus sekarang cuma 2–2,5× harga Sonnet per token, sedangkan putaran perbaikan berasal dari engineer. Satu putaran = engineer + semua verifikator jalan ulang. Jadi yang dibandingkan adalah biaya per fitur selesai, bukan harga per token:
+
+```
+/doz-agent:ship-feature --engineer-model opus tambah fitur X
+/doz-agent:token-audit --compare
+```
+
+Jalankan 3–5 fitur dengan ukuran sebanding untuk tiap model (tanpa flag = model di frontmatter, yaitu Sonnet). Kalau Opus lebih murah per fitur karena putarannya lebih sedikit, ganti `model: opus` di `backend-engineer.md` dan `frontend-engineer.md`.
+
 **Yang paling menghemat, urut dari yang terbesar:**
 
 1. **Peta file di brief.** Engineer cuma boleh menyentuh file yang disebut di situ (+ maks 3 file konteks). Ini yang memotong eksplorasi dari nol — biaya terbesar di seluruh alur.
 2. **Memory peta kode** di BE/FE, buat area yang pernah disentuh.
 3. **Tidak memanggil agent untuk hal yang bisa dikerjakan thread utama.** `ship-feature` menulis kontrak sendiri untuk 1–2 endpoint, dan mengerjakan perubahan Kecil tanpa agent sama sekali.
 4. **PO sekali jalan.** Maksimal 3 pertanyaan, semuanya punya default, jadi tidak ada panggilan kedua.
-5. **Skill dimuat kondisional.** `references/dotnet.md` cuma kalau menulis C#; `references/runtime.md` cuma kalau menyentuh cache/queue/observability; agent verifikasi memuat skill pattern cuma kalau diff menyentuh stack itu.
-6. **Laporan dibatasi** (engineer, QA, devops 250 kata) dan `prompt-cache 1 jam` aktif di semua agent.
+5. **Engineer dilanjutkan, bukan dipanggil ulang.** Setelah `needs-decision`, `blocked`, laporan partial, laporan dikembalikan, atau temuan yang butuh pemahaman desain, `ship-feature` melanjutkan engineer yang sama lewat `SendMessage`, jadi hasil eksplorasinya tidak dibuang. Verifikasi ulang tetap panggilan baru dengan scope sempit.
+6. **Skill ramping, dimuat seperlunya.** Engineer selalu membawa skill pattern-nya (`skills:` memuat isi penuh), jadi isinya hanya keputusan default dan jebakan, bukan tutorial, plus larangan menambahkan pola itu ke project yang belum memakainya. `references/dotnet.md` cuma kalau menulis C#; `references/runtime.md` cuma kalau menyentuh cache/queue/observability; agent verifikasi memuat skill pattern cuma kalau diff menyentuh stack itu.
+7. **Laporan dibatasi** (engineer, QA, devops 250 kata).
+8. **Cache 1 jam hanya di agent yang menjalankan build/test panjang** (engineer, QA, devops). Cache write 1 jam ditagih 2× harga input (5 menit: 1,25×), dan baru balik modal kalau ada jeda 5–60 menit antar-request, misalnya engineer yang dilanjutkan setelah verifikasi. Agent lain (PO, system-analyst, reviewer, security) memakai default 5 menit, karena di dalam satu run jarak antar-request cuma hitungan detik. `token-audit` menandai agent yang membayar TTL 1 jam tanpa jeda ≥5 menit.
 
 **Kebiasaan di sisi user yang paling berpengaruh:**
 
@@ -169,7 +199,7 @@ Marketplace cukup ditambahkan sekali per mesin. Kalau repo-nya private, pastikan
 /doz-agent:business-thinking
 ```
 
-**Agent** dipanggil otomatis kalau konteksnya cocok, atau disebut langsung:
+**Agent** dipanggil otomatis kalau konteksnya cocok, kecuali agent verifikasi (`code-reviewer`, `qa-tester`, `security-tester`): mereka tidak dipanggil otomatis setelah kode berubah, supaya perubahan kecil tidak memicu verifikasi yang mahal. Panggil langsung, atau lewat `ship-feature`:
 
 ```
 pakai agent qa-tester buat test fitur checkout
@@ -189,9 +219,11 @@ Edit file, lalu commit & push. Di mesin yang sudah install, jalankan:
 
 ## Nambah agent / skill baru
 
-- Agent: buat `plugins/agents/<nama>.md` (frontmatter: `name`, `description`, `tools`, `model`, `effort`, `maxTurns`, `color`, opsional `skills`, `memory`, `experimental.cacheTtl`)
+- Agent: buat `plugins/agents/<nama>.md` (frontmatter: `name`, `description`, `tools`, `model`, `effort`, `maxTurns`, `color`, opsional `skills`, `memory`, `experimental.cacheTtl` — isi `1h` hanya kalau agent-nya menjalankan build/test yang bisa lebih dari 5 menit)
 - Skill: buat `plugins/skills/<bidang>/<nama>/SKILL.md` (frontmatter: `name`, `description`, opsional `effort`, `model`, `argument-hint`). Bidang baru cukup bikin folder baru; nama pemanggilan tetap `doz-agent:<nama>` karena diambil dari frontmatter `name`, bukan dari path
 - Aturan backend untuk bahasa baru (misalnya Go, Node): buat `plugins/skills/engineering/backend-patterns/references/<bahasa>.md`, lalu tambahkan barisnya di tabel "Aturan per bahasa" di `backend-patterns/SKILL.md`
 - Naikkan `version` di `plugin.json`, lalu push.
 
 Tips: `description` menentukan kapan agent/skill dipakai otomatis. Tulis secara spesifik **kapan** harus dipakai, bukan cuma namanya.
+
+Isi skill cukup keputusan tim dan jebakan yang pernah terjadi. Penjelasan umum (definisi SOLID, daftar status HTTP, ambang Core Web Vitals) tidak perlu: model sudah tahu, dan teks yang tidak relevan cenderung ikut diterapkan di tempat yang salah.
