@@ -67,7 +67,7 @@ Target p75: LCP < 2.5 s, INP < 200 ms, CLS < 0.1. Code splitting per route dan l
 
 ## 9. Keamanan
 
-HTML dari user disanitasi (DOMPurify); hindari `dangerouslySetInnerHTML`/`v-html` · tidak ada secret di kode client, hanya env publik (`NEXT_PUBLIC_*`, `VITE_*`) · token sesi di cookie `HttpOnly; Secure; SameSite`, bukan localStorage · Content Security Policy tanpa inline script · URL divalidasi sebelum dipakai di `href`/redirect (cegah `javascript:` dan open redirect) · authorization di UI hanya untuk kenyamanan, keamanan sebenarnya ada di server.
+HTML dari user disanitasi (DOMPurify); hindari `dangerouslySetInnerHTML`/`v-html` · tidak ada secret di kode client, hanya env publik (`NEXT_PUBLIC_*`, `VITE_*`) · token sesi di cookie `HttpOnly; Secure; SameSite`, bukan localStorage · Content Security Policy tanpa inline script · URL divalidasi sebelum dipakai di `href`/redirect (cegah `javascript:` dan open redirect) · key dari input user/URL untuk lookup objek memakai `Map`/`Set` atau `Object.hasOwn`, bukan `obj[key]` biasa (`__proto__`, `constructor`) · authorization di UI hanya untuk kenyamanan, keamanan sebenarnya ada di server.
 
 ## 10. i18n, analytics & privasi
 

@@ -193,13 +193,10 @@ public class OrderService(AppDbContext db, ILogger<OrderService> logger) : IOrde
 
     public async Task<OrderResponse> CreateAsync(CreateOrderRequest request, CancellationToken ct = default)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-
         var order = new Order { /* ... */ };
         db.Orders.Add(order);
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(ct);   // satu SaveChanges sudah atomic; transaksi manual: lihat §4
 
-        await tx.CommitAsync(ct);
         logger.LogInformation("Order {OrderId} dibuat", order.Id);
         return order.ToResponse();
     }
@@ -305,7 +302,8 @@ Controller dan service **tidak** memakai try/catch hanya untuk mengubah exceptio
 - **Uang** memakai `decimal` dengan `HasPrecision(18, 2)`.
 - **Waktu** disimpan dalam UTC. Inject `TimeProvider` (jangan memanggil `DateTime.UtcNow` langsung di service) supaya waktu bisa di-mock di test.
 - **Concurrency:** entity yang bisa diubah bersamaan diberi token versi (`[Timestamp] byte[] RowVersion` / `IsRowVersion()`), dan `DbUpdateConcurrencyException` dipetakan ke 409.
-- **Pagination:** `pageSize` dibatasi (misalnya maksimal 100) dan divalidasi, supaya client tidak bisa meminta seluruh tabel.
+- **Transaksi manual** hanya untuk beberapa `SaveChangesAsync`/raw SQL yang harus atomic. Kalau `EnableRetryOnFailure` aktif, `BeginTransactionAsync` langsung akan melempar `InvalidOperationException`; bungkus dengan `db.Database.CreateExecutionStrategy().ExecuteAsync(async () => { /* BeginTransactionAsync … CommitAsync */ })`. Isi lambda harus aman diulang dari awal.
+- **Pagination:** `page` ≥ 1 dan `pageSize` 1–100 divalidasi (400 kalau di luar batas), supaya client tidak bisa meminta seluruh tabel. Batas atas `page` juga divalidasi supaya `(page - 1) * pageSize` untuk `Skip` tidak overflow `int`.
 - **HttpClient** ke layanan eksternal lewat `IHttpClientFactory` (typed client) dengan timeout dan resilience handler (`AddStandardResilienceHandler()`). Jangan `new HttpClient()` per request.
 - **Versioning API** pakai `Asp.Versioning.Mvc` kalau butuh lebih dari satu versi aktif. Route tetap `/api/v{version}/...`.
 - **Authorization** memakai policy (`[Authorize(Policy = "...")]`), dan pengecekan kepemilikan resource dilakukan di service (filter berdasarkan `userId`/`tenantId` di query), bukan hanya di controller.

@@ -12,6 +12,8 @@ Jalankan script di folder skill ini (lihat "Base directory for this skill" di at
 python3 "<base directory skill ini>/scripts/token_audit.py" $ARGUMENTS
 ```
 
+`python3` tidak ada (umumnya di Windows) → pakai `python` dengan argumen yang sama.
+
 Tanpa argumen, script mengaudit **workflow `ship-feature` terakhir** di session terbaru project ini. Pilihan lain:
 
 | Argumen | Scope |
@@ -35,9 +37,9 @@ Tanpa argumen, script mengaudit **workflow `ship-feature` terakhir** di session 
 
 - **% biaya per agent** menunjukkan agent mana yang paling layak dioptimasi.
 - **Gap** diurutkan dari perkiraan dampaknya. Konten yang masuk konteks lebih awal dibaca ulang dari cache di setiap turn berikutnya, jadi satu file besar di awal bisa lebih mahal daripada banyak file kecil di akhir.
-- **Kegagalan & temuan** dibaca dari format laporan agent: `Status:` engineer, `Keputusan:`/`Rekomendasi:` verifikator, baris temuan `CR-n`/`QA-BUG-n`/`SEC-n`, test/build yang gagal di dalam agent, engineer yang dipanggil ulang setelah `done` tanpa "Mode perbaikan", dan temuan blocking yang muncul lagi setelah diperbaiki. Agent yang tidak mengikuti format laporan akan tampil sebagai "⚠ tanpa baris Status/keputusan".
-- **Agent background & run lanjutan**: laporan agent background dibaca dari `<task-notification>`, karena tool_result-nya hanya "Async agent launched". Run yang dilanjutkan lewat `SendMessage` dihitung sebagai panggilan, dengan label `(lanjutan)`, `(perbaikan)`, atau `(dikembalikan)`. Yang masuk "Dipanggil berulang" hanya run perbaikan dan verifikasi ulang, dan `maxTurns` dicek per run.
-- **Kategori temuan** (test lama, null/no-op, loop/data korup, authorization, validasi, kontrak, dst.) ditebak dari kata kunci, jadi hasilnya kasar. Yang tidak cocok masuk "lain".
+- **Kegagalan & temuan** dibaca dari format laporan agent: `Status:` engineer, `Keputusan:`/`Rekomendasi:` verifikator, baris temuan `CR-n`/`QA-BUG-n`/`SEC-n`, test/build yang gagal di dalam agent, engineer yang dipanggil ulang setelah `done` tanpa "Mode perbaikan", dan temuan blocking yang muncul lagi setelah diperbaiki. Agent yang tidak mengikuti format laporan akan tampil sebagai "⚠ tanpa baris Status/keputusan"; run yang mentok `maxTurns` tampil sebagai "⚠ berhenti di maxTurns" dan ikut sinyal "Hampir kehabisan turn".
+- **Agent background & run lanjutan**: laporan agent background dibaca dari `<task-notification>`, karena tool_result-nya hanya "Async agent launched". Run yang dilanjutkan lewat `SendMessage` dihitung sebagai panggilan, dengan label `(lanjutan)`, `(lanjutan-maxTurns)`, `(slice berikutnya)`, `(perbaikan)`, atau `(dikembalikan)`. Hanya `(dikembalikan)` yang dihitung sebagai laporan dikembalikan. Yang masuk "Dipanggil berulang" hanya run perbaikan dan verifikasi ulang, dan `maxTurns` dicek per run.
+- **Kategori temuan** (authz-agregat, state-update, css-cascade, test lama, null/no-op, loop/data korup, authorization, validasi, kontrak, dst.) ditebak dari kata kunci di awal kata, tanpa label severity, jadi hasilnya kasar. Yang tidak cocok masuk "lain".
 - **Bukti (`↳`)**: satu baris dari data asli per item, maksimal 2. Untuk test/build: baris error yang menentukan beserta penyebabnya (kompilasi/tipe, test gagal, lint, lingkungan). Untuk pola berulang: temuan aslinya beserta nama project.
 - **Pola kegagalan berulang** muncul kalau kategori blocking yang sama untuk engineer yang sama terjadi di ≥2 dari 5 workflow terakhir. Kalau terjadi di beberapa project, itu tanda paling kuat bahwa kelemahannya ada di agent. Saran dari pola ini selalu ditampilkan paling atas.
 - Test yang gagal sekali di tengah iterasi itu wajar. Saran per penyebab baru muncul kalau penyebabnya berulang, berakhir merah, atau berasal dari lingkungan.

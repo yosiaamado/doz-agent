@@ -41,6 +41,8 @@ Ini yang menentukan hemat atau borosnya seluruh alur:
 
 Sampaikan ukuran + alasannya dalam **satu kalimat**, lalu langsung lanjut.
 
+Ada AC visual atau alur yang butuh login (misalnya halaman admin) dan tersedia tool browser → minta user login di browser **sekarang**, supaya cek visual bisa dilakukan sebelum laporan akhir. Kamu tidak pernah mengetik password. Tanpa tool browser → tulis "belum dicek visual" di laporan akhir.
+
 ## 2. Product owner (hanya Besar)
 
 Panggil `doz-agent:product-owner` dengan permintaan user, path project, dan temuanmu. PO bekerja **sekali jalan** — jangan memanggilnya dua kali untuk requirement yang sama.
@@ -58,12 +60,14 @@ Satu file `docs/specs/<slug>.md` jadi acuan semua agent, supaya tidak ada yang m
 <stack, perintah build/test/lint, path penting, konvensi — dari langkah 1>
 ## Requirement
 <user story + AC, atau permintaan user kalau tanpa PO>
+## Slice
+- S1 <nama> — AC-1, AC-2 — BE/FE   (satu slice = satu panggilan engineer)
 ## Kontrak API
 ### <METHOD> <path>
 - Auth · Request (params/body + validasi) · Response 2xx (contoh JSON) · Error (status → kapan → contoh body)
 ## Peta file
 ### Backend / ### Frontend
-- <path> — <buat/ubah> — <apa> (ikuti pola: <path:baris>)
+- [S1] <path> — <buat/ubah> — <apa> (ikuti pola: <path:baris>)
 ## Keputusan & asumsi
 ```
 
@@ -76,16 +80,17 @@ Siapa yang menulisnya:
 | Bentuk response belum bisa dipastikan, atau porsi FE sangat kecil | **Lewati kontrak di depan.** `backend-engineer` dulu, ambil kontrak final dari laporannya, baru `frontend-engineer` |
 | Hanya satu layer (FE saja atau BE saja) | Tanpa kontrak. Cukup "Konteks repo" + "Requirement" + "Peta file" |
 
-**Peta file wajib diisi** — itu yang membatasi scope engineer dan mencegah eksplorasi ulang. Pertanyaan terbuka yang memengaruhi kontrak diperlakukan seperti langkah 2.
+**Peta file wajib diisi** — itu yang membatasi scope engineer dan mencegah eksplorasi ulang. Lebih dari 1 engineer per layer → tulis pemilik tiap file/folder; satu file tidak boleh punya dua pemilik. Pertanyaan terbuka yang memengaruhi kontrak diperlakukan seperti langkah 2.
 
 ## 4. Eksekusi
 
 - Kontrak sudah ada → panggil `backend-engineer` dan `frontend-engineer` **paralel dalam satu pesan**.
+- **Satu panggilan engineer = satu slice.** Slice berikutnya dikirim setelah slice sebelumnya `done`: area yang sama → `SendMessage` ke engineer yang sama; area lain → panggilan baru. Engineer boleh paralel hanya kalau Peta file mereka tidak beririsan.
 - Beri setiap engineer `name` unik saat dipanggil (misalnya `be-<slug>`, `fe-<slug>`) supaya bisa dilanjutkan nanti.
 - Prompt ke engineer cukup pendek: path project, path spec, bagian yang dikerjakan, perintah build/test, dan "jangan membaca kode sisi lain; jangan menjelajahi ulang area yang sudah dijelaskan spec; jangan mengedit file spec".
 - Engineer wajib menjalankan **self-review** dan menyertakan **Peta AC → test** di laporannya. Laporan tanpa peta itu, atau dengan suite penuh yang belum dijalankan → kembalikan dulu ke engineer, jangan lanjut ke verifikasi.
-- **Baca baris pertama laporan engineer (`Status:`) dulu:** `done` → lanjut · `needs-decision` → putuskan sendiri, atau tanya user kalau menyangkut bisnis · `blocked` → selesaikan penghalangnya atau laporkan ke user · `too-big` → pecah sesuai usulannya.
-- **Lanjutkan engineer yang sama, jangan panggil baru,** setelah `needs-decision` dijawab, `blocked` selesai, pecahan pertama `too-big` diputuskan, laporannya ditandai partial karena `maxTurns`, atau laporannya dikembalikan. Kirim lewat `SendMessage` ke `name`-nya (atau agentId-nya). Konteksnya (eksplorasi, keputusan, kode yang sudah ditulis) masih utuh, dan kalau belum lewat 1 jam cache-nya ikut terpakai, jadi engineer tidak mulai dari nol.
+- **Baca baris pertama laporan engineer (`Status:`) dulu:** `done` → lanjut · `partial` → lanjutkan dengan sisa pekerjaannya · `needs-decision` → putuskan sendiri, atau tanya user kalau menyangkut bisnis · `blocked` → selesaikan penghalangnya atau laporkan ke user · `too-big` → pecah sesuai usulannya.
+- **Lanjutkan engineer yang sama, jangan panggil baru,** setelah `needs-decision` dijawab, `blocked` selesai, pecahan pertama `too-big` diputuskan, `partial` atau berhenti karena `maxTurns`, atau laporannya dikembalikan. Kirim lewat `SendMessage` ke `name`-nya (atau agentId-nya). Konteksnya (eksplorasi, keputusan, kode yang sudah ditulis) masih utuh, dan kalau belum lewat 1 jam cache-nya ikut terpakai, jadi engineer tidak mulai dari nol.
 - Engineer punya memory peta kode per project, jadi fitur yang areanya pernah disentuh akan jauh lebih cepat. Tetap tulis Peta file — memory itu petunjuk, bukan pengganti brief.
 - `devops-engineer` hanya kalau ada env/config/CI/deploy baru.
 - Engineer melaporkan kontrak yang tidak bisa diimplementasikan → **kamu** yang memutuskan perubahannya (tanya user kalau menyangkut bisnis), perbarui spec, lalu kabari engineer sisi lain.
@@ -99,6 +104,8 @@ Scope tiap agent: file yang berubah + acceptance criteria + path spec + **baris 
 | `code-reviewer` | Selalu (Sedang & Besar) |
 | `qa-tester` | Ada logika baru/berubah atau acceptance criteria. FE ∥ BE → minta cek integrasi sesuai Kontrak API. Lewati untuk perubahan murni tampilan/copy |
 | `security-tester` | Hanya kalau menyentuh area sensitif |
+
+Diff lebih dari ~25 file → pecah `code-reviewer` per layer (BE, FE) atau per modul, paralel dalam satu pesan. Laporan verifikator berisi `Belum direview` → panggilan baru untuk area itu saja.
 
 ## 6. Loop perbaikan
 

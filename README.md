@@ -40,6 +40,9 @@ Skill dikelompokkan per bidang. Nama folder bidang tidak memengaruhi cara pemang
 ```
 doz-agent/
 ├── .claude-plugin/marketplace.json
+├── CHANGELOG.md                 # riwayat versi: alasan + satu baris per perubahan per file
+├── agent-usage/                 # hasil token-audit per tanggal, pembanding antar versi (tidak ikut ter-install)
+├── tests/                       # test script token-audit: python3 -m unittest discover -s tests
 └── plugins/
     ├── .claude-plugin/plugin.json
     ├── agents/                  # 8 subagent (file datar, tanpa subfolder)
@@ -109,13 +112,13 @@ Setiap `ship-feature` ukuran Sedang/Besar ditutup dengan **token audit**. Script
 - **Tren** dibanding run sebelumnya. Log disimpan di `~/.claude/doz-agent/token-audit.csv` (token), `findings.csv` (temuan), dan `runs.csv` (ringkasan per workflow).
 - **Perbandingan model engineer** lewat `/doz-agent:token-audit --compare`: rata-rata biaya, putaran perbaikan, verifikasi ulang, dan temuan blocking per model.
 
-Pakai ini sebelum mengubah prompt agent. Perbaiki gap yang terbesar dulu, lalu bandingkan tren di run berikutnya.
+Pakai ini sebelum mengubah prompt agent. Perbaiki gap yang terbesar dulu, lalu bandingkan tren di run berikutnya. Hasil audit yang memicu perubahan disimpan di `agent-usage/<tanggal>.md` supaya bisa dibandingkan dengan audit setelah perubahan.
 
 ## Format laporan agent
 
 Laporan agent masuk utuh ke konteks thread utama dan ikut terkirim ulang di tiap giliran, jadi formatnya dibuat seperti data, bukan prosa:
 
-- **Baris pertama = status/keputusan**: engineer `Status: done | blocked | needs-decision | too-big`, reviewer `Keputusan:`, QA dan security `Rekomendasi:`. Orkestrator menentukan langkah berikutnya tanpa membaca seluruh laporan.
+- **Baris pertama = status/keputusan**: engineer `Status: done | partial | blocked | needs-decision | too-big`, reviewer `Keputusan:`, QA dan security `Rekomendasi:`. Semua agent punya checkpoint di ±70% `maxTurns`: berhenti menambah pekerjaan dan menulis laporan, supaya tidak mentok tanpa laporan. Orkestrator menentukan langkah berikutnya tanpa membaca seluruh laporan.
 - **Satu temuan = satu baris** dengan ID (`CR-1`, `QA-BUG-1`, `SEC-1`) dan `path:line`. Baris itu disalin apa adanya ke batch perbaikan, dan engineer membalas per ID.
 - **Tanpa narasi di antara tool call.** Laporan ke orkestrator ringkas; spec, memory, test, commit, dan peringatan security tetap kalimat lengkap.
 
@@ -222,7 +225,7 @@ Edit file, lalu commit & push. Di mesin yang sudah install, jalankan:
 - Agent: buat `plugins/agents/<nama>.md` (frontmatter: `name`, `description`, `tools`, `model`, `effort`, `maxTurns`, `color`, opsional `skills`, `memory`, `experimental.cacheTtl` — isi `1h` hanya kalau agent-nya menjalankan build/test yang bisa lebih dari 5 menit)
 - Skill: buat `plugins/skills/<bidang>/<nama>/SKILL.md` (frontmatter: `name`, `description`, opsional `effort`, `model`, `argument-hint`). Bidang baru cukup bikin folder baru; nama pemanggilan tetap `doz-agent:<nama>` karena diambil dari frontmatter `name`, bukan dari path
 - Aturan backend untuk bahasa baru (misalnya Go, Node): buat `plugins/skills/engineering/backend-patterns/references/<bahasa>.md`, lalu tambahkan barisnya di tabel "Aturan per bahasa" di `backend-patterns/SKILL.md`
-- Naikkan `version` di `plugin.json`, lalu push.
+- Naikkan `version` di `plugin.json`, tulis entrinya di `CHANGELOG.md`, lalu push (commit diberi tag `vX.Y.Z`).
 
 Tips: `description` menentukan kapan agent/skill dipakai otomatis. Tulis secara spesifik **kapan** harus dipakai, bukan cuma namanya.
 

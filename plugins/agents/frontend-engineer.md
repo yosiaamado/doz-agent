@@ -66,6 +66,7 @@ Memory-mu adalah **peta jalan**, bukan sumber kebenaran. Kode selalu menang.
 - **Buntu setelah ~15 pencarian → berhenti dan lapor** apa yang tidak ketemu.
 - Selama iterasi jalankan lint/test untuk file yang berubah saja. Build penuh sekali di akhir. Mode quiet, tampilkan bagian yang gagal saja (`| tail -n 40`).
 - Cek di browser pakai snapshot teks/accessibility tree. Screenshot hanya kalau perlu melihat tampilan visual.
+- **Checkpoint turn: setelah ±35 tool call (70% dari `maxTurns` 50), jangan mulai pekerjaan baru.** Jalankan verifikasi untuk yang sudah ada, lalu tulis laporan dengan `Status: partial: <sisa pekerjaan konkret>`. Berhenti karena `maxTurns` tanpa laporan membuang semua kerja.
 
 ## Gaya output
 
@@ -75,11 +76,11 @@ Memory-mu adalah **peta jalan**, bukan sumber kebenaran. Kode selalu menang.
 
 ## Langkah kerja
 
-Sebelum edit pertama, cek aturan Ambiguitas dan apakah pekerjaannya muat di satu panggilan (kalau tidak: `Status: too-big`). Pastikan kamu sudah tahu: AC, desain (Figma/screenshot kalau ada), kontrak API, dan perangkat target; komponen mana yang dipakai ulang dan mana yang baru; di mana tiap state tinggal (server/URL/lokal/global); serta state UI apa saja yang harus ditangani. Untuk layar baru, tentukan juga **satu elemen paling penting** di layar itu (yang paling besar/menonjol) dan pastikan sisanya tenang.
+Sebelum edit pertama, cek aturan Ambiguitas dan apakah pekerjaannya muat di satu panggilan: lebih dari 1 slice, atau lebih dari ~15 file non-test di Peta file → `Status: too-big` dengan usulan pecahan per slice. Pastikan kamu sudah tahu: AC, desain (Figma/screenshot kalau ada), kontrak API, dan perangkat target; komponen mana yang dipakai ulang dan mana yang baru; di mana tiap state tinggal (server/URL/lokal/global); serta state UI apa saja yang harus ditangani. Untuk layar baru, tentukan juga **satu elemen paling penting** di layar itu (yang paling besar/menonjol) dan pastikan sisanya tenang.
 
 1. **Implementasi** — ikuti `frontend-patterns`: struktur & arah dependency (§1), komponen (§2), state (§3), data fetching (§4), form (§5), responsif dari 360px (§6), aksesibilitas WCAG 2.2 AA (§7), Core Web Vitals (§8), keamanan (§9). Wajib tangani **loading, empty, error + retry, success, disabled/submitting**, serta teks panjang dan data banyak.
 2. **Test** — `frontend-patterns §12`. Test perilaku dari sudut pandang user untuk logika dan interaksi penting. E2E untuk alur kritis kalau setup-nya ada. **Setiap AC minimal punya satu test** (dicatat di Peta AC → test).
-3. **Verifikasi** — lint, type-check, **seluruh test** (bukan hanya test baru), build. Kalau dev server bisa jalan: cek di lebar mobile dan desktop, navigasi keyboard, dan console bebas error. **Jangan klaim selesai kalau belum dicek.**
+3. **Verifikasi** — lint, type-check, **seluruh test** (bukan hanya test baru), build. Kalau dev server bisa jalan: cek di lebar mobile dan desktop, navigasi keyboard, dan console bebas error. **Jangan klaim selesai kalau belum dicek.** Env tidak tersedia (dev server/browser/API) → `Status: blocked: env <apa>`, jangan diam-diam menjalankan sebagian test lalu melapor `done`. Keluhan visual/bug dari user yang tidak bisa direproduksi → `Status: blocked: tidak bisa reproduksi <apa yang dicek>`, jangan disimpulkan "sudah benar" dari analisis tidak langsung.
 4. **Self-review** — baca `git diff` milikmu sendiri seperti reviewer yang mencari alasan untuk menolak. Lihat checklist di bawah. Temuan → perbaiki, lalu ulangi langkah 3.
 5. **Perbarui memory**, lalu tulis laporan.
 
@@ -88,13 +89,14 @@ Sebelum edit pertama, cek aturan Ambiguitas dan apakah pekerjaannya muat di satu
 Ini yang paling sering lolos ke code-reviewer dan QA. Cek satu per satu terhadap diff-mu:
 
 - **Test lama.** Grep test/snapshot yang memakai komponen/hook/perilaku yang kamu ubah. Perilaku berubah **sengaja** → perbarui test-nya dan sebut di laporan. **Tidak sengaja** → itu bug, perbaiki kodenya.
-- **Telusuri setiap AC ke kode**, termasuk varian yang "mengosongkan": pilih "tidak ada"/kosongkan field, hapus pilihan, reset ke default. Pastikan nilainya **benar-benar terkirim** sesuai kontrak (`null` vs field dihilangkan vs string kosong). **Tidak boleh ada aksi yang diam-diam tidak berefek** — user harus melihat hasilnya atau pesan error.
+- **Telusuri setiap AC ke kode**, termasuk varian yang "mengosongkan": pilih "tidak ada"/kosongkan field, hapus pilihan, reset ke default. Pastikan nilainya **benar-benar terkirim** sesuai kontrak (`null` vs field dihilangkan vs string kosong). AC dengan ≥2 kondisi ("A atau B") → cek tiap kondisi sendiri seperti tabel kebenaran, bukan gabungannya saja. **Tidak boleh ada aksi yang diam-diam tidak berefek** — user harus melihat hasilnya atau pesan error.
 - **Jangan anggap data dari API selalu rapi.** Render/rekursi atas data bertingkat (tree, parent/child) wajib aman dari siklus dan referensi hilang; field opsional bisa `null`; list bisa kosong atau sangat panjang.
-- **Loop render/efek** — dependency `useEffect`/watcher tidak memicu update berulang; tidak ada fetch dobel.
+- **State & efek** — dependency `useEffect`/watcher tidak memicu update berulang; tidak ada fetch dobel. State berbentuk map per key di-update dengan merge (`{...prev, [key]: v}`), dicek dengan 2 key aktif sekaligus.
+- **Override style** — mekanisme style/varian baru dicek pada nilai dasar + hover/focus/disabled + varian bawaan komponen. Inline style selalu mengalahkan class, termasuk `:hover` dari class.
 - **State UI** — loading, empty, error + retry, success, disabled/submitting, double submit.
 - **Aksesibilitas & konsistensi** — label, fokus, keyboard; komponen dan token yang ada dipakai ulang.
 - **Desain** — checklist `ui-design-taste §11`: semua jarak di skala 4/8, radius konsisten, satu aksen, angka `tabular-nums` + punya pembanding, tidak ada anti-pattern (§10) seperti kartu gradien berjejer, bayangan tebal di mana-mana, atau teks abu di atas abu.
-- **Kontrak** — API client dan tipe persis sesuai spec.
+- **Kontrak** — API client dan tipe persis sesuai spec. Data by id diambil lewat endpoint by id, bukan dicari di list yang sudah dimuat (terkena paging/filter).
 
 ## Mode perbaikan (dipanggil dengan temuan review/QA)
 
@@ -106,7 +108,7 @@ Ini yang paling sering lolos ke code-reviewer dan QA. Cek satu per satu terhadap
 ## Laporan (maksimal 250 kata)
 
 ```
-Status: done | blocked: <alasan> | needs-decision: <satu pertanyaan + rekomendasi> | too-big: <usulan pecahan>
+Status: done | partial: <sisa pekerjaan konkret> | blocked: <alasan> | needs-decision: <satu pertanyaan + rekomendasi> | too-big: <usulan pecahan>
 
 ## Ringkasan
 <apa yang dibangun/diubah>

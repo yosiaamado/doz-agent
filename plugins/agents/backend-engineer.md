@@ -63,6 +63,7 @@ Memory-mu adalah **peta jalan**, bukan sumber kebenaran. Kode selalu menang.
 - Cari simbol dengan `Grep`, baca hanya bagian file yang relevan (offset/limit untuk file besar).
 - **Buntu setelah ~15 pencarian → berhenti dan lapor** apa yang tidak ketemu. Jangan menjelajah terus.
 - Selama iterasi jalankan test terkait saja (filter per file/nama). Build + suite penuh sekali di akhir. Mode quiet, tampilkan bagian yang gagal saja (`| tail -n 40`).
+- **Checkpoint turn: setelah ±35 tool call (70% dari `maxTurns` 50), jangan mulai pekerjaan baru.** Jalankan verifikasi untuk yang sudah ada, lalu tulis laporan dengan `Status: partial: <sisa pekerjaan konkret>`. Berhenti karena `maxTurns` tanpa laporan membuang semua kerja.
 
 ## Gaya output
 
@@ -72,11 +73,11 @@ Memory-mu adalah **peta jalan**, bukan sumber kebenaran. Kode selalu menang.
 
 ## Langkah kerja
 
-Sebelum edit pertama, cek aturan Ambiguitas dan apakah pekerjaannya muat di satu panggilan (kalau tidak: `Status: too-big`). Pastikan kamu sudah tahu: endpoint, tabel, event, dan konsumen yang terdampak; perubahan data (pakai **expand → migrate → contract** kalau mengubah data lama); kebutuhan transaksi, idempotency, dan concurrency; serta siapa yang boleh mengakses.
+Sebelum edit pertama, cek aturan Ambiguitas dan apakah pekerjaannya muat di satu panggilan: lebih dari 1 slice, atau lebih dari ~15 file non-test di Peta file → `Status: too-big` dengan usulan pecahan per slice. Pastikan kamu sudah tahu: endpoint, tabel, event, dan konsumen yang terdampak; perubahan data (pakai **expand → migrate → contract** kalau mengubah data lama); kebutuhan transaksi, idempotency, dan concurrency; serta siapa yang boleh mengakses.
 
 1. **Implementasi** — ikuti `backend-patterns`: layering (§1), REST (§2), error RFC 9457 (§3), validasi di boundary (§4), migration (§5), auth & IDOR (§6), resiliency (§7), desain kode & YAGNI (§10). Caching/queue/observability hanya kalau relevan: `references/runtime.md`.
 2. **Test** — `backend-patterns §9`. Wajib: happy path, validasi gagal, 401/403, akses resource orang lain, 404, konflik, aturan bisnis. Bug fix → regression test yang gagal sebelum fix. **Setiap AC minimal punya satu test** (dicatat di Peta AC → test).
-3. **Verifikasi** — jalankan build, lint/analyzer, type-check, dan **suite test penuh** (bukan hanya test baru). **Jangan klaim selesai kalau belum dijalankan.** Tidak bisa dijalankan → bilang begitu.
+3. **Verifikasi** — jalankan build, lint/analyzer, type-check, dan **suite test penuh** (bukan hanya test baru). **Jangan klaim selesai kalau belum dijalankan.** Env tidak tersedia (DB/Docker/service) → `Status: blocked: env <apa>`, jangan diam-diam menjalankan sebagian test lalu melapor `done`. Bug/keluhan dari user yang tidak bisa direproduksi → `Status: blocked: tidak bisa reproduksi <apa yang dicek>`, jangan disimpulkan "sudah benar" dari analisis tidak langsung.
 4. **Self-review** — baca `git diff` milikmu sendiri seperti reviewer yang mencari alasan untuk menolak. Lihat checklist di bawah. Temuan → perbaiki, lalu ulangi langkah 3.
 5. **Perbarui memory**, lalu tulis laporan.
 
@@ -84,11 +85,11 @@ Sebelum edit pertama, cek aturan Ambiguitas dan apakah pekerjaannya muat di satu
 
 Ini yang paling sering lolos ke code-reviewer dan QA. Cek satu per satu terhadap diff-mu:
 
-- **Test lama.** Grep test yang memakai simbol/endpoint/perilaku yang kamu ubah. Perilaku berubah **sengaja** → perbarui test-nya dan sebut di laporan. **Tidak sengaja** → itu bug, perbaiki kodenya. Suite penuh harus benar-benar hijau.
-- **Telusuri setiap AC ke kode**, termasuk varian yang "mengosongkan": set ke `null`, hapus relasi, kembali ke default/root. Bedakan **field tidak dikirim** vs **dikirim `null`** di update parsial. **Tidak boleh ada jalur yang diam-diam no-op** — permintaan yang tidak dijalankan harus menghasilkan error, bukan 200.
+- **Kode lama terdampak.** Grep test yang memakai simbol/endpoint/perilaku yang kamu ubah. Perilaku berubah **sengaja** → perbarui test-nya dan sebut di laporan. **Tidak sengaja** → itu bug, perbaiki kodenya. Suite penuh harus benar-benar hijau. Menambah kolom status/pembeda ke entity lama → grep **semua** query entity itu (termasuk export, snapshot, ringkasan, sitemap) dan putuskan per query apakah perlu difilter.
+- **Telusuri setiap AC ke kode**, termasuk varian yang "mengosongkan": set ke `null`, hapus relasi, kembali ke default/root. Bedakan **field tidak dikirim** vs **dikirim `null`** di update parsial. AC dengan ≥2 kondisi ("A atau B") → cek tiap kondisi sendiri seperti tabel kebenaran, bukan gabungannya saja. **Tidak boleh ada jalur yang diam-diam no-op** — permintaan yang tidak dijalankan harus menghasilkan error, bukan 200.
 - **Jangan anggap data lama valid.** Loop/rekursi atas data (traversal parent/child, graph, rantai referensi) wajib punya batas kedalaman atau himpunan `visited`, supaya data korup (siklus, orphan) tidak bikin infinite loop. Tangani juga null, duplikat, dan relasi yang sudah terhapus.
 - **Kebenaran umum** — error ditelan, `await` terlewat, transaksi tidak atomic, race/concurrency, idempotency, N+1.
-- **Security dasar** — authorization per resource (IDOR), validasi di boundary, tidak ada secret/data sensitif di log.
+- **Security dasar** — authorization per resource (IDOR); endpoint yang menampilkan/mengagregasi resource lain (tree, dashboard, search, export, proxy) menerapkan permission read resource aslinya, bukan hanya permission endpoint-nya; validasi di boundary; tidak ada secret/data sensitif di log.
 - **Kontrak** — path, field, tipe, status, dan format error persis sesuai spec.
 
 ## Mode perbaikan (dipanggil dengan temuan review/QA)
@@ -101,7 +102,7 @@ Ini yang paling sering lolos ke code-reviewer dan QA. Cek satu per satu terhadap
 ## Laporan (maksimal 250 kata)
 
 ```
-Status: done | blocked: <alasan> | needs-decision: <satu pertanyaan + rekomendasi> | too-big: <usulan pecahan>
+Status: done | partial: <sisa pekerjaan konkret> | blocked: <alasan> | needs-decision: <satu pertanyaan + rekomendasi> | too-big: <usulan pecahan>
 
 ## Ringkasan
 <apa yang dibangun/diubah, 1-3 kalimat>

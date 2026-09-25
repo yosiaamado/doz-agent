@@ -27,7 +27,7 @@ Aturan bahasa **menimpa** aturan dasar di bawah. Kenali bahasa project, lalu bac
 - **Kontrak dulu:** endpoint didokumentasikan di OpenAPI dan selalu sinkron dengan implementasi.
 - Aksi non-CRUD: `POST /orders/{id}/cancel`. Project baru: versi di path (`/api/v1`). Breaking change = versi baru; versi lama diberi header `Deprecation`/`Sunset` sebelum dihapus.
 - Status code yang sering salah pilih: **404 juga untuk resource milik orang lain** (keberadaannya tidak boleh bocor) · 400 = format/validasi, 422 = valid tapi melanggar aturan bisnis · 409 = konflik state/duplikat/versi · 201 dengan `Location` · 429 dengan `Retry-After`.
-- List memakai envelope `{ "data": [...], "meta": { "page": 1, "pageSize": 20, "total": 134 } }`. Pagination wajib, dengan batas `pageSize` (misalnya 100); cursor untuk data besar atau feed. Filter & sort lewat query string yang di-whitelist (`?status=paid&sort=-createdAt`).
+- List memakai envelope `{ "data": [...], "meta": { "page": 1, "pageSize": 20, "total": 134 } }`. Pagination wajib; semua query param numerik (`page`, `pageSize`, `limit`, `offset`) punya batas bawah **dan** atas (misalnya `pageSize` 1–100), di luar batas → 400, dan offset dihitung tanpa overflow. Cursor untuk data besar atau feed. Filter & sort lewat query string yang di-whitelist (`?status=paid&sort=-createdAt`).
 - Data: JSON camelCase · waktu ISO 8601 UTC · uang string/decimal atau minor unit + field `currency` · ID resource publik tidak berurutan (UUID/ULID).
 - `POST` untuk pembayaran, order, dan webhook menerima `Idempotency-Key`: request ulang dengan key yang sama mengembalikan hasil yang sama.
 - Update yang bisa bertabrakan memakai optimistic concurrency (`ETag`/`If-Match` atau kolom versi), dan mengembalikan 409/412 kalau konflik.
@@ -56,7 +56,7 @@ Semua error `application/problem+json`, dari **satu global error handler** yang 
 ## 4. Validasi
 
 - Semua input dari luar (body, query, header, webhook, message queue) divalidasi di boundary dengan schema: allowlist, field tak dikenal ditolak atau diabaikan, panjang string/jumlah item/ukuran body & file dibatasi.
-- Request tidak pernah di-binding langsung ke entity DB (mass assignment); pakai DTO.
+- Request tidak pernah di-binding langsung ke entity DB (mass assignment); pakai DTO. Response juga DTO yang hanya berisi field yang dipakai konsumen: jangan kirim email/data pribadi yang tidak perlu.
 - Validasi format ada di schema; aturan bisnis (stok, saldo, status) ada di service.
 
 ## 5. Database

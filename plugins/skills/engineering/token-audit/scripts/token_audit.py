@@ -313,6 +313,7 @@ def find_subagent_entries(transcript, all_entries, call):
 
 
 NOTIFICATION = re.compile(r"<task-notification>(.*?)</task-notification>", re.S)
+TURN_LIMIT = re.compile(r"\d+[- ]turn limit|\bturn limit\b|\bmax_?turns\b", re.I)
 
 
 def notifications_in(obj):
@@ -342,7 +343,8 @@ def collect_calls(main_entries):
                 inp = b.get("input") or {}
                 if b.get("name") in AGENT_TOOLS:
                     c = {"id": b.get("id"), "type": str(inp.get("subagent_type") or "general-purpose").split(":")[-1],
-                         "prompt": inp.get("prompt", ""), "agent_id": None, "result": None, "report": None}
+                         "prompt": inp.get("prompt", ""), "agent_id": None, "result": None, "report": None,
+                         "limit_hit": False}
                     calls.append(c)
                     by_id[c["id"]] = c
                     if inp.get("name"):
@@ -352,7 +354,8 @@ def collect_calls(main_entries):
                     root = by_name.get(to) or by_agent.get(to)
                     if root:
                         calls.append({"id": b.get("id"), "type": root["type"], "prompt": inp.get("message", ""),
-                                      "agent_id": root["agent_id"], "result": None, "report": None, "resume_of": root})
+                                      "agent_id": root["agent_id"], "result": None, "report": None, "resume_of": root,
+                                      "limit_hit": False})
             continue
         if e.get("type") == "user" and isinstance(msg.get("content"), list):
             for b in msg["content"]:
@@ -362,6 +365,7 @@ def collect_calls(main_entries):
                     if isinstance(r, dict):
                         c["agent_id"] = r.get("agentId") or c["agent_id"]
                         c["result"] = r
+                        c["limit_hit"] = bool(TURN_LIMIT.search(str({k: v for k, v in r.items() if k not in ("content", "prompt")})))
                     if c["agent_id"]:
                         by_agent[c["agent_id"]] = c
                     if not (isinstance(r, dict) and r.get("status") == "async_launched"):
@@ -375,6 +379,8 @@ def collect_calls(main_entries):
             c = next((c for c in calls if c["agent_id"] == tid.group(1) and c["report"] is None), None)
             if c:
                 c["report"] = res.group(1).strip() if res else ""
+                # Notifikasi "stopped at its N-turn limit": run ini mentok maxTurns, bukan laporan final.
+                c["limit_hit"] = bool(TURN_LIMIT.search(note.replace(res.group(0), "") if res else note))
     return calls
 
 
@@ -383,7 +389,8 @@ def max_turns_of(agent_type):
     for up in range(1, 7):
         cand = os.path.join(here, *([".."] * up), "agents", f"{agent_type}.md")
         if os.path.exists(cand):
-            m = re.search(r"^maxTurns:\s*(\d+)", open(cand, encoding="utf-8").read(), re.M)
+            with open(cand, encoding="utf-8") as fh:
+                m = re.search(r"^maxTurns:\s*(\d+)", fh.read(), re.M)
             return int(m.group(1)) if m else None
     return None
 
@@ -524,12 +531,24 @@ FE_EXT = (".tsx", ".jsx", ".vue", ".svelte", ".css", ".scss", ".sass", ".less", 
 DEVOPS_PATH = re.compile(r"(Dockerfile|\.ya?ml$|\.github/|\.tf$|compose|helm/|k8s/)", re.I)
 BUILD_CMD = re.compile(r"\b(test|tests|build|lint|tsc|pytest|jest|vitest|playwright|dotnet|mvn|gradle|cargo|go (test|build|vet)|npm|pnpm|yarn|make|eslint|ruff|mypy)\b")
 FINDING = re.compile(r"^\s*[-*]?\s*`?(?P<id>(?:CR|QA-BUG|SEC)-\d+)`?\s+`?(?P<path>[^\s`]+?)`?:?\s+(?P<rest>.+)$")
-STATUS = re.compile(r"^\W*Status:\s*\**\s*(done|blocked|needs-decision|too-big)", re.I | re.M)
+STATUS = re.compile(r"^\W*Status:\s*\**\s*(done|partial|blocked|needs-decision|too-big)", re.I | re.M)
 VERDICT = re.compile(r"^\W*(Keputusan|Rekomendasi):\s*(.+)$", re.I | re.M)
+NEXT_SLICE = re.compile(r"\bslice\b", re.I)
+MAXTURNS = "maxturns"  # status semu: run berhenti di maxTurns tanpa laporan
 
 # (kategori, kata kunci, saran). Urutan menentukan: kecocokan pertama menang.
+# Kata kunci dicocokkan di awal kata ("lock" tidak cocok dengan "blocking", "race" tidak cocok dengan "trace").
+# Tuple = semua grup harus cocok (minimal satu kata per grup).
 # Saran selalu berupa aturan proses umum untuk agent, bukan perbaikan error project tertentu.
 CATEGORIES = [
+    ("authz-agregat", [(["permission", "authoriz", "otorisasi", "izin", "role", "akses"],
+                        ["tree", "agregat", "aggregat", "dashboard", "search", "pencarian", "export", "proxy", "leak", "bocor"])],
+     "Endpoint yang menampilkan/mengagregasi resource lain (tree, dashboard, search, export, proxy) wajib memakai permission read resource aslinya, dengan test role tanpa izin resource itu."),
+    ("state-update", ["setstate", "usestate", "usereducer", "state map", "stale state", "stale closure",
+                      (["spread", "merge", "menimpa", "timpa", "overwrite"], ["state", "prev"])],
+     "Self-review frontend: update state berbentuk map/list di-merge dari nilai sebelumnya (`{...prev, [key]: v}`), dicek dengan 2 key aktif sekaligus."),
+    ("css-cascade", ["inline style", "specificity", "spesifisitas", "hover", "cascade", "!important"],
+     "Self-review frontend: mekanisme style/varian baru dicek di nilai dasar + hover/focus/disabled + varian bawaan; inline style mengalahkan class."),
     ("loop/data korup", ["infinite", "loop", "rekursi", "recursion", "siklus", "cycle", "korup", "corrupt", "orphan"],
      "Jadikan wajib di self-review: setiap loop/rekursi atas data tersimpan punya batas atau visited set, plus satu test dengan data korup (siklus/orphan)."),
     ("test lama", ["test lama", "existing test", "test yang ada", "test yang sudah ada", "pasti gagal", "failing test", "snapshot", "regresi", "regression"],
@@ -580,10 +599,20 @@ def build_cause(text):
     return "lain", True, (lines[0][:90] if lines else "(output kosong)")
 
 
+def _has(t, word):
+    return re.search(r"(?<![a-z0-9])" + re.escape(word), t) is not None
+
+
+def _match(t, key):
+    if isinstance(key, tuple):
+        return all(any(_has(t, w) for w in group) for group in key)
+    return _has(t, key)
+
+
 def categorize(text):
     t = text.lower()
     for cat, keys, _ in CATEGORIES:
-        if any(k in t for k in keys):
+        if any(_match(t, k) for k in keys):
             return cat
     return "lain"
 
@@ -615,45 +644,62 @@ def parse_findings(report, source_agent, call_no):
             blocking = "🔴" in rest or bool(re.search(r"\b(critical|high)\b", head))
         text = re.sub(r"^[^\w`]*(blocking|suggestion|question|nit|critical|high|medium|low)[^:]*:\s*", "", rest, flags=re.I)
         out.append({"id": fid, "path": path, "file": path.split(":")[0], "blocking": blocking,
-                    "owner": owner_of(path, rest), "category": categorize(rest), "text": text.strip()[:160],
+                    "owner": owner_of(path, rest), "category": categorize(text), "text": text.strip()[:160],
                     "source": source_agent, "call": call_no})
     return out
+
+
+def near_limit(c, agent):
+    """Run tanpa baris Status/keputusan yang jumlah turn-nya sudah di batas maxTurns."""
+    mt = max_turns_of(agent)
+    return bool(mt and (c.get("run_turns") or 0) >= mt - 1)
 
 
 def analyse_failures(call_infos):
     """call_infos: list of (call dict, Stream|None) dalam urutan panggilan."""
     f = {"status": defaultdict(list), "verdict": defaultdict(list), "findings": [], "returned": Counter(),
-         "build_fail": {}, "reappeared": []}
+         "build_fail": {}, "reappeared": [], "limit": Counter()}
     seen_calls = Counter()
     for c, stream in call_infos:
         agent = c["type"]
         seen_calls[agent] += 1
         n = seen_calls[agent]
         report = c.get("report") or (stream.text_in(*stream.runs[0]) if stream else "")
+        hit = bool(c.get("limit_hit"))
         if agent in ENGINEERS:
             m = STATUS.search("\n".join(report.strip().splitlines()[:3]))
+            hit = hit or (not m and near_limit(c, agent))
             prev = f["status"][agent][-1][0] if f["status"][agent] else None
-            # Dipanggil lagi setelah `done` tanpa Mode perbaikan = laporan dikembalikan orkestrator.
-            # Setelah needs-decision/blocked/too-big/partial = lanjutan pekerjaan, bukan kegagalan.
-            if "mode perbaikan" in (c.get("prompt") or "").lower():
+            prompt = (c.get("prompt") or "").lower()
+            # Dipanggil lagi setelah `done` tanpa Mode perbaikan dan bukan slice berikutnya = laporan dikembalikan.
+            # Setelah maxTurns/partial/needs-decision/blocked/too-big = lanjutan pekerjaan, bukan kegagalan.
+            if n > 1 and prev == MAXTURNS:
+                label = "lanjutan-maxTurns"
+            elif "mode perbaikan" in prompt:
                 label = "perbaikan"
+            elif n > 1 and prev == "done":
+                label = "slice berikutnya" if NEXT_SLICE.search(prompt) else "dikembalikan"
             elif n > 1:
-                label = "dikembalikan" if prev == "done" else "lanjutan"
+                label = "lanjutan"
             else:
                 label = ""
-            f["status"][agent].append((m.group(1).lower() if m else None, label))
+            f["status"][agent].append((MAXTURNS if hit else (m.group(1).lower() if m else None), label))
             if label == "dikembalikan":
                 f["returned"][agent] += 1
         if agent in VERIFIERS:
             m = VERDICT.search("\n".join(report.strip().splitlines()[:3]))
+            hit = hit or (not m and near_limit(c, agent))
             found = parse_findings(report, agent, n)
             nb = sum(1 for x in found if x["blocking"])
-            f["verdict"][agent].append((re.split(r"\s+[—-]\s+|:", m.group(2))[0].strip()[:40] if m else None, nb, len(found) - nb))
+            v = re.split(r"\s+[—-]\s+|:", m.group(2))[0].strip()[:40] if m else (MAXTURNS if hit else None)
+            f["verdict"][agent].append((v, nb, len(found) - nb))
             earlier = {(x["source"], x["file"], x["category"]) for x in f["findings"] if x["blocking"]}
             for x in found:
                 if x["blocking"] and n > 1 and (x["source"], x["file"], x["category"]) in earlier:
                     f["reappeared"].append(x)
             f["findings"] += found
+        if hit:
+            f["limit"][agent] += 1
         if stream:
             causes, last_err = [], None
             for _, kind, data in stream.events:
@@ -672,10 +718,12 @@ def render_failures(f):
     for agent, sts in f["status"].items():
         parts = []
         for st, label in sts:
+            st = "⚠ berhenti di maxTurns" if st == MAXTURNS else st
             parts.append((st or "⚠ tanpa baris Status") + (f" ({label})" if label else ""))
         lines.append(f"- **{agent}**: " + " → ".join(parts))
     for agent, vs in f["verdict"].items():
-        parts = [f"{v or '⚠ tanpa keputusan'} ({nb} blocking, {nn} lain)" for v, nb, nn in vs]
+        parts = [f"{'⚠ berhenti di maxTurns' if v == MAXTURNS else v or '⚠ tanpa keputusan'} ({nb} blocking, {nn} lain)"
+                 for v, nb, nn in vs]
         lines.append(f"- **{agent}**: " + " → ".join(parts))
     blocking = [x for x in f["findings"] if x["blocking"]]
     if blocking:
@@ -707,6 +755,8 @@ def failure_saran(f):
             out.append((agent, "Blocked/needs-decision", "Keputusan yang ditanyakan engineer seharusnya sudah ada di spec. Tambahkan ke Keputusan & asumsi di brief berikutnya."))
         if any(st == "too-big" for st, _ in sts):
             out.append((agent, "Too-big", "Pecah pekerjaan lebih kecil di tahap sizing ship-feature."))
+    for agent in f["limit"]:
+        out.append((agent, "Berhenti di maxTurns", "Run berhenti di maxTurns tanpa laporan final. Scope per panggilan terlalu besar (pecah per slice) atau checkpoint turn di file agent tidak diikuti."))
     for agent in f["returned"]:
         out.append((agent, "Laporan dikembalikan", "Laporan belum memenuhi syarat (misalnya Peta AC → test hilang). Pastikan template Laporan di file agent diikuti."))
     for agent, (causes, last_err) in f["build_fail"].items():
@@ -838,7 +888,17 @@ def compare_runs(log_dir):
     return "\n".join(out)
 
 
+def utf8_output():
+    """Console Windows default-nya cp1252, yang tidak bisa mencetak karakter seperti ≈ dan →."""
+    for s in (sys.stdout, sys.stderr):
+        try:
+            s.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError, OSError):
+            pass
+
+
 def main():
+    utf8_output()
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--transcript")
     ap.add_argument("--workflow", default="ship-feature")
@@ -878,6 +938,8 @@ def main():
         ents = find_subagent_entries(transcript, entries, c)
         stream = Stream(c["type"], ents) if ents else None
         by_root.setdefault(c["id"], [None, []])[0] = stream
+        if stream:
+            c["run_turns"] = stream.turns  # diperbarui di bawah kalau agent dilanjutkan
         call_infos.append((c, stream))
         if stream:
             grouped[c["type"]].append(stream)
@@ -886,10 +948,22 @@ def main():
     for stream, resumed in by_root.values():
         if stream and resumed:
             stream.split_runs([r["prompt"] for r in resumed])
+            split = len(stream.runs) == 1 + len(resumed)
+            # Turn per run hanya bisa dipercaya kalau run lanjutan berhasil dipisah.
+            resumed[0]["resume_of"]["run_turns"] = stream.runs[0][1] - stream.runs[0][0] if split else None
             for k, r in enumerate(resumed, 1):
+                if split:
+                    r["run_turns"] = stream.runs[k][1] - stream.runs[k][0]
                 if not r["report"] and len(stream.runs) > k:
                     r["report"] = stream.text_in(*stream.runs[k])
     fails = analyse_failures(call_infos)
+    for agent, n in fails["limit"].items():
+        g = next((g for g in gaps if g["agent"] == agent and g["rule"] == "Hampir kehabisan turn"), None)
+        if g:
+            g["detail"] += f", berhenti di maxTurns {n}x"
+        else:
+            gaps.append({"agent": agent, "rule": "Hampir kehabisan turn", "usd": 0.0, "detail": f"berhenti di maxTurns {n}x",
+                         "saran": "Scope terlalu luas untuk satu panggilan. Pecah per slice dan pastikan checkpoint turn di file agent diikuti."})
     for agent_type, streams in grouped.items():
         for s in streams:
             gaps += analyse(s, agent_type, False)
