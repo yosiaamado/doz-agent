@@ -1,11 +1,11 @@
-import { AlertTriangle, FolderOpen, GitBranch, Plus, Save, Settings2, Workflow } from 'lucide-react';
+import { AlertTriangle, ClipboardCheck, FolderOpen, GitBranch, Plus, Save, Settings2, Workflow } from 'lucide-react';
 import Logo from '../../components/ui/Logo.jsx';
 import Select from '../../components/ui/Select.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 import UsageWidget from './UsageWidget.jsx';
 
 export default function TopBar({
-  meta, workflows, dirty, errors, status, theme, gitChanges, onSwitch, onNew, onSave, onPickWorkdir, onWorkflowSettings, onGit,
+  meta, workflows, dirty, errors, status, theme, gitChanges, setupPending, onSwitch, onNew, onSave, onPickWorkdir, onWorkflowSettings, onGit, onSetup,
 }) {
   const saved = workflows.some((w) => w.name === meta.name);
   const options = [
@@ -28,6 +28,9 @@ export default function TopBar({
             <span key={name} className={`runner ${r.available ? 'ok' : 'off'}`} title={r.detail}><span className="runner-dot" /><span className="name">{name}</span></span>
           ))}
         </div>
+        <button type="button" className="btn btn-ghost" title="Persiapan: cek akun Claude, API key, git, GitHub" onClick={onSetup}>
+          <ClipboardCheck size={15} /> <span className="save-label">Persiapan</span>{setupPending && <span className="setup-dot" />}
+        </button>
         <UsageWidget />
         <button type="button" className="btn btn-ghost workdir-btn" title={`Folder project: ${status?.workdir ?? ''}`} onClick={onPickWorkdir}>
           <FolderOpen size={15} /> <span>{status?.workdirName}</span>

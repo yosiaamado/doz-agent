@@ -48,6 +48,13 @@ export const api = {
   uploadAttachment: (name, contentBase64) => request('POST', '/api/attachments', { name, contentBase64 }),
   gitStatus: (target) => request('GET', `/api/git/${target}`),
   gitAction: (target, action, body) => request('POST', `/api/git/${target}/${action}`, body ?? {}),
+  setup: () => request('GET', '/api/setup'),
+  setupTest: (name, target) => request('POST', `/api/setup/test/${name}${target ? `?target=${target}` : ''}`),
+  setApiKey: (key, remember) => request('PUT', '/api/setup/api-key', { key, remember }),
+  clearApiKey: () => request('DELETE', '/api/setup/api-key'),
+  setGitIdentity: (name, email) => request('PUT', '/api/setup/git-identity', { name, email }),
+  claudeLogin: (useConsole) => request('POST', '/api/setup/claude-login', { console: useConsole }),
+  completeSetup: () => request('POST', '/api/setup/complete'),
   diff: (base, head, file) => request('GET', `/api/diff?${new URLSearchParams({ base, head, ...(file ? { file } : {}) })}`),
 };
 

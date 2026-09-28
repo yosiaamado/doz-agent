@@ -53,3 +53,17 @@ export const commitBody = z.object({
   message: z.string().trim().min(1, 'pesan commit wajib diisi').max(2000),
   files: z.array(z.string().min(1).max(4096)).max(500).optional(),
 });
+
+export const setupTest = z.enum(['claude-cli', 'api', 'github']);
+
+export const apiKeyBody = z.object({
+  key: z.string().trim().min(20, 'API key terlalu pendek').max(300).regex(/^sk-ant-/, 'API key Anthropic diawali sk-ant-'),
+  remember: z.boolean().default(false),
+});
+
+export const gitIdentityBody = z.object({
+  name: z.string().trim().min(1).max(200),
+  email: z.string().trim().email('email tidak valid').max(320),
+});
+
+export const claudeLoginBody = z.object({ console: z.boolean().default(false) });

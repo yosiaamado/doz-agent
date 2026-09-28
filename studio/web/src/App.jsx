@@ -21,6 +21,7 @@ const FolderPicker = lazy(() => import('./features/dialogs/FolderPicker.jsx'));
 const RunDialog = lazy(() => import('./features/dialogs/RunDialog.jsx'));
 const NewWorkflowDialog = lazy(() => import('./features/dialogs/NewWorkflowDialog.jsx'));
 const GitDialog = lazy(() => import('./features/dialogs/GitDialog.jsx'));
+const SetupWizard = lazy(() => import('./features/setup/SetupWizard.jsx'));
 
 const LAST_KEY = 'doz-studio:last-workflow';
 const snap = (v) => Math.round(v / GRID) * GRID;
@@ -39,6 +40,8 @@ export default function App() {
   const [tab, setTab] = useState('editor');
   const [modal, setModal] = useState(null); // { kind, ...props }
   const [gitChanges, setGitChanges] = useState(0);
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [setupPending, setSetupPending] = useState(false);
   const canvasRef = useRef(null);
   const stateRef = useRef({});
   stateRef.current = { meta: editor.meta, dirty: editor.dirty, workflows: lib.workflows };
@@ -64,6 +67,12 @@ export default function App() {
     (async () => {
       const [st, wfs] = await Promise.all([api.status(), lib.reload()]);
       setStatus(st);
+      // Pertama kali dipakai: buka wizard Persiapan.
+      api.setup().then((s) => {
+        const pending = !s.state?.completedAt;
+        setSetupPending(pending);
+        if (pending) setSetupOpen(true);
+      }).catch(() => {});
       const last = readStorage(LAST_KEY);
       const first = wfs.find((w) => w.name === last) ?? wfs[0];
       if (first) await openWorkflow(first.name);
@@ -173,6 +182,7 @@ export default function App() {
           onSave={save} onPickWorkdir={() => setModal({ kind: 'workdir' })}
           onWorkflowSettings={() => { setSelection(null); setRightOpen(true); }}
           gitChanges={gitChanges} onGit={() => setModal({ kind: 'git' })}
+          setupPending={setupPending} onSetup={() => setSetupOpen(true)}
         />
         <div className="workspace">
           <Sidebar
@@ -207,6 +217,10 @@ export default function App() {
         </div>
         <Suspense fallback={null}>
           {modal?.kind === 'run' && <RunDialog workflowName={editor.meta.name} workdir={status?.workdirName} onStart={startRun} onClose={closeModal} />}
+          {setupOpen && (
+            <SetupWizard workdir={status?.workdir} onClose={() => setSetupOpen(false)} onPickWorkdir={() => setModal({ kind: 'workdir' })}
+              onDone={async () => { setSetupPending(false); setStatus(await api.status()); }} />
+          )}
           {modal?.kind === 'git' && (
             <GitDialog onClose={() => { closeModal(); refreshGit(); }}
               onSynced={async (target) => { if (target === 'repo') { await lib.reload(); refreshGit(); } }} />

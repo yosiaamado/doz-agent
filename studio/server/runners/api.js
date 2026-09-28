@@ -36,6 +36,20 @@ function getClient() {
   return client;
 }
 
+// Dipanggil setelah API key diganti dari UI supaya klien berikutnya memakai key baru.
+export function resetClient() {
+  client = undefined;
+}
+
+// Panggilan terkecil untuk membuktikan API key bisa dipakai.
+export async function testApiConnection() {
+  const model = resolveModel('haiku');
+  const started = Date.now();
+  const response = await getClient().messages.create({ model, max_tokens: 16, messages: [{ role: 'user', content: 'Balas satu kata: ok' }] });
+  const text = response.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+  return { model: response.model, reply: text, ms: Date.now() - started };
+}
+
 function requestParams(model, settings) {
   const params = { model, max_tokens: 16000 };
   // Haiku 4.5 tidak mendukung effort.

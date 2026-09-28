@@ -15,12 +15,14 @@ import { createUsageService } from './services/usageService.js';
 import { createFolderService } from './services/folderService.js';
 import { createAttachmentService } from './services/attachmentService.js';
 import { createGitService } from './services/gitService.js';
+import { createSetupService } from './services/setupService.js';
 import { createClaudeCliRunner, claudeVersion } from './runners/claude-cli.js';
-import { createApiRunner, apiAvailable } from './runners/api.js';
+import { createApiRunner, apiAvailable, testApiConnection, resetClient } from './runners/api.js';
 import { registerSystemRoutes } from './routes/systemRoutes.js';
 import { registerLibraryRoutes } from './routes/libraryRoutes.js';
 import { registerRunRoutes } from './routes/runRoutes.js';
 import { registerGitRoutes } from './routes/gitRoutes.js';
+import { registerSetupRoutes } from './routes/setupRoutes.js';
 
 function createRunners({ config, components, usage }) {
   const cli = createClaudeCliRunner({ pluginDir: config.pluginDir, onRateLimit: (info) => usage.recordRateLimit(info) });
@@ -38,6 +40,8 @@ function createRunnerStatus() {
 
 export function createApp(options = {}) {
   const config = options.config ?? createConfig();
+  // API key yang disimpan lewat wizard dipakai kalau environment belum punya.
+  if (!process.env.ANTHROPIC_API_KEY && config.savedApiKey()) process.env.ANTHROPIC_API_KEY = config.savedApiKey();
   const components = createComponentRepository(config);
   // probe dipanggil saat user menekan refresh, setelah `runners` terbentuk.
   const usage = createUsageService({
@@ -61,6 +65,9 @@ export function createApp(options = {}) {
   registerLibraryRoutes(router, { components, workflows });
   registerRunRoutes(router, { config, runs, attachments });
   registerGitRoutes(router, { git: createGitService(config) });
+  registerSetupRoutes(router, {
+    setup: createSetupService({ config, apiRunner: { testApiConnection, resetClient }, claudeRunner: runners['claude-cli'] }),
+  });
 
   const serveStatic = createStaticHandler(config.webDist);
   server.on('request', async (req, res) => {

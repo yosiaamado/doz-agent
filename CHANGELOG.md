@@ -9,6 +9,18 @@ Aturan untuk manusia dan AI yang mengubah repo ini:
 - Perubahan yang dipicu audit pemakaian menyebut file di `agent-usage/`, supaya dampaknya bisa dibandingkan dengan audit berikutnya.
 - Riwayat sebelum 1.15.0: lihat `git log`.
 
+## [1.20.0] - 2026-09-28
+
+Sumber: permintaan user untuk setup pertama kali (connect akun Claude sampai `claude -p` jalan, tes API key, tes akun GitHub, dll.) sebelum studio dipakai.
+
+### Studio
+
+- `server/services/setupService.js` + `routes/setupRoutes.js` (baru): pemeriksaan Node, git (+ isi identitas global), Claude Code terpasang & login (`claude auth status`), plugin doz-agent, API key, repo doz-agent & project; tes nyata `claude -p` (haiku), Claude API (haiku, 16 token), dan akses GitHub (`git ls-remote`); memicu `claude auth login` (akun Claude atau Console); pesan error SDK diterjemahkan (401/403/429/koneksi).
+- API key bisa dipasang untuk sesi atau diingat di `studio/.local.json` (gitignored); dipakai otomatis saat startup; klien API di-reset saat key berganti (`runners/api.js`: `resetClient`, `testApiConnection`).
+- `web/src/features/setup/` (baru): wizard Persiapan 5 langkah yang terbuka otomatis saat pertama kali dan dari tombol Persiapan di top bar (titik kuning kalau belum selesai); tombol Selesai aktif kalau Node & git oke dan minimal satu otak AI lolos tes.
+- Test: `test/setup.test.js`; total 43 test.
+- `plugin.json`: versi 1.20.0.
+
 ## [1.19.0] - 2026-09-28
 
 Sumber: permintaan user supaya bisa push dan pull ke GitHub langsung dari Doz Studio.

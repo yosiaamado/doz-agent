@@ -92,6 +92,7 @@ npm start -- --workdir /path/ke/project     # http://localhost:4317
 ```
 
 - Tampilan ala n8n dengan tema gelap/terang: menu kiri yang melebar saat di-hover (agent/skill/action, bisa buat dan edit file-nya langsung), canvas dengan snap grid, panel Logs di bawah, dan widget pemakaian Claude Code (batas 5 jam & mingguan).
+- Wizard **Persiapan** saat pertama dibuka: cek & tes login Claude Code (`claude -p`), API key, git, dan akses GitHub.
 - Tombol **GitHub** di studio: pull, commit, dan push repo doz-agent atau project aktif tanpa membuka terminal.
 - Template siap pakai: `fitur-kecil`, `fitur-lengkap`, `perbaikan-bug`, `audit-keamanan`, `review-pr`, `rilis`. Permintaan saat run bisa disertai dokumen (md, docx, pdf, dll.).
 - Kotak = agent / skill / action (perintah shell) / condition / approval / catatan / output. Garis = aliran output. Garis balik dari condition = loop dengan batas.

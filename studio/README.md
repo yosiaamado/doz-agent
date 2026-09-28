@@ -4,6 +4,15 @@ Editor visual (kotak + garis, ala n8n) dan runner lokal untuk workflow doz-agent
 
 ## Fitur
 
+- **Persiapan (pertama kali dibuka)**: wizard yang mengecek dan mengetes semua syarat:
+  - Node.js dan git (identitas `user.name`/`user.email` bisa diisi langsung).
+  - Claude Code terpasang dan login. Tombol **Login Akun Claude** menjalankan `claude auth login`, dan **Tes claude -p** menjalankan panggilan nyata ke haiku.
+  - API key Anthropic: dipasang untuk sesi ini atau diingat di `studio/.local.json`, lalu dites dengan panggilan kecil.
+  - Folder project.
+  - Akses GitHub: `git ls-remote`, hanya membaca.
+  - Plugin doz-agent di Claude Code (opsional).
+
+  Minimal satu "otak" (Claude Code atau API key) harus lolos tes. Wizard bisa dibuka lagi lewat tombol **Persiapan** di kanan atas.
 - **Tampilan**: tema **gelap** (abu-abu ala n8n) dan **terang**, bisa ikut sistem (ikon monitor/matahari/bulan di kanan atas). Logo juga dipakai sebagai favicon.
 - **Menu kiri yang bisa melebar**: saat menyempit hanya berupa rail ikon. Saat kursor diarahkan ke sana, menu melebar di atas canvas, lalu menyempit lagi saat kursor pergi. Isinya: tab **Editor | Executions**, pencarian, lalu komponen **Agent / Skill / Action / Alur**. Komponen bisa diseret ke canvas (juga di layar kecil) atau diklik dua kali. `+` membuat file baru, ikon pensil mengedit file.
 - **Canvas**: node menempel ke grid 20px. Drag dengan klik kiri atau tengah menggeser layar. Scroll juga menggeser, Ctrl/⌘ + scroll atau pinch untuk zoom, dan Shift + drag untuk memilih banyak node. Catatan (sticky note) bisa di-resize.
@@ -42,10 +51,12 @@ npm run build
 npm start -- --workdir /path/ke/project-kamu     # buka http://localhost:4317
 ```
 
+Saat pertama dibuka, wizard **Persiapan** muncul. Ikuti langkahnya sampai tombol **Selesai** aktif.
+
 - `--workdir` bisa diganti dari UI (tombol folder di kanan atas). Pilihan disimpan di `studio/.local.json`.
 - `--port` atau `DOZ_STUDIO_PORT`: port lain (bawaan 4317). `DOZ_LOG_LEVEL=debug` untuk log lebih rinci.
 - `npm run dev`: server + Vite hot reload di http://localhost:5317.
-- `npm test`: 39 test (unit + integrasi API + template workflow), coverage baris ±89% (`node --test --experimental-test-coverage`).
+- `npm test`: 43 test (unit + integrasi API + template workflow), coverage baris ±89% (`node --test --experimental-test-coverage`).
 
 ## Arsitektur
 
@@ -56,8 +67,8 @@ server/
 ├─ index.js            entry: listen + banner
 ├─ app.js              composition root: merakit config → repository → service → route (dependency injection)
 ├─ http/               router, middleware (hanya localhost), respond ({ success, data | error }), schemas (zod), static, socket
-├─ routes/             systemRoutes, libraryRoutes, runRoutes, gitRoutes: tipis, hanya validasi + panggil service
-├─ services/           workflowService, runService, usageService, folderService, attachmentService, gitService
+├─ routes/             systemRoutes, libraryRoutes, runRoutes, gitRoutes, setupRoutes: tipis, hanya validasi + panggil service
+├─ services/           workflowService, runService, usageService, folderService, attachmentService, gitService, setupService
 ├─ repositories/       componentRepository (agent/skill/action/workflow di banyak folder), runLogRepository (JSONL)
 ├─ domain/             engine (orkestrasi), executors (per tipe node), graph (fungsi murni), prompt, workflow, timeout
 ├─ runners/            claude-cli (prompt via stdin, agent via file), api (Claude API + tool lokal), shell, tools, activity

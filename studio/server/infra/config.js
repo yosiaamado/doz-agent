@@ -72,6 +72,11 @@ export function createConfig({ argv = process.argv, env = process.env, localFile
       local.merge({ workdir: abs });
       return abs;
     },
+    // API key yang disimpan dari wizard Persiapan (studio/.local.json, tidak ikut git).
+    savedApiKey: () => local.read().anthropicApiKey ?? null,
+    saveApiKey: (key) => local.merge({ anthropicApiKey: key ?? undefined }),
+    setupState: () => local.read().setup ?? {},
+    saveSetupState: (state) => local.merge({ setup: { ...(local.read().setup ?? {}), ...state } }),
     getSources: () => sources,
     setSources(next) {
       sources = Object.fromEntries(SOURCE_KINDS.map((kind) => {
