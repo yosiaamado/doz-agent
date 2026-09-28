@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { NODE_META, BRANCHING, effectiveSetting } from './model.js';
+import { ChevronDown, ChevronRight, Pencil, Trash2, X } from 'lucide-react';
+import { TypeIcon } from '../icons.jsx';
+import { NODE_META, BRANCHING, effectiveSetting } from '../model.js';
 
 const MODELS = ['opus', 'sonnet', 'haiku'];
 const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
 
-function Field({ label, hint, children }) {
+export function Field({ label, hint, children }) {
   return (
     <label className="field">
       <span className="field-label">{label}</span>
@@ -19,7 +21,7 @@ function Section({ title, defaultOpen = true, children }) {
   return (
     <div className="section">
       <button type="button" className="section-head" onClick={() => setOpen(!open)}>
-        <span>{open ? '▾' : '▸'}</span> {title}
+        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />} {title}
       </button>
       {open && <div className="section-body">{children}</div>}
     </div>
@@ -94,19 +96,15 @@ function SettingsFields({ target, set, meta, agent, isDefaults = false, runners 
   );
 }
 
-function NodeInspector({ node, update, remove, ctx }) {
-  const { agents, skills, meta, nodes, runners } = ctx;
-  const agent = agents.find((a) => a.name === node.agent);
+function NodeSettings({ node, update, remove, ctx, onEditComponent }) {
+  const { library, meta, nodes, runners } = ctx;
+  const agent = library.agents.find((a) => a.name === node.agent && !a.shadowed);
+  const preset = library.actions.find((a) => a.name === node.action && !a.shadowed);
   const set = (key, value) => update({ ...node, [key]: value });
-  const typeMeta = NODE_META[node.type];
-  const others = nodes.filter((n) => n.id !== node.id && ['agent', 'skill'].includes(n.data.node.type));
+  const others = nodes.filter((n) => n.id !== node.id && ['agent', 'skill', 'action'].includes(n.data.node.type));
   return (
-    <div className="inspector-body">
-      <div className="inspector-type">
-        <span className="glyph">{typeMeta.glyph}</span> {typeMeta.label}
-        <span className="muted"> · id: {node.id}</span>
-      </div>
-      <p className="muted small">{typeMeta.hint}</p>
+    <>
+      <p className="muted small">{NODE_META[node.type].hint}</p>
       <Field label="Label">
         <input value={node.label ?? ''} onChange={(e) => set('label', e.target.value || undefined)} />
       </Field>
@@ -122,34 +120,57 @@ function NodeInspector({ node, update, remove, ctx }) {
           <Field label="Agent">
             <select value={node.agent ?? ''} onChange={(e) => set('agent', e.target.value)}>
               <option value="" disabled>pilih agent</option>
-              {agents.map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
+              {library.agents.filter((a) => !a.shadowed).map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
             </select>
           </Field>
           {agent && (
-            <p className="muted small">
-              {agent.file} · tools: {agent.tools.join(', ')} · {agent.model} / {agent.effort} / {agent.maxTurns} turns
-            </p>
+            <div className="component-card">
+              <div className="small">{agent.file}</div>
+              <div className="muted small">tools: {agent.tools.join(', ')} · {agent.model} / {agent.effort} / {agent.maxTurns} turns</div>
+              <button type="button" className="btn btn-sm" onClick={() => onEditComponent('agents', agent.name)}><Pencil size={13} /> Edit agent</button>
+            </div>
           )}
         </>
       )}
 
       {node.type === 'skill' && (
-        <Field label="Skill">
-          <select value={node.skill ?? ''} onChange={(e) => set('skill', e.target.value)}>
-            <option value="" disabled>pilih skill</option>
-            {skills.map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
-          </select>
-        </Field>
+        <>
+          <Field label="Skill">
+            <select value={node.skill ?? ''} onChange={(e) => set('skill', e.target.value)}>
+              <option value="" disabled>pilih skill</option>
+              {library.skills.filter((s) => !s.shadowed).map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+            </select>
+          </Field>
+          {node.skill && <button type="button" className="btn btn-sm" onClick={() => onEditComponent('skills', node.skill)}><Pencil size={13} /> Edit skill</button>}
+        </>
+      )}
+
+      {node.type === 'action' && (
+        <>
+          <Field label="Action tersimpan" hint="Kosong = pakai perintah di bawah">
+            <select value={node.action ?? ''} onChange={(e) => set('action', e.target.value || undefined)}>
+              <option value="">perintah custom</option>
+              {library.actions.filter((a) => !a.shadowed).map((a) => <option key={a.name} value={a.name}>{a.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Perintah" hint={preset ? `kosong = ${preset.command}` : 'Dijalankan di folder project. Exit 0 = PASS.'}>
+            <textarea className="mono" rows={3} value={node.command ?? ''} placeholder={preset?.command ?? 'npm test'} onChange={(e) => set('command', e.target.value || undefined)} />
+          </Field>
+          <Field label="Timeout (menit)" hint={`kosong = ${preset?.timeout_min ?? 15}`}>
+            <input type="number" min="1" value={node.timeout_min ?? ''} onChange={(e) => set('timeout_min', e.target.value === '' ? undefined : Number(e.target.value))} />
+          </Field>
+          {node.action && <button type="button" className="btn btn-sm" onClick={() => onEditComponent('actions', node.action)}><Pencil size={13} /> Edit action</button>}
+        </>
       )}
 
       {(node.type === 'agent' || node.type === 'skill') && (
         <>
-          <Field label="Instruksi untuk langkah ini" hint="Ditambahkan ke prompt agent. Kosong = kerjakan sesuai peran.">
+          <Field label="Instruksi untuk langkah ini" hint="Hanya berlaku di workflow ini. Untuk mengubah perilaku agent di semua workflow, edit file agent-nya.">
             <textarea rows={5} value={node.instructions ?? ''} onChange={(e) => set('instructions', e.target.value || undefined)} />
           </Field>
           <label className="check">
             <input type="checkbox" checked={Boolean(node.verdict)} onChange={(e) => set('verdict', e.target.checked || undefined)} />
-            Minta baris <code>VERDICT: PASS/FAIL</code> (dipakai Condition tanpa biaya LLM tambahan)
+            Minta baris <code>VERDICT: PASS/FAIL</code> (Condition membacanya tanpa biaya LLM)
           </label>
           <SettingsFields target={node} set={set} meta={meta} agent={agent} runners={runners} />
         </>
@@ -157,18 +178,18 @@ function NodeInspector({ node, update, remove, ctx }) {
 
       {node.type === 'condition' && (
         <>
-          <Field label="Sumber" hint="Node yang output-nya dinilai. Kosong = node pertama yang masuk.">
+          <Field label="Sumber" hint="Node yang hasilnya dinilai. Kosong = node pertama yang masuk.">
             <select value={node.source ?? ''} onChange={(e) => set('source', e.target.value || undefined)}>
               <option value="">otomatis</option>
               {others.map((n) => <option key={n.id} value={n.id}>{n.data.node.label || n.id}</option>)}
             </select>
           </Field>
-          <Field label="Pertanyaan" hint="Dipakai penilai LLM kalau output sumber tidak punya VERDICT">
+          <Field label="Pertanyaan" hint="Dipakai penilai LLM kalau sumber tidak punya VERDICT / exit code">
             <input value={node.check ?? ''} onChange={(e) => set('check', e.target.value || undefined)} />
           </Field>
           <Field label="Cara menilai">
             <select value={node.mode ?? ''} onChange={(e) => set('mode', e.target.value || undefined)}>
-              <option value="">auto: VERDICT dulu, lalu LLM</option>
+              <option value="">auto: VERDICT/exit code dulu, lalu LLM</option>
               <option value="verdict">verdict saja (gagal kalau tidak ada)</option>
               <option value="llm">selalu LLM</option>
             </select>
@@ -186,22 +207,21 @@ function NodeInspector({ node, update, remove, ctx }) {
       )}
 
       {node.type === 'info' && (
-        <Field label="Isi informasi" hint="Sambungkan ke node agent supaya teks ini masuk ke prompt-nya">
-          <textarea rows={6} value={node.text ?? ''} onChange={(e) => set('text', e.target.value || undefined)} />
+        <Field label="Isi catatan" hint="Sambungkan ke node agent supaya teks ini masuk ke prompt-nya">
+          <textarea rows={8} value={node.text ?? ''} onChange={(e) => set('text', e.target.value || undefined)} />
         </Field>
       )}
 
-      <button className="btn btn-danger" onClick={remove}>Hapus node</button>
-    </div>
+      <button type="button" className="btn btn-danger" onClick={remove}><Trash2 size={14} /> Hapus node</button>
+    </>
   );
 }
 
-function EdgeInspector({ edge, sourceType, update, remove }) {
+function EdgeSettings({ edge, sourceType, update, remove }) {
   const branching = BRANCHING.has(sourceType);
   const data = edge.data ?? {};
   return (
-    <div className="inspector-body">
-      <div className="inspector-type">Garis {edge.source} → {edge.target}</div>
+    <>
       {branching ? (
         <>
           <Field label="Cabang">
@@ -217,17 +237,16 @@ function EdgeInspector({ edge, sourceType, update, remove }) {
       ) : (
         <p className="muted small">Output {edge.source} mengalir ke {edge.target}. Cabang dan loop hanya bisa dari Condition/Approval.</p>
       )}
-      <button className="btn btn-danger" onClick={remove}>Hapus garis</button>
-    </div>
+      <button type="button" className="btn btn-danger" onClick={remove}><Trash2 size={14} /> Hapus garis</button>
+    </>
   );
 }
 
-function WorkflowInspector({ meta, setMeta, runners }) {
+function WorkflowSettings({ meta, setMeta, runners }) {
   const set = (key, value) => setMeta({ ...meta, [key]: value });
   const setDefault = (key, value) => setMeta({ ...meta, defaults: { ...meta.defaults, [key]: value } });
   return (
-    <div className="inspector-body">
-      <div className="inspector-type">Pengaturan workflow</div>
+    <>
       <Field label="Deskripsi">
         <textarea rows={2} value={meta.description ?? ''} onChange={(e) => set('description', e.target.value)} />
       </Field>
@@ -244,18 +263,31 @@ function WorkflowInspector({ meta, setMeta, runners }) {
       </div>
       <p className="muted small">Default di bawah berlaku untuk semua node Agent/Skill kecuali di-override di node.</p>
       <SettingsFields target={meta.defaults ?? {}} set={setDefault} meta={meta} isDefaults runners={runners} />
-    </div>
+    </>
   );
 }
 
-export default function Inspector({ selection, ctx, onNodeChange, onEdgeChange, onDelete, meta, setMeta }) {
+export default function SettingsPanel({ selection, ctx, onNodeChange, onEdgeChange, onDelete, meta, setMeta, onClose, onEditComponent }) {
+  let title;
   let body;
   if (selection?.kind === 'node') {
-    body = <NodeInspector node={selection.node} ctx={ctx} update={onNodeChange} remove={onDelete} />;
+    const n = selection.node;
+    title = <><TypeIcon type={n.type} size={16} /> {n.label || NODE_META[n.type].label} <span className="muted small">#{n.id}</span></>;
+    body = <NodeSettings node={n} ctx={ctx} update={onNodeChange} remove={onDelete} onEditComponent={onEditComponent} />;
   } else if (selection?.kind === 'edge') {
-    body = <EdgeInspector edge={selection.edge} sourceType={selection.sourceType} update={onEdgeChange} remove={onDelete} />;
+    title = <>Garis {selection.edge.source} → {selection.edge.target}</>;
+    body = <EdgeSettings edge={selection.edge} sourceType={selection.sourceType} update={onEdgeChange} remove={onDelete} />;
   } else {
-    body = <WorkflowInspector meta={meta} setMeta={setMeta} runners={ctx.runners} />;
+    title = <>Pengaturan workflow</>;
+    body = <WorkflowSettings meta={meta} setMeta={setMeta} runners={ctx.runners} />;
   }
-  return <aside className="inspector">{body}</aside>;
+  return (
+    <aside className="rpanel">
+      <div className="rpanel-head">
+        <span className="rpanel-title">{title}</span>
+        <button type="button" className="icon-btn" onClick={onClose} title="Tutup"><X size={16} /></button>
+      </div>
+      <div className="rpanel-body">{body}</div>
+    </aside>
+  );
 }

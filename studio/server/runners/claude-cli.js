@@ -1,7 +1,8 @@
 // Runner lewat Claude Code CLI (`claude -p`), memakai login Claude Code atau ANTHROPIC_API_KEY di env.
 // Agent dari plugins/agents dimuat langsung lewat --agents/--agent, jadi plugin tidak perlu ter-install di project.
 import { spawn, spawnSync } from 'node:child_process';
-import { describeTool } from './activity.js';
+import { describeTool, touchedFile } from './activity.js';
+import { PLUGIN_DIR } from '../config.js';
 
 const WRITE_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit', 'MultiEdit']);
 const READONLY_BASH = ['Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git status:*)', 'Bash(git show:*)', 'Bash(ls:*)'];
@@ -35,10 +36,27 @@ export function buildArgs({ node, agent, settings, prompt }) {
   if (settings.effort) args.push('--effort', String(settings.effort));
   if (settings.max_turns) args.push('--max-turns', String(settings.max_turns));
   if (settings.budget_usd) args.push('--max-budget-usd', String(settings.budget_usd));
+  // Skill doz-agent:* tersedia walau plugin belum ter-install di project.
+  if (settings.load_plugin !== false) args.push('--plugin-dir', PLUGIN_DIR);
   return args;
 }
 
-function runClaude(args, { workdir, signal, onActivity }) {
+function shellQuote(s) {
+  return /^[\w@%+=:,./-]+$/.test(s) ? s : `'${String(s).replace(/'/g, `'\\''`)}'`;
+}
+
+// Perintah yang bisa disalin ke terminal. Prompt dan definisi agent diganti placeholder karena panjang.
+export function describeCommand(opts) {
+  const args = buildArgs(opts);
+  const shown = args.map((a, i) => {
+    if (i === 1) return opts.node.type === 'skill' ? `"/${opts.node.skill} $(cat prompt.md)"` : '"$(cat prompt.md)"';
+    if (args[i - 1] === '--agents') return `'{"${opts.agent.name}": <isi ${opts.agent.file ?? 'file agent'}>}'`;
+    return shellQuote(a);
+  });
+  return `claude ${shown.join(' ')}`;
+}
+
+function runClaude(args, { workdir, signal, onActivity, onUsage }) {
   return new Promise((resolve, reject) => {
     const child = spawn('claude', args, { cwd: workdir, env: process.env, stdio: ['ignore', 'pipe', 'pipe'] });
     const onAbort = () => child.kill('SIGTERM');
@@ -47,6 +65,7 @@ function runClaude(args, { workdir, signal, onActivity }) {
     let stderr = '';
     let result = null;
     let lastText = '';
+    const usageById = new Map();
     child.stdout.on('data', (chunk) => {
       buffer += chunk;
       let nl;
@@ -58,9 +77,25 @@ function runClaude(args, { workdir, signal, onActivity }) {
         try { ev = JSON.parse(line); } catch { continue; }
         if (ev.type === 'result' || (ev.total_cost_usd !== undefined && ev.usage)) { result = ev; continue; }
         if (ev.type === 'system' && ev.subtype === 'init') onActivity?.({ kind: 'init', text: `model ${ev.model}`, model: ev.model, session: ev.session_id });
+        if (ev.type === 'assistant' && ev.message?.usage && ev.message.id) {
+          const u = ev.message.usage;
+          usageById.set(ev.message.id, {
+            input: u.input_tokens ?? 0, output: u.output_tokens ?? 0,
+            cacheRead: u.cache_read_input_tokens ?? 0, cacheWrite: u.cache_creation_input_tokens ?? 0,
+          });
+          const total = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+          for (const v of usageById.values()) for (const k of Object.keys(total)) total[k] += v[k];
+          onUsage?.(total);
+        }
         if (ev.type === 'assistant' && ev.message?.content && !ev.parent_tool_use_id) {
           for (const block of ev.message.content) {
-            if (block.type === 'tool_use') onActivity?.({ kind: 'tool', tool: block.name, text: describeTool(block.name, block.input).replaceAll(`${workdir}/`, '') });
+            if (block.type === 'tool_use') {
+              onActivity?.({
+                kind: 'tool', tool: block.name,
+                text: describeTool(block.name, block.input).replaceAll(`${workdir}/`, ''),
+                file: touchedFile(block.name, block.input, workdir),
+              });
+            }
             if (block.type === 'text' && block.text.trim()) {
               lastText = block.text;
               onActivity?.({ kind: 'text', text: block.text.slice(0, 400) });
@@ -103,6 +138,7 @@ export const claudeCliRunner = {
   run(opts) {
     return runClaude(buildArgs(opts), opts);
   },
+  describe: describeCommand,
   judge({ prompt, settings, workdir, signal }) {
     const args = ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--max-turns', '1', '--tools', ''];
     if (settings.model) args.push('--model', String(settings.model));

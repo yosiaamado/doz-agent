@@ -2,7 +2,7 @@
 // Tidak butuh Claude Code terpasang, tapi skill hanya bisa dimuat lewat tool load_skill.
 import Anthropic from '@anthropic-ai/sdk';
 import { toolsFor, runTool } from './tools.js';
-import { describeTool } from './activity.js';
+import { describeTool, touchedFile } from './activity.js';
 
 const ALIASES = { opus: 'claude-opus-5', sonnet: 'claude-sonnet-5', haiku: 'claude-haiku-4-5' };
 const DEFAULT_MODEL = 'claude-opus-5';
@@ -43,7 +43,7 @@ function requestParams(model, settings) {
   return params;
 }
 
-async function agentLoop({ system, prompt, tools, settings, workdir, signal, onActivity }) {
+async function agentLoop({ system, prompt, tools, settings, workdir, signal, onActivity, onUsage }) {
   const model = resolveModel(settings.model);
   const maxTurns = Number(settings.max_turns) || 30;
   const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
@@ -67,6 +67,7 @@ async function agentLoop({ system, prompt, tools, settings, workdir, signal, onA
     usage.output += response.usage.output_tokens ?? 0;
     usage.cacheRead += response.usage.cache_read_input_tokens ?? 0;
     usage.cacheWrite += response.usage.cache_creation_input_tokens ?? 0;
+    onUsage?.({ ...usage });
     const cost = estimateCost(model, usage);
     if (settings.budget_usd && cost > settings.budget_usd) throw new Error(`budget node $${settings.budget_usd} terlampaui`);
 
@@ -84,7 +85,7 @@ async function agentLoop({ system, prompt, tools, settings, workdir, signal, onA
     const calls = response.content.filter((b) => b.type === 'tool_use');
     // Semua tool_result dikembalikan dalam satu pesan user.
     const results = await Promise.all(calls.map(async (call) => {
-      onActivity?.({ kind: 'tool', tool: call.name, text: describeTool(call.name, call.input) });
+      onActivity?.({ kind: 'tool', tool: call.name, text: describeTool(call.name, call.input), file: touchedFile(call.name, call.input, workdir) });
       if (!tools.some((t) => t.name === call.name)) {
         return { type: 'tool_result', tool_use_id: call.id, content: `tool ${call.name} tidak diizinkan`, is_error: true };
       }
@@ -103,7 +104,11 @@ async function agentLoop({ system, prompt, tools, settings, workdir, signal, onA
 
 export const apiRunner = {
   name: 'api',
-  run({ node, agent, settings, prompt, workdir, signal, onActivity }) {
+  describe({ agent, settings }) {
+    const tools = toolsFor(agent?.tools, settings.permission).map((t) => t.name);
+    return `Claude API · POST /v1/messages · model ${resolveModel(settings.model)}${settings.effort ? ` · effort ${settings.effort}` : ''} · max_turns ${Number(settings.max_turns) || 30} · tools: ${tools.join(', ') || '-'}`;
+  },
+  run({ node, agent, settings, prompt, workdir, signal, onActivity, onUsage }) {
     if (node.type === 'skill') throw new Error('node skill hanya bisa dijalankan dengan runner claude-cli');
     const tools = toolsFor(agent?.tools, settings.permission);
     const system = [
@@ -111,7 +116,7 @@ export const apiRunner = {
       `\nKamu bekerja di folder project: ${workdir}. Semua path relatif terhadap folder ini.`,
       `Tool yang tersedia: ${tools.map((t) => t.name).join(', ') || '(tidak ada)'}. Tool Claude Code lain di instruksimu tidak tersedia; skill dimuat lewat load_skill.`,
     ].join('\n');
-    return agentLoop({ system, prompt, tools, settings, workdir, signal, onActivity });
+    return agentLoop({ system, prompt, tools, settings, workdir, signal, onActivity, onUsage });
   },
   judge({ prompt, settings, workdir, signal }) {
     return agentLoop({ system: 'Kamu penilai yang ringkas.', prompt, tools: [], settings: { ...settings, max_turns: 1 }, workdir, signal });

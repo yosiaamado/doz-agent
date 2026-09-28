@@ -49,6 +49,7 @@ doz-agent/
     ├── .claude-plugin/plugin.json
     ├── agents/                  # 8 subagent (file datar, tanpa subfolder)
     ├── workflows/               # workflow tersimpan (.md): graph node + garis, dibaca studio & run-workflow
+    ├── actions/                 # perintah shell tersimpan untuk node action (test, cek perubahan)
     └── skills/
         ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature, token-audit, run-workflow
         ├── product/             # product-ownership, business-thinking
@@ -90,9 +91,10 @@ cd studio && npm install && npm run build
 npm start -- --workdir /path/ke/project     # http://localhost:4317
 ```
 
-- Kotak = agent / skill / condition / approval / info / output. Garis = aliran output. Garis balik dari condition = loop dengan batas.
+- Tampilan ala n8n: palet agent/skill/action di kiri (bisa buat dan edit file-nya langsung), canvas yang digeser seperti Figma, panel Logs di bawah.
+- Kotak = agent / skill / action (perintah shell) / condition / approval / catatan / output. Garis = aliran output. Garis balik dari condition = loop dengan batas.
 - Tiap node bisa diatur: otak (`claude-cli` login Claude Code atau `api` API key), model, effort, izin read-only, input dari node mana, max turns, timeout, retry, budget.
-- Saat jalan, kotak menampilkan status, tool yang sedang dipakai agent, biaya, dan token secara realtime.
+- Saat jalan, node aktif dan garis menuju node itu berwarna biru, yang sudah selesai hijau. Klik node untuk melihat token, durasi, riwayat eksekusi, prompt, output, file yang diubah + diff, dan command `claude -p` yang dijalankan.
 - Simpan = file `plugins/workflows/<nama>.md`. Tanpa studio pun bisa dijalankan dari Claude Code: `/doz-agent:run-workflow <nama> <permintaan>`, dan progresnya tetap tampil di studio kalau studio sedang terbuka.
 
 Detail: [`studio/README.md`](studio/README.md), format file: [`plugins/workflows/README.md`](plugins/workflows/README.md).

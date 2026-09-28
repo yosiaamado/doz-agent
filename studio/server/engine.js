@@ -7,14 +7,19 @@
 // - Edge dengan `loop: N` mengulang node tujuan + semua node di bawahnya, maksimal N kali.
 import { resolveSettings } from './workflow.js';
 import { buildNodePrompt, buildJudgePrompt, parseVerdict } from './prompt.js';
+import { runCommand } from './runners/shell.js';
 
-const RUNNABLE = new Set(['agent', 'skill']);
+// Node yang menghasilkan output kerja (diteruskan ke node berikutnya dan dilacak perubahan file-nya).
+const WORK = new Set(['agent', 'skill', 'action']);
 
 export class WorkflowRun {
-  constructor({ id, wf, agents, input, workdir, runners, emit }) {
+  // tracker: { snapshot(workdir), changes(workdir, base, head) } untuk menghitung file yang diubah tiap node.
+  constructor({ id, wf, agents, actions = [], input, workdir, runners, emit, tracker = null }) {
     this.id = id;
     this.wf = wf;
     this.agents = Object.fromEntries(agents.map((a) => [a.name, a]));
+    this.actions = Object.fromEntries(actions.map((a) => [a.name, a]));
+    this.tracker = tracker;
     this.input = input;
     this.workdir = workdir;
     this.runners = runners;
@@ -172,7 +177,7 @@ export class WorkflowRun {
     else ids = this.incoming(node.id).map((e) => e.from);
     return ids
       .map((id) => this.nodes[id])
-      .filter((n) => n && ['agent', 'skill'].includes(n.type) && this.state[n.id].status === 'done' && this.state[n.id].output)
+      .filter((n) => n && WORK.has(n.type) && this.state[n.id].status === 'done' && this.state[n.id].output)
       .map((n) => ({ node: n, output: this.state[n.id].output }));
   }
 
@@ -196,7 +201,14 @@ export class WorkflowRun {
 
   async execute(node, signal) {
     const started = Date.now();
-    this.setNode(node.id, { status: 'running', startedAt: started, error: undefined });
+    this.setNode(node.id, {
+      status: 'running', startedAt: started, endedAt: undefined, error: undefined, warning: undefined,
+      usage: undefined, cost: undefined, changes: undefined, diff: undefined, touched: undefined,
+    });
+    const tracked = WORK.has(node.type) && this.tracker;
+    const base = tracked ? await this.tracker.snapshot(this.workdir).catch(() => null) : null;
+    this.touched = this.touched ?? {};
+    this.touched[node.id] = new Set();
     let result;
     switch (node.type) {
       case 'start':
@@ -212,6 +224,9 @@ export class WorkflowRun {
       case 'approval':
         result = await this.waitApproval(node);
         break;
+      case 'action':
+        result = await this.runAction(node, signal);
+        break;
       default:
         result = await this.runAgent(node, signal);
     }
@@ -219,8 +234,22 @@ export class WorkflowRun {
       this.setNode(node.id, { status: 'stopped', activity: null });
       return;
     }
+    let changes;
+    let diff;
+    if (base) {
+      const head = await this.tracker.snapshot(this.workdir).catch(() => null);
+      if (head) {
+        diff = { base, head };
+        changes = await this.tracker.changes(this.workdir, base, head).catch(() => undefined);
+      }
+    }
+    const touched = [...(this.touched[node.id] ?? [])];
     this.setNode(node.id, {
       status: 'done',
+      changes,
+      diff,
+      touched: touched.length ? touched : undefined,
+      endedAt: Date.now(),
       output: result.output,
       verdict: result.verdict,
       reason: result.reason,
@@ -228,6 +257,7 @@ export class WorkflowRun {
       usage: result.usage,
       turns: result.turns,
       warning: result.warning,
+      exitCode: result.exitCode,
       activity: null,
       durationMs: Date.now() - started,
     });
@@ -254,13 +284,19 @@ export class WorkflowRun {
     });
     const attempts = Math.max(0, Number(settings.retry) || 0) + 1;
     let lastErr;
+    const opts = { node, agent, settings, prompt, workdir: this.workdir };
+    const command = runner.describe?.(opts);
     for (let attempt = 1; attempt <= attempts; attempt++) {
       if (signal.aborted) break;
-      this.setNode(node.id, { attempts: attempt, settings });
+      this.setNode(node.id, { attempts: attempt, settings, prompt, command });
       try {
         const res = await withTimeout(settings.timeout_min, signal, (attemptSignal) => runner.run({
-          node, agent, settings, prompt, workdir: this.workdir, signal: attemptSignal,
-          onActivity: (activity) => this.emit({ type: 'activity', node: node.id, ...activity }),
+          ...opts, signal: attemptSignal,
+          onActivity: (activity) => {
+            if (activity.file) this.touched[node.id]?.add(activity.file);
+            this.emit({ type: 'activity', node: node.id, ...activity });
+          },
+          onUsage: (usage) => this.emit({ type: 'node', node: node.id, usage }),
         }));
         this.cost += res.cost ?? 0;
         this.emit({ type: 'cost', total: this.cost });
@@ -277,10 +313,29 @@ export class WorkflowRun {
     throw lastErr ?? new Error('dihentikan');
   }
 
+  async runAction(node, signal) {
+    const preset = node.action ? this.actions[node.action] : null;
+    if (node.action && !preset) throw new Error(`Action "${node.action}" tidak ditemukan`);
+    const command = node.command || preset?.command;
+    if (!command) throw new Error('Action tanpa perintah');
+    const timeout = Number(node.timeout_min ?? preset?.timeout_min) || 15;
+    this.setNode(node.id, { command, prompt: undefined });
+    this.emit({ type: 'activity', node: node.id, kind: 'tool', tool: 'Shell', text: `$ ${command}` });
+    const res = await withTimeout(timeout, signal, (s) => runCommand({
+      command, workdir: this.workdir, signal: s,
+      onLine: (line) => this.emit({ type: 'activity', node: node.id, kind: 'text', text: line }),
+    }));
+    return { output: `$ ${command}\n(exit ${res.code})\n\n${res.output}`, verdict: res.code === 0, exitCode: res.code };
+  }
+
   async evaluateCondition(node, signal) {
     const sourceId = node.source ?? this.incoming(node.id)[0]?.from;
     const subject = this.state[sourceId]?.output ?? '';
     const mode = node.mode ?? 'auto';
+    const known = this.state[sourceId]?.verdict;
+    if (mode !== 'llm' && typeof known === 'boolean') {
+      return { verdict: known, output: `Hasil ${sourceId}: ${known ? 'PASS' : 'FAIL'}`, reason: 'verdict' };
+    }
     if (mode !== 'llm') {
       const v = parseVerdict(subject);
       if (v !== null) return { verdict: v, output: `VERDICT dari ${sourceId}: ${v ? 'PASS' : 'FAIL'}`, reason: 'verdict' };

@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { listSkills } from '../agents.js';
+import { listSkills } from '../library.js';
 
 const MAX_RESULT = 20_000;
 const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'build', '.next', 'bin', 'obj', '.doz-studio']);

@@ -157,3 +157,24 @@ test('tool api: path dikurung di workdir, glob dan mapping tool', () => {
   assert.ok(!globToRegExp('*.ts').test('src/a.ts'));
   assert.deepEqual(toolsFor(['Read', 'Edit', 'Bash'], 'read-only').map((t) => t.name), ['read_file']);
 });
+
+test('action: exit code jadi verdict dan condition memakainya', async () => {
+  const wf = {
+    name: 'a',
+    nodes: [
+      { id: 's', type: 'start' },
+      { id: 'tes', type: 'action', command: 'echo halo && exit 3' },
+      { id: 'c', type: 'condition', source: 'tes' },
+      { id: 'ok', type: 'output' },
+      { id: 'gagal', type: 'output' },
+    ],
+    edges: [{ from: 's', to: 'tes' }, { from: 'tes', to: 'c' }, { from: 'c', to: 'ok', when: true }, { from: 'c', to: 'gagal', when: false }],
+  };
+  const { status, r } = await run(wf, {});
+  assert.equal(status, 'done');
+  assert.equal(r.state.tes.verdict, false);
+  assert.equal(r.state.tes.exitCode, 3);
+  assert.match(r.state.tes.output, /halo/);
+  assert.equal(r.state.gagal.status, 'done');
+  assert.equal(r.state.ok.status, 'skipped');
+});

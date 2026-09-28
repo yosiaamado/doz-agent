@@ -41,9 +41,10 @@ Catatan bebas. Ikut dikirim ke setiap agent sebagai konteks workflow.
 | `start` | `input` (opsional, default permintaan) | Titik awal. Output = permintaan saat run |
 | `agent` | `agent` (wajib), `instructions`, `verdict` + pengaturan | Menjalankan subagent `plugins/agents/<agent>.md` |
 | `skill` | `skill` (mis. `doz-agent:ship-feature`) + pengaturan | Menjalankan skill. Di studio hanya runner `claude-cli` |
-| `condition` | `source`, `check`, `mode` (`auto`/`verdict`/`llm`), `model` | Memilih cabang. Pertama cek baris `VERDICT: PASS/FAIL` di output `source`; kalau tidak ada, penilai LLM (bawaan haiku) menjawab `check` |
+| `action` | `command` dan/atau `action` (nama di `plugins/actions/`), `timeout_min` | Perintah shell di folder project (test, lint, build). Exit code 0 = PASS, jadi bisa langsung disambung ke condition |
+| `condition` | `source`, `check`, `mode` (`auto`/`verdict`/`llm`), `model` | Memilih cabang. Pertama pakai exit code (kalau `source` action) atau baris `VERDICT: PASS/FAIL` di output `source`; kalau tidak ada, penilai LLM (bawaan haiku) menjawab `check` |
 | `approval` | `message` | Berhenti sampai manusia menyetujui (`when: true`) atau menolak (`when: false`) |
-| `info` | `text` | Kotak informasi. Kalau disambung ke node, teksnya masuk ke konteks node itu |
+| `info` | `text` | Sticky note. Kalau disambung ke node, teksnya masuk ke konteks node itu. Ukurannya disimpan di `layout` (`[x, y, lebar, tinggi]`) |
 | `output` | - | Mengumpulkan output semua agent/skill sebelumnya jadi laporan akhir |
 
 `label` bisa diisi di semua node. `verdict: true` meminta agent menutup jawabannya dengan `VERDICT: PASS/FAIL`, supaya condition tidak perlu memanggil LLM lagi.
@@ -72,6 +73,23 @@ Urutan prioritas: **node > defaults workflow > frontmatter agent > bawaan**. Nil
 | `budget_usd` | angka | - | Batas biaya per node |
 
 Di `run-workflow` (Claude Code tanpa studio) yang berlaku hanya `model`, `permission` (sebagai instruksi), `inputs`, `max_output_chars`, dan `retry`. Sisanya hanya berlaku di studio.
+
+## Action tersimpan (`plugins/actions/`)
+
+Perintah yang sering dipakai bisa disimpan sebagai file supaya muncul di palet studio:
+
+```markdown
+---
+name: jalankan-test
+description: Jalankan test suite project
+command: npm test --silent
+timeout_min: 15
+---
+
+Catatan kapan dipakai.
+```
+
+Node `action` merujuknya dengan `action: jalankan-test`. Isi `command` di node menimpa perintah file-nya. Action hanya dibaca studio dan `run-workflow`; Claude Code biasa tidak memakainya.
 
 ## Progres realtime
 

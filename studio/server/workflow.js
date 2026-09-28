@@ -2,7 +2,7 @@
 // Spesifikasi lengkap: plugins/workflows/README.md
 import YAML from 'yaml';
 
-export const NODE_TYPES = ['start', 'agent', 'skill', 'condition', 'approval', 'info', 'output'];
+export const NODE_TYPES = ['start', 'agent', 'skill', 'action', 'condition', 'approval', 'info', 'output'];
 
 // Pengaturan yang bisa diisi di `defaults` workflow atau di node agent/skill (node menang).
 export const SETTING_KEYS = [
@@ -104,6 +104,7 @@ export function validateWorkflow(wf, agentNames = null) {
       errors.push(`${n.id}: agent "${n.agent}" tidak ada di plugins/agents`);
     }
     if (n.type === 'skill' && !n.skill) errors.push(`${n.id}: node skill wajib punya "skill"`);
+    if (n.type === 'action' && !n.command && !n.action) errors.push(`${n.id}: node action wajib punya "command" atau "action"`);
     if (n.type === 'condition' && !n.check && !n.source) errors.push(`${n.id}: condition butuh "check" atau "source"`);
   }
   if (!wf.nodes.some((n) => n.type === 'start')) errors.push('Workflow butuh satu node start');

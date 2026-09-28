@@ -9,6 +9,27 @@ Aturan untuk manusia dan AI yang mengubah repo ini:
 - Perubahan yang dipicu audit pemakaian menyebut file di `agent-usage/`, supaya dampaknya bisa dibandingkan dengan audit berikutnya.
 - Riwayat sebelum 1.15.0: lihat `git log`.
 
+## [1.17.0] - 2026-09-28
+
+Sumber: permintaan user untuk UI studio ala n8n (abu-abu gelap, canvas geser ala Figma), status aktif biru/selesai hijau sampai ke garis, kelola agent/skill/action dari UI, detail per node (token, durasi, riwayat, diff file, command CLI). File agent tidak berubah.
+
+### Studio (`studio/`)
+
+- UI ditulis ulang gaya n8n: palet kiri (cari, seret, `+` baru, pensil edit, folder sumber), tab Editor/Executions, canvas grid titik dengan navigasi Figma, node kotak berlabel di bawah + node agent lebar, sticky note bisa di-resize, tombol Jalankan melayang.
+- Status run: node jalan biru berdenyut + garis biru beranimasi, node/garis yang sudah dilewati hijau, cabang yang tidak dipilih redup; durasi live, token live, jumlah eksekusi, jumlah file di bawah node.
+- Panel Logs: pohon node + detail per node (Info + riwayat eksekusi, Input, Output, File + diff yang dimuat saat dipilih, Command CLI yang bisa disalin, Aktivitas).
+- Editor komponen: buat/edit agent, skill, action (mode Form mengubah key frontmatter satu per satu, mode Raw seluruh file), menampilkan workflow yang memakainya.
+- Folder sumber bisa diatur (`plugins/*`, `{workdir}/.claude/*`, `~/.claude/*`, dll.).
+- Node baru `action`: perintah shell di folder project, exit code 0 = PASS, dibaca langsung oleh condition.
+- Server: `library.js` (baca/tulis komponen dari banyak folder), `gitdiff.js` (snapshot working tree per node lewat index sementara), `runners/shell.js`; runner mengirim command yang ditampilkan, token live, dan file yang ditulis; `claude -p` memakai `--plugin-dir plugins`.
+
+### Plugin
+
+- `plugins/actions/` (baru): `cek-perubahan.md`, `jalankan-test.md`.
+- `plugins/workflows/README.md`: node `action`, ukuran sticky note, format action tersimpan.
+- `skills/engineering/run-workflow/SKILL.md`: menjalankan node action lewat Bash; condition memakai exit code action.
+- `plugin.json` & `marketplace.json`: versi 1.17.0.
+
 ## [1.16.0] - 2026-09-28
 
 Sumber: permintaan user untuk GUI ala n8n (kotak + garis) agar alur agent bisa dirancang, diatur, dan dipantau realtime, dengan otak dari Claude Code atau API key. Alur disimpan sebagai file workflow terpisah; file agent tidak berubah.

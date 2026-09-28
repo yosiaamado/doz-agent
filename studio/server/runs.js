@@ -91,7 +91,8 @@ export class RunRegistry {
       if (summary) out.set(id, summary);
     }
     for (const r of this.runs.values()) {
-      out.set(r.id, { id: r.id, workflow: r.workflow, source: r.source, status: r.status, cost: r.cost, started: r.started });
+      const end = r.events.findLast((e) => e.type === 'run_end');
+      out.set(r.id, { id: r.id, workflow: r.workflow, source: r.source, status: r.status, cost: r.cost, started: r.started, duration: end ? end.ts - r.started : null });
     }
     return [...out.values()].sort((a, b) => b.started - a.started).slice(0, 50);
   }
@@ -130,5 +131,6 @@ function summarizeFile(file, id) {
     status: end?.status ?? 'running',
     cost,
     started: start.ts ?? fs.statSync(file).mtimeMs,
+    duration: end?.ts && start.ts ? end.ts - start.ts : null,
   };
 }
