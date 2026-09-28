@@ -25,6 +25,7 @@ Skill dikelompokkan per bidang. Nama folder bidang tidak memengaruhi cara pemang
 |---|---|---|
 | `ship-feature` | engineering | **Titik masuk utama.** Orkestrator satu perintah: ukur pekerjaan (kecil/sedang/besar), jalankan hanya agent yang dibutuhkan (PO → SA → BE ∥ FE → verifikasi paralel → acceptance), loop perbaikan, berhenti hanya untuk keputusan bisnis |
 | `token-audit` | engineering | Audit token & kegagalan satu workflow dari transcript: token & perkiraan biaya per agent, gap terbesar (file besar dibaca utuh, output panjang, eksplorasi, cache miss, narasi, laporan panjang), kegagalan agent & temuan blocking per kategori, pola kegagalan berulang lintas workflow, dan saran per file agent. Otomatis di akhir `ship-feature` ukuran Sedang/Besar; manual: `/doz-agent:token-audit [--all]` |
+| `run-workflow` | engineering | Menjalankan workflow tersimpan (`plugins/workflows/<nama>.md`, dibuat di doz studio atau manual) langkah demi langkah: paralel, condition, loop perbaikan, approval. Progres ditulis ke `.doz-studio/runs/` supaya tampil realtime di studio. `/doz-agent:run-workflow <nama> <permintaan>` |
 | `product-ownership` | product | Kerangka kerja PO (Scrum Guide 2020): analisis dampak, INVEST, Given/When/Then, story splitting, DoR, penentuan agent, penerimaan hasil |
 | `engineering-workflow` | engineering | Alur kerja tim: DoR/DoD, branching, Conventional Commits, PR, code review, ADR, SemVer, incident & postmortem |
 | `backend-patterns` | engineering | Aturan dasar backend (REST, RFC 9457, migration zero-downtime, OWASP, resiliency, OpenTelemetry) + aturan per bahasa di `references/` (.NET, dll.) |
@@ -43,11 +44,13 @@ doz-agent/
 ├── CHANGELOG.md                 # riwayat versi: alasan + satu baris per perubahan per file
 ├── agent-usage/                 # hasil token-audit per tanggal, pembanding antar versi (tidak ikut ter-install)
 ├── tests/                       # test script token-audit: python3 -m unittest discover -s tests
+├── studio/                      # doz studio: editor visual + runner workflow (tidak ikut ter-install)
 └── plugins/
     ├── .claude-plugin/plugin.json
     ├── agents/                  # 8 subagent (file datar, tanpa subfolder)
+    ├── workflows/               # workflow tersimpan (.md): graph node + garis, dibaca studio & run-workflow
     └── skills/
-        ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature, token-audit
+        ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature, token-audit, run-workflow
         ├── product/             # product-ownership, business-thinking
         ├── design/              # ui-design-taste
         ├── thinking/            # analytical-thinking
@@ -77,6 +80,22 @@ Cukup satu perintah, atau tulis biasa "kerjain fitur X sampai selesai":
 | Bentuk response belum pasti, atau porsi FE kecil | Tanpa kontrak di depan: `backend-engineer` dulu, kontraknya diambil dari laporannya, baru `frontend-engineer` |
 
 Mau diskusi dulu tanpa implementasi? Pakai `/doz-agent:product-ownership <ide>` (bolak-balik di chat utama), lalu lanjutkan dengan `ship-feature`.
+
+## Workflow visual (doz studio)
+
+`ship-feature` memilih agent secara dinamis. Untuk alur yang **tetap** atau kamu rancang sendiri (misalnya "PO → BE → QA, ulang BE maks 2x kalau QA gagal", atau "review ∥ security → kamu yang putuskan"), gambar di **doz studio**:
+
+```bash
+cd studio && npm install && npm run build
+npm start -- --workdir /path/ke/project     # http://localhost:4317
+```
+
+- Kotak = agent / skill / condition / approval / info / output. Garis = aliran output. Garis balik dari condition = loop dengan batas.
+- Tiap node bisa diatur: otak (`claude-cli` login Claude Code atau `api` API key), model, effort, izin read-only, input dari node mana, max turns, timeout, retry, budget.
+- Saat jalan, kotak menampilkan status, tool yang sedang dipakai agent, biaya, dan token secara realtime.
+- Simpan = file `plugins/workflows/<nama>.md`. Tanpa studio pun bisa dijalankan dari Claude Code: `/doz-agent:run-workflow <nama> <permintaan>`, dan progresnya tetap tampil di studio kalau studio sedang terbuka.
+
+Detail: [`studio/README.md`](studio/README.md), format file: [`plugins/workflows/README.md`](plugins/workflows/README.md).
 
 ## Memory: agent yang ingat alur kode
 

@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+node_modules/
+studio/web/dist/
+studio/.local.json
+.doz-studio/

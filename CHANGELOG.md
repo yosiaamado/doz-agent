@@ -9,6 +9,32 @@ Aturan untuk manusia dan AI yang mengubah repo ini:
 - Perubahan yang dipicu audit pemakaian menyebut file di `agent-usage/`, supaya dampaknya bisa dibandingkan dengan audit berikutnya.
 - Riwayat sebelum 1.15.0: lihat `git log`.
 
+## [1.16.0] - 2026-09-28
+
+Sumber: permintaan user untuk GUI ala n8n (kotak + garis) agar alur agent bisa dirancang, diatur, dan dipantau realtime, dengan otak dari Claude Code atau API key. Alur disimpan sebagai file workflow terpisah; file agent tidak berubah.
+
+### Workflow (`plugins/workflows/`, baru)
+
+- `README.md`: spesifikasi format (node start/agent/skill/condition/approval/info/output, edge `when`/`loop`, pengaturan node > defaults > agent > bawaan, log progres `.doz-studio/runs/`).
+- `fitur-kecil.md`: contoh PO → BE → QA dengan loop perbaikan maks 2x dan node info.
+- `review-pr.md`: contoh code review ∥ security review (read-only) → approval manusia.
+
+### Skill (`plugins/skills/engineering/`)
+
+- `run-workflow/SKILL.md` (baru): menjalankan file workflow dari Claude Code tanpa studio (paralel, condition via VERDICT, loop, approval via AskUserQuestion) dan menulis progres JSONL untuk studio.
+
+### Studio (`studio/`, baru, tidak ikut ter-install)
+
+- Server Node lokal (127.0.0.1): engine graph (paralel, cabang, loop, approval, retry, timeout, budget), runner `claude-cli` (`claude -p --agents/--agent`, stream-json) dan `api` (Claude API + tool lokal yang dikurung di workdir), log run JSONL + pemantau run dari terminal.
+- UI React Flow: palet agent/skill/node, panel pengaturan per node dan workflow, status/aktivitas/biaya per kotak secara realtime, panel log & output, tombol approval.
+- `npm test`: test engine, validasi, pengaturan, argumen CLI, dan sandbox tool API.
+
+### Lainnya
+
+- `README.md`: bagian Workflow visual, skill `run-workflow`, struktur `studio/` dan `plugins/workflows/`.
+- `plugin.json` & `marketplace.json`: versi 1.16.0, 12 skill.
+- `.gitignore`: `studio/node_modules`, `studio/web/dist`, `studio/.local.json`, `.doz-studio/`.
+
 ## [1.15.0] - 2026-09-25
 
 Sumber: audit satu workflow `ship-feature` besar (8 permintaan, 4 slice, BE+FE, ≈ $41), lihat [`agent-usage/2026-09-25.md`](agent-usage/2026-09-25.md). Masalah utama: 6x agent berhenti di `maxTurns` tanpa laporan, engineer menerima 4 slice sekaligus tanpa `too-big`, lanjutan lewat SendMessage ±$13, dan bug yang lolos self-review. Semua perubahan bersifat umum (bukan untuk satu project). Frontmatter agent tidak berubah.
