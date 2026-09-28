@@ -9,6 +9,37 @@ Aturan untuk manusia dan AI yang mengubah repo ini:
 - Perubahan yang dipicu audit pemakaian menyebut file di `agent-usage/`, supaya dampaknya bisa dibandingkan dengan audit berikutnya.
 - Riwayat sebelum 1.15.0: lihat `git log`.
 
+## [1.18.0] - 2026-09-28
+
+Sumber: masukan user untuk UI studio (16 poin: snap grid, dropdown modern, logo/favicon, menu hover, tema terang/gelap, lampiran dokumen, usage Claude Code, modal pengganti alert, pemilih folder, dll.) dan permintaan menerapkan pola [everything-claude-code](https://github.com/worldflowai/everything-claude-code) supaya FE modern dan BE readable/SOLID. File agent tidak berubah.
+
+### Studio: backend (`studio/server/`)
+
+- Dipecah per lapisan: `app.js` (composition root), `http/` (router, middleware localhost, respons `{ success, data | error }`, skema zod, static, socket), `routes/`, `services/`, `repositories/`, `domain/`, `runners/`, `infra/`, `lib/`.
+- Engine dipecah jadi `graph.js` (fungsi murni), `executors.js` (per tipe node), `engine.js` (orkestrasi); state run tidak dimutasi.
+- Perbaikan bug engine: node yang baru siap setelah node lain di-skip dalam putaran yang sama tidak lagi terlewat (mis. jalur "aman" di audit).
+- Runner `claude-cli`: prompt lewat stdin, definisi agent lewat file sementara (argumen pendek, aman di Windows `claude.cmd`), merekam `rate_limit_event`.
+- Baru: lampiran dokumen (`/api/attachments`, teks md/txt/kode/docx disisipkan, pdf/gambar lewat path), pemakaian Claude Code (`/api/usage`: batas 5 jam & 7 hari + token lokal dari `~/.claude/projects`), penjelajah folder (`/api/folders`).
+- Logger JSON terstruktur, `ApiError` + error handler terpusat, tool `bash` runner API memakai `shell.js` yang sama.
+- Test: 34 (unit, integrasi API, runner dengan `claude` palsu, template workflow), coverage baris ±89%.
+
+### Studio: frontend (`studio/web/`)
+
+- Tema gelap & terang (ikut sistem atau manual), token warna di `styles/tokens.css`.
+- Logo baru (robot + alur 4 langkah) di menu dan favicon.
+- Menu kiri: rail ikon yang melebar saat di-hover dan menyempit saat ditinggal; tab Editor | Executions di dalam menu; bisa drag-drop di layar kecil; tag "edit" dihapus.
+- Canvas: snap to grid 20px, geser dengan klik kiri, Shift+drag pilih banyak.
+- Dropdown (Select/Combobox) dan modal (confirm/prompt) sendiri, bisa dipakai dengan keyboard; `alert`/`confirm`/`prompt` bawaan dihapus.
+- Pemilih folder ala file manager untuk folder project dan folder sumber; top bar tidak lagi bertumpuk di layar kecil.
+- Dialog run bisa melampirkan dokumen; widget pemakaian Claude Code di top bar; dialog Workflow Baru dari template.
+- Judul memakai Title Case; struktur per fitur (`components/ui`, `features/*`, `hooks`, `lib`, `state`, `styles`), dialog di-lazy-load, ErrorBoundary.
+
+### Plugin
+
+- `plugins/workflows/`: template baru `perbaikan-bug`, `fitur-lengkap`, `audit-keamanan`, `rilis`.
+- `plugin.json`: versi 1.18.0.
+- `.gitignore`: `studio/.usage.json`.
+
 ## [1.17.0] - 2026-09-28
 
 Sumber: permintaan user untuk UI studio ala n8n (abu-abu gelap, canvas geser ala Figma), status aktif biru/selesai hijau sampai ke garis, kelola agent/skill/action dari UI, detail per node (token, durasi, riwayat, diff file, command CLI). File agent tidak berubah.

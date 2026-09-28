@@ -4,3 +4,4 @@ node_modules/
 studio/web/dist/
 studio/.local.json
 .doz-studio/
+studio/.usage.json

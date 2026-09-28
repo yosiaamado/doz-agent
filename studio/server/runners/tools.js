@@ -1,10 +1,10 @@
 // Tool lokal untuk runner API. Semua path dikurung di workdir.
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
-import { listSkills } from '../library.js';
+import { runCommand } from './shell.js';
 
 const MAX_RESULT = 20_000;
+const BASH_TIMEOUT_MS = 120_000;
 const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'build', '.next', 'bin', 'obj', '.doz-studio']);
 
 function clip(s) {
@@ -47,18 +47,6 @@ function walk(root, onFile, limit = 5000) {
       else if (e.isFile()) { count++; onFile(full); }
     }
   }
-}
-
-function runShell(command, cwd, timeoutMs = 120_000) {
-  return new Promise((resolve) => {
-    const child = spawn(process.platform === 'win32' ? 'cmd' : 'bash', process.platform === 'win32' ? ['/c', command] : ['-lc', command], { cwd });
-    let out = '';
-    const timer = setTimeout(() => { child.kill('SIGTERM'); out += '\n[timeout]'; }, timeoutMs);
-    child.stdout.on('data', (c) => { out += c; });
-    child.stderr.on('data', (c) => { out += c; });
-    child.on('close', (code) => { clearTimeout(timer); resolve(`exit ${code}\n${clip(out)}`); });
-    child.on('error', (err) => { clearTimeout(timer); resolve(`error: ${err.message}`); });
-  });
 }
 
 const DEFS = {
@@ -135,15 +123,19 @@ const DEFS = {
     write: true,
     description: 'Jalankan perintah shell di workdir (timeout 2 menit).',
     input_schema: { type: 'object', properties: { command: { type: 'string' } }, required: ['command'] },
-    run: ({ command }, wd) => runShell(command, wd),
+    run: async ({ command }, wd) => {
+      const res = await runCommand({ command, workdir: wd, signal: AbortSignal.timeout(BASH_TIMEOUT_MS) });
+      return `exit ${res.code}\n${clip(res.output)}`;
+    },
   },
   load_skill: {
     from: 'Skill',
     description: 'Muat isi skill doz-agent (mis. "doz-agent:backend-patterns") kalau butuh standar kerjanya.',
     input_schema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] },
-    run: ({ name }) => {
-      const skill = listSkills().find((s) => s.name === name || s.name === `doz-agent:${name}`);
-      if (!skill) return `skill tidak ada. Tersedia: ${listSkills().map((s) => s.name).join(', ')}`;
+    run: ({ name }, wd, ctx) => {
+      const skills = ctx?.listSkills?.() ?? [];
+      const skill = skills.find((s) => s.name === name || s.name === `doz-agent:${name}`);
+      if (!skill) return `skill tidak ada. Tersedia: ${skills.map((s) => s.name).join(', ')}`;
       return clip(fs.readFileSync(skill.file, 'utf8'));
     },
   },
@@ -157,8 +149,8 @@ export function toolsFor(agentTools, permission) {
     .map(([name, d]) => ({ name, def: d }));
 }
 
-export async function runTool(name, input, workdir) {
+export async function runTool(name, input, workdir, ctx = {}) {
   const def = DEFS[name];
   if (!def) throw new Error(`tool tidak dikenal: ${name}`);
-  return String(await def.run(input ?? {}, workdir));
+  return String(await def.run(input ?? {}, workdir, ctx));
 }

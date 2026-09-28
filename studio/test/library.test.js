@@ -4,8 +4,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { composeFile, splitFile } from '../server/library.js';
-import { snapshot, changes, fileDiff } from '../server/gitdiff.js';
+import { composeFile, splitFile } from '../server/lib/frontmatter.js';
+import { snapshot, changes, fileDiff } from '../server/infra/gitdiff.js';
 import { describeCommand } from '../server/runners/claude-cli.js';
 
 test('composeFile mengubah key tanpa membuang key lain', () => {
@@ -44,9 +44,9 @@ test('command CLI bisa disalin dengan placeholder prompt', () => {
     agent: { name: 'qa-tester', description: 'x', tools: ['Read'], prompt: 'p', file: 'plugins/agents/qa-tester.md' },
     settings: { model: 'sonnet', max_turns: 40 },
     prompt: 'rahasia panjang',
-  });
-  assert.match(cmd, /^claude -p "\$\(cat prompt.md\)" --output-format stream-json/);
-  assert.match(cmd, /--agent qa-tester/);
-  assert.match(cmd, /<isi plugins\/agents\/qa-tester.md>/);
+  }, { pluginDir: '/repo/plugins' });
+  assert.match(cmd, /^claude -p --output-format stream-json --verbose --agents agents.json --agent qa-tester/);
+  assert.match(cmd, /< prompt.md/);
+  assert.match(cmd, /isi plugins\/agents\/qa-tester.md/);
   assert.ok(!cmd.includes('rahasia'));
 });

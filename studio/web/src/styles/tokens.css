@@ -1,0 +1,90 @@
+/* Design token. Tema gelap = abu-abu netral ala n8n, tema terang = putih lembut.
+   Hijau = selesai, biru = sedang jalan, oranye-merah = aksi utama. */
+:root,
+:root[data-theme='dark'] {
+  --canvas: #262626;
+  --dots: #444;
+  --bg: #1c1c1c;
+  --panel: #1f1f1f;
+  --panel-2: #262626;
+  --panel-3: #2f2f2f;
+  --hover: #333;
+  --border: #353535;
+  --border-2: #474747;
+  --node: #313131;
+  --node-border: #686868;
+  --text: #ececec;
+  --text-2: #b9b9b9;
+  --muted: #8a8a8a;
+  --primary: #ff6d5a;
+  --primary-2: #ff8573;
+  --primary-soft: rgba(255, 109, 90, .14);
+  --ok: #3fb56f;
+  --ok-text: #8be3ae;
+  --ok-soft: rgba(63, 181, 111, .16);
+  --run: #4c8dff;
+  --run-text: #bcd3ff;
+  --run-soft: rgba(76, 141, 255, .22);
+  --fail: #ef5350;
+  --fail-text: #ff9c98;
+  --warn: #f5a623;
+  --warn-text: #ffd08a;
+  --note: #4a4212;
+  --note-border: #7c6c12;
+  --note-title: #fff3b0;
+  --note-text: #e6dca0;
+  --code-bg: #181818;
+  --shadow: 0 10px 30px rgba(0, 0, 0, .45);
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, .35);
+  --overlay: rgba(0, 0, 0, .55);
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --canvas: #f3f3f4;
+  --dots: #cfcfd4;
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-2: #f6f6f7;
+  --panel-3: #ececee;
+  --hover: #eeeef0;
+  --border: #e3e3e6;
+  --border-2: #d2d2d7;
+  --node: #ffffff;
+  --node-border: #b7b7be;
+  --text: #1d1d22;
+  --text-2: #4a4a52;
+  --muted: #7c7c86;
+  --primary: #f0503c;
+  --primary-2: #ff6d5a;
+  --primary-soft: rgba(240, 80, 60, .1);
+  --ok: #1f9d55;
+  --ok-text: #16733f;
+  --ok-soft: rgba(31, 157, 85, .12);
+  --run: #2f6fe4;
+  --run-text: #1f4fa8;
+  --run-soft: rgba(47, 111, 228, .18);
+  --fail: #d93b38;
+  --fail-text: #b3261e;
+  --warn: #d98a06;
+  --warn-text: #8a5a00;
+  --note: #fff6c7;
+  --note-border: #e8cf5b;
+  --note-title: #6b5800;
+  --note-text: #5e5220;
+  --code-bg: #f7f7f9;
+  --shadow: 0 12px 32px rgba(20, 20, 40, .14);
+  --shadow-sm: 0 4px 14px rgba(20, 20, 40, .08);
+  --overlay: rgba(20, 20, 30, .35);
+  color-scheme: light;
+}
+
+:root {
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+  --rail: 60px;
+  --sidebar: 300px;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}

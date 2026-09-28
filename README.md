@@ -91,7 +91,8 @@ cd studio && npm install && npm run build
 npm start -- --workdir /path/ke/project     # http://localhost:4317
 ```
 
-- Tampilan ala n8n: palet agent/skill/action di kiri (bisa buat dan edit file-nya langsung), canvas yang digeser seperti Figma, panel Logs di bawah.
+- Tampilan ala n8n dengan tema gelap/terang: menu kiri yang melebar saat di-hover (agent/skill/action, bisa buat dan edit file-nya langsung), canvas dengan snap grid, panel Logs di bawah, dan widget pemakaian Claude Code (batas 5 jam & mingguan).
+- Template siap pakai: `fitur-kecil`, `fitur-lengkap`, `perbaikan-bug`, `audit-keamanan`, `review-pr`, `rilis`. Permintaan saat run bisa disertai dokumen (md, docx, pdf, dll.).
 - Kotak = agent / skill / action (perintah shell) / condition / approval / catatan / output. Garis = aliran output. Garis balik dari condition = loop dengan batas.
 - Tiap node bisa diatur: otak (`claude-cli` login Claude Code atau `api` API key), model, effort, izin read-only, input dari node mana, max turns, timeout, retry, budget.
 - Saat jalan, node aktif dan garis menuju node itu berwarna biru, yang sudah selesai hijau. Klik node untuk melihat token, durasi, riwayat eksekusi, prompt, output, file yang diubah + diff, dan command `claude -p` yang dijalankan.

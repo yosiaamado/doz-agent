@@ -2,13 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { WorkflowRun } from '../server/engine.js';
-import { parseWorkflow, normalize, resolveSettings, validateWorkflow } from '../server/workflow.js';
-import { parseVerdict } from '../server/prompt.js';
-import { buildArgs } from '../server/runners/claude-cli.js';
+import { WorkflowRun } from '../server/domain/engine.js';
+import { parseWorkflow, normalize, resolveSettings, validateWorkflow } from '../server/domain/workflow.js';
+import { parseVerdict } from '../server/domain/prompt.js';
+import { buildArgs, agentDefinition } from '../server/runners/claude-cli.js';
 import { confine, globToRegExp, toolsFor } from '../server/runners/tools.js';
 
-const agents = ['product-owner', 'backend-engineer', 'qa-tester', 'code-reviewer', 'security-tester']
+const agents = ['product-owner', 'backend-engineer', 'qa-tester', 'code-reviewer', 'security-tester', 'system-analyst', 'frontend-engineer', 'devops-engineer']
   .map((name) => ({ name, description: name, tools: ['Read', 'Edit', 'Bash'], model: 'sonnet', prompt: `kamu ${name}` }));
 
 // Runner palsu: output per agent diambil dari skrip (array = jawaban berurutan tiap panggilan).
@@ -29,11 +29,11 @@ function fakeRunner(script) {
   return runner;
 }
 
-async function run(wf, script, input = 'bikin fitur X', onEvent) {
+async function run(wf, script, input = 'bikin fitur X', onEvent, actions = []) {
   const runner = fakeRunner(script);
   const events = [];
   const r = new WorkflowRun({
-    id: 't', wf: normalize(wf), agents, input, workdir: '.', runners: { 'claude-cli': runner, api: runner },
+    id: 't', wf: normalize(wf), agents, actions, input, workdir: '.', runners: { 'claude-cli': runner, api: runner },
     emit: (e) => { events.push(e); onEvent?.(e, r); },
   });
   const status = await r.start();
@@ -141,13 +141,16 @@ test('verdict diambil dari baris terakhir', () => {
   assert.equal(parseVerdict('tanpa verdict'), null);
 });
 
-test('argumen claude-cli: read-only membuang tool tulis', () => {
-  const args = buildArgs({ node: { type: 'agent' }, agent: agents[1], settings: { permission: 'read-only', model: 'opus', max_turns: 10 }, prompt: 'x' });
-  const def = JSON.parse(args[args.indexOf('--agents') + 1]);
-  assert.deepEqual(def['backend-engineer'].tools, ['Read', 'Bash']);
+test('argumen claude-cli: read-only membuang tool tulis, prompt tidak di argumen', () => {
+  const opts = { node: { type: 'agent' }, agent: agents[1], settings: { permission: 'read-only', model: 'opus', max_turns: 10 }, prompt: 'rahasia' };
+  const args = buildArgs(opts, { agentsFile: '/tmp/a.json', pluginDir: '/p' });
+  assert.deepEqual(agentDefinition(agents[1], 'read-only')['backend-engineer'].tools, ['Read', 'Bash']);
+  assert.equal(args[args.indexOf('--agents') + 1], '/tmp/a.json');
   assert.ok(!args.includes('--permission-mode'));
+  assert.ok(!args.join(' ').includes('rahasia'));
   assert.match(args[args.indexOf('--allowedTools') + 1], /Bash\(git diff:\*\)/);
   assert.equal(args[args.indexOf('--model') + 1], 'opus');
+  assert.equal(args[args.indexOf('--plugin-dir') + 1], '/p');
 });
 
 test('tool api: path dikurung di workdir, glob dan mapping tool', () => {
@@ -177,4 +180,20 @@ test('action: exit code jadi verdict dan condition memakainya', async () => {
   assert.match(r.state.tes.output, /halo/);
   assert.equal(r.state.gagal.status, 'done');
   assert.equal(r.state.ok.status, 'skipped');
+});
+
+test('semua template workflow di plugins/workflows valid dan bisa jalan sampai selesai', async () => {
+  const dir = path.dirname(exampleFile);
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md') && f !== 'README.md');
+  assert.ok(files.length >= 6);
+  const actions = [{ name: 'jalankan-test', command: 'true' }, { name: 'cek-perubahan', command: 'true' }];
+  for (const f of files) {
+    const wf = parseWorkflow(fs.readFileSync(path.join(dir, f), 'utf8'));
+    assert.deepEqual(validateWorkflow(wf, agents.map((a) => a.name)), [], f);
+    const approveAll = (e, r) => { if (e.type === 'node' && e.status === 'waiting') setTimeout(() => r.approve(e.node, true)); };
+    const { status, r } = await run(wf, {}, 'x', approveAll, actions);
+    assert.equal(status, 'done', `${f}: ${r.error}`);
+    const outputs = wf.nodes.filter((n) => n.type === 'output').map((n) => r.state[n.id].status);
+    assert.ok(outputs.includes('done'), `${f}: tidak ada output yang tercapai`);
+  }
 });

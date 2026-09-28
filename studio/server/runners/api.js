@@ -43,7 +43,7 @@ function requestParams(model, settings) {
   return params;
 }
 
-async function agentLoop({ system, prompt, tools, settings, workdir, signal, onActivity, onUsage }) {
+async function agentLoop({ system, prompt, tools, settings, workdir, signal, onActivity, onUsage, toolContext }) {
   const model = resolveModel(settings.model);
   const maxTurns = Number(settings.max_turns) || 30;
   const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
@@ -90,7 +90,7 @@ async function agentLoop({ system, prompt, tools, settings, workdir, signal, onA
         return { type: 'tool_result', tool_use_id: call.id, content: `tool ${call.name} tidak diizinkan`, is_error: true };
       }
       try {
-        return { type: 'tool_result', tool_use_id: call.id, content: await runTool(call.name, call.input, workdir) };
+        return { type: 'tool_result', tool_use_id: call.id, content: await runTool(call.name, call.input, workdir, toolContext) };
       } catch (err) {
         onActivity?.({ kind: 'tool_error', text: err.message });
         return { type: 'tool_result', tool_use_id: call.id, content: err.message, is_error: true };
@@ -102,23 +102,35 @@ async function agentLoop({ system, prompt, tools, settings, workdir, signal, onA
   return { output: lastText, usage, cost: estimateCost(model, usage), turns, warning };
 }
 
-export const apiRunner = {
-  name: 'api',
-  describe({ agent, settings }) {
-    const tools = toolsFor(agent?.tools, settings.permission).map((t) => t.name);
-    return `Claude API · POST /v1/messages · model ${resolveModel(settings.model)}${settings.effort ? ` · effort ${settings.effort}` : ''} · max_turns ${Number(settings.max_turns) || 30} · tools: ${tools.join(', ') || '-'}`;
-  },
-  run({ node, agent, settings, prompt, workdir, signal, onActivity, onUsage }) {
-    if (node.type === 'skill') throw new Error('node skill hanya bisa dijalankan dengan runner claude-cli');
-    const tools = toolsFor(agent?.tools, settings.permission);
-    const system = [
-      agent?.prompt ?? 'Kamu asisten engineering.',
-      `\nKamu bekerja di folder project: ${workdir}. Semua path relatif terhadap folder ini.`,
-      `Tool yang tersedia: ${tools.map((t) => t.name).join(', ') || '(tidak ada)'}. Tool Claude Code lain di instruksimu tidak tersedia; skill dimuat lewat load_skill.`,
-    ].join('\n');
-    return agentLoop({ system, prompt, tools, settings, workdir, signal, onActivity, onUsage });
-  },
-  judge({ prompt, settings, workdir, signal }) {
-    return agentLoop({ system: 'Kamu penilai yang ringkas.', prompt, tools: [], settings: { ...settings, max_turns: 1 }, workdir, signal });
-  },
-};
+function describeRequest({ agent, settings }) {
+  const tools = toolsFor(agent?.tools, settings.permission).map((t) => t.name);
+  const effort = settings.effort ? ` · effort ${settings.effort}` : '';
+  return `Claude API · POST /v1/messages · model ${resolveModel(settings.model)}${effort} · max_turns ${Number(settings.max_turns) || 30} · tools: ${tools.join(', ') || '-'}`;
+}
+
+function systemPrompt(agent, tools, workdir) {
+  return [
+    agent?.prompt ?? 'Kamu asisten engineering.',
+    `\nKamu bekerja di folder project: ${workdir}. Semua path relatif terhadap folder ini.`,
+    `Tool yang tersedia: ${tools.map((t) => t.name).join(', ') || '(tidak ada)'}. Tool Claude Code lain di instruksimu tidak tersedia; skill dimuat lewat load_skill.`,
+  ].join('\n');
+}
+
+// listSkills: dipakai tool load_skill untuk memuat SKILL.md dari folder sumber.
+export function createApiRunner({ listSkills = () => [] } = {}) {
+  return {
+    name: 'api',
+    describe: describeRequest,
+    run({ node, agent, settings, prompt, workdir, signal, onActivity, onUsage }) {
+      if (node.type === 'skill') throw new Error('node skill hanya bisa dijalankan dengan runner claude-cli');
+      const tools = toolsFor(agent?.tools, settings.permission);
+      return agentLoop({
+        system: systemPrompt(agent, tools, workdir), prompt, tools, settings, workdir, signal, onActivity, onUsage,
+        toolContext: { listSkills },
+      });
+    },
+    judge({ prompt, settings, workdir, signal }) {
+      return agentLoop({ system: 'Kamu penilai yang ringkas.', prompt, tools: [], settings: { ...settings, max_turns: 1 }, workdir, signal });
+    },
+  };
+}
