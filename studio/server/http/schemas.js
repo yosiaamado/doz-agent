@@ -46,3 +46,10 @@ export const attachmentBody = z.object({ name: z.string().min(1).max(255), conte
 export const diffQuery = z.object({ base: sha, head: sha, file: z.string().max(4096).optional() });
 
 export const folderQuery = z.object({ path: z.string().max(4096).optional() });
+
+export const gitTarget = z.enum(['repo', 'workdir']);
+
+export const commitBody = z.object({
+  message: z.string().trim().min(1, 'pesan commit wajib diisi').max(2000),
+  files: z.array(z.string().min(1).max(4096)).max(500).optional(),
+});

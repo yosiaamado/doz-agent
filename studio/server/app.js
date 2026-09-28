@@ -14,11 +14,13 @@ import { createRunService } from './services/runService.js';
 import { createUsageService } from './services/usageService.js';
 import { createFolderService } from './services/folderService.js';
 import { createAttachmentService } from './services/attachmentService.js';
+import { createGitService } from './services/gitService.js';
 import { createClaudeCliRunner, claudeVersion } from './runners/claude-cli.js';
 import { createApiRunner, apiAvailable } from './runners/api.js';
 import { registerSystemRoutes } from './routes/systemRoutes.js';
 import { registerLibraryRoutes } from './routes/libraryRoutes.js';
 import { registerRunRoutes } from './routes/runRoutes.js';
+import { registerGitRoutes } from './routes/gitRoutes.js';
 
 function createRunners({ config, components, usage }) {
   const cli = createClaudeCliRunner({ pluginDir: config.pluginDir, onRateLimit: (info) => usage.recordRateLimit(info) });
@@ -58,6 +60,7 @@ export function createApp(options = {}) {
   registerSystemRoutes(router, { config, runLog, runnerStatus: options.runnerStatus ?? createRunnerStatus(), folders, usage });
   registerLibraryRoutes(router, { components, workflows });
   registerRunRoutes(router, { config, runs, attachments });
+  registerGitRoutes(router, { git: createGitService(config) });
 
   const serveStatic = createStaticHandler(config.webDist);
   server.on('request', async (req, res) => {

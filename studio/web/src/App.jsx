@@ -20,6 +20,7 @@ const SourcesDialog = lazy(() => import('./features/dialogs/SourcesDialog.jsx'))
 const FolderPicker = lazy(() => import('./features/dialogs/FolderPicker.jsx'));
 const RunDialog = lazy(() => import('./features/dialogs/RunDialog.jsx'));
 const NewWorkflowDialog = lazy(() => import('./features/dialogs/NewWorkflowDialog.jsx'));
+const GitDialog = lazy(() => import('./features/dialogs/GitDialog.jsx'));
 
 const LAST_KEY = 'doz-studio:last-workflow';
 const snap = (v) => Math.round(v / GRID) * GRID;
@@ -37,6 +38,7 @@ export default function App() {
   const [logsOpen, setLogsOpen] = useState(true);
   const [tab, setTab] = useState('editor');
   const [modal, setModal] = useState(null); // { kind, ...props }
+  const [gitChanges, setGitChanges] = useState(0);
   const canvasRef = useRef(null);
   const stateRef = useRef({});
   stateRef.current = { meta: editor.meta, dirty: editor.dirty, workflows: lib.workflows };
@@ -92,12 +94,17 @@ export default function App() {
     try {
       const res = await editor.save(name);
       await lib.reloadWorkflows();
+      refreshGit();
       writeStorage(LAST_KEY, name);
       notify(`Tersimpan ke ${res.file}`, 'success');
     } catch (err) {
       notify(err.message, 'error');
     }
   }, [editor, lib, dialog, notify]);
+
+  // Jumlah file berubah di repo doz-agent (badge tombol GitHub).
+  const refreshGit = useCallback(() => api.gitStatus('repo').then((s) => setGitChanges(s.files?.length ?? 0)).catch(() => {}), []);
+  useEffect(() => { refreshGit(); }, [refreshGit]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -165,6 +172,7 @@ export default function App() {
           onNew={async () => { if (await confirmDiscard()) setModal({ kind: 'new' }); }}
           onSave={save} onPickWorkdir={() => setModal({ kind: 'workdir' })}
           onWorkflowSettings={() => { setSelection(null); setRightOpen(true); }}
+          gitChanges={gitChanges} onGit={() => setModal({ kind: 'git' })}
         />
         <div className="workspace">
           <Sidebar
@@ -199,13 +207,17 @@ export default function App() {
         </div>
         <Suspense fallback={null}>
           {modal?.kind === 'run' && <RunDialog workflowName={editor.meta.name} workdir={status?.workdirName} onStart={startRun} onClose={closeModal} />}
+          {modal?.kind === 'git' && (
+            <GitDialog onClose={() => { closeModal(); refreshGit(); }}
+              onSynced={async (target) => { if (target === 'repo') { await lib.reload(); refreshGit(); } }} />
+          )}
           {modal?.kind === 'new' && (
             <NewWorkflowDialog workflows={lib.workflows} onClose={closeModal}
               onCreate={async (name, from) => { await editor.createFrom(name, from); setSelection(null); closeModal(); setTimeout(() => fitView({ padding: 0.2, maxZoom: 1 }), 50); }} />
           )}
           {modal?.kind === 'component' && (
             <ComponentEditor kind={modal.type} name={modal.name} sources={lib.sources} onClose={closeModal}
-              onSaved={async (item) => { closeModal(); await lib.reload(); notify(`Tersimpan: ${item.file}`, 'success'); }} />
+              onSaved={async (item) => { closeModal(); await lib.reload(); refreshGit(); notify(`Tersimpan: ${item.file}`, 'success'); }} />
           )}
           {modal?.kind === 'sources' && lib.sources && (
             <SourcesDialog sources={lib.sources} onClose={closeModal}

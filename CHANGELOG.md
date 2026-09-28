@@ -9,6 +9,17 @@ Aturan untuk manusia dan AI yang mengubah repo ini:
 - Perubahan yang dipicu audit pemakaian menyebut file di `agent-usage/`, supaya dampaknya bisa dibandingkan dengan audit berikutnya.
 - Riwayat sebelum 1.15.0: lihat `git log`.
 
+## [1.19.0] - 2026-09-28
+
+Sumber: permintaan user supaya bisa push dan pull ke GitHub langsung dari Doz Studio.
+
+### Studio
+
+- `server/services/gitService.js` + `routes/gitRoutes.js` (baru): status (branch, upstream, ahead/behind, file berubah, commit terakhir), fetch, pull (`--rebase --autostash`), commit semua perubahan, push (membuat upstream kalau belum ada, tidak pernah force). Target `repo` (doz-agent) atau `workdir` (project aktif). Token di URL remote dan pesan git disamarkan. `GIT_TERMINAL_PROMPT=0` supaya server tidak menunggu password.
+- `web/src/features/dialogs/GitDialog.jsx` (baru) + tombol GitHub di top bar dengan badge jumlah file berubah; push minta konfirmasi lewat modal; setelah pull/commit di repo doz-agent, daftar agent/skill/workflow dimuat ulang.
+- Test: `test/git.test.js` memakai remote bare lokal (commit → push → pull di clone lain, autostash, branch tanpa upstream, penyamaran token). Total 39 test.
+- `plugin.json`: versi 1.19.0.
+
 ## [1.18.0] - 2026-09-28
 
 Sumber: masukan user untuk UI studio (16 poin: snap grid, dropdown modern, logo/favicon, menu hover, tema terang/gelap, lampiran dokumen, usage Claude Code, modal pengganti alert, pemilih folder, dll.) dan permintaan menerapkan pola [everything-claude-code](https://github.com/worldflowai/everything-claude-code) supaya FE modern dan BE readable/SOLID. File agent tidak berubah.

@@ -19,6 +19,7 @@ Editor visual (kotak + garis, ala n8n) dan runner lokal untuk workflow doz-agent
 - **Pemakaian Claude Code**: batas sesi 5 jam dan mingguan (dari `rate_limit_event` yang dikirim `claude -p`) plus total token lokal dari `~/.claude/projects`. Tombol Refresh memakai satu panggilan haiku kecil.
 - **Pilih folder ala file manager**: folder project dan folder sumber dipilih lewat penjelajah folder, tidak perlu mengetik path. Tampilannya tetap pendek (`{workdir}/…`, `~/…`, `plugins/…`).
 - **Dropdown, modal, dan konfirmasi** memakai komponen sendiri yang bisa dipakai dengan keyboard. Tidak ada `alert`/`confirm` bawaan browser.
+- **Sinkronisasi GitHub** (tombol GitHub di kanan atas): lihat branch, commit yang belum di-push/pull, dan file yang berubah, lalu **Pull** (rebase + autostash), **Commit**, **Commit & Push**, atau **Push**. Targetnya bisa **Repo doz-agent** (agent/skill/workflow yang diedit di studio) atau **Project Aktif**. Studio memakai git dan kredensial GitHub yang sudah ada di komputer (SSH key atau credential helper), tidak pernah force push, dan token di URL remote disamarkan.
 - **Workflow baru** bisa dimulai kosong atau dari workflow/template yang ada (`fitur-kecil`, `fitur-lengkap`, `perbaikan-bug`, `audit-keamanan`, `review-pr`, `rilis`).
 
 ## Edit agent / skill: konsepnya
@@ -32,7 +33,7 @@ Editor punya dua mode. **Form** mengubah key frontmatter satu per satu (key lain
 
 ## Menjalankan
 
-Butuh Node 20+. Runner `claude-cli` butuh `claude` di PATH (termasuk `claude.cmd` di Windows). Runner `api` butuh `ANTHROPIC_API_KEY`. Diff per node butuh folder project berupa repo git.
+Butuh Node 20+. Runner `claude-cli` butuh `claude` di PATH (termasuk `claude.cmd` di Windows). Runner `api` butuh `ANTHROPIC_API_KEY`. Diff per node dan sinkronisasi GitHub butuh folder berupa repo git dengan remote `origin`. Kalau push/pull minta password, simpan dulu kredensialnya (mis. `gh auth login` atau SSH key), karena studio tidak bisa menampilkan prompt password.
 
 ```bash
 cd studio
@@ -44,7 +45,7 @@ npm start -- --workdir /path/ke/project-kamu     # buka http://localhost:4317
 - `--workdir` bisa diganti dari UI (tombol folder di kanan atas). Pilihan disimpan di `studio/.local.json`.
 - `--port` atau `DOZ_STUDIO_PORT`: port lain (bawaan 4317). `DOZ_LOG_LEVEL=debug` untuk log lebih rinci.
 - `npm run dev`: server + Vite hot reload di http://localhost:5317.
-- `npm test`: 34 test (unit + integrasi API + template workflow), coverage baris ±89% (`node --test --experimental-test-coverage`).
+- `npm test`: 39 test (unit + integrasi API + template workflow), coverage baris ±89% (`node --test --experimental-test-coverage`).
 
 ## Arsitektur
 
@@ -55,8 +56,8 @@ server/
 ├─ index.js            entry: listen + banner
 ├─ app.js              composition root: merakit config → repository → service → route (dependency injection)
 ├─ http/               router, middleware (hanya localhost), respond ({ success, data | error }), schemas (zod), static, socket
-├─ routes/             systemRoutes, libraryRoutes, runRoutes: tipis, hanya validasi + panggil service
-├─ services/           workflowService, runService, usageService, folderService, attachmentService
+├─ routes/             systemRoutes, libraryRoutes, runRoutes, gitRoutes: tipis, hanya validasi + panggil service
+├─ services/           workflowService, runService, usageService, folderService, attachmentService, gitService
 ├─ repositories/       componentRepository (agent/skill/action/workflow di banyak folder), runLogRepository (JSONL)
 ├─ domain/             engine (orkestrasi), executors (per tipe node), graph (fungsi murni), prompt, workflow, timeout
 ├─ runners/            claude-cli (prompt via stdin, agent via file), api (Claude API + tool lokal), shell, tools, activity

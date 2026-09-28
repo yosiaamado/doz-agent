@@ -1,11 +1,11 @@
-import { AlertTriangle, FolderOpen, Plus, Save, Settings2, Workflow } from 'lucide-react';
+import { AlertTriangle, FolderOpen, GitBranch, Plus, Save, Settings2, Workflow } from 'lucide-react';
 import Logo from '../../components/ui/Logo.jsx';
 import Select from '../../components/ui/Select.jsx';
 import ThemeToggle from './ThemeToggle.jsx';
 import UsageWidget from './UsageWidget.jsx';
 
 export default function TopBar({
-  meta, workflows, dirty, errors, status, theme, onSwitch, onNew, onSave, onPickWorkdir, onWorkflowSettings,
+  meta, workflows, dirty, errors, status, theme, gitChanges, onSwitch, onNew, onSave, onPickWorkdir, onWorkflowSettings, onGit,
 }) {
   const saved = workflows.some((w) => w.name === meta.name);
   const options = [
@@ -31,6 +31,9 @@ export default function TopBar({
         <UsageWidget />
         <button type="button" className="btn btn-ghost workdir-btn" title={`Folder project: ${status?.workdir ?? ''}`} onClick={onPickWorkdir}>
           <FolderOpen size={15} /> <span>{status?.workdirName}</span>
+        </button>
+        <button type="button" className="btn btn-ghost git-btn" title="Pull / commit / push ke GitHub" onClick={onGit}>
+          <GitBranch size={15} /> <span className="save-label">GitHub</span>{gitChanges > 0 && <span className="badge">{gitChanges}</span>}
         </button>
         <ThemeToggle {...theme} />
         <button type="button" className="icon-btn" title="Pengaturan Workflow" aria-label="Pengaturan Workflow" onClick={onWorkflowSettings}><Settings2 size={17} /></button>

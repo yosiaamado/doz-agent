@@ -46,6 +46,8 @@ export const api = {
   stopRun: (id) => request('POST', `/api/runs/${enc(id)}/stop`),
   approve: (id, node, approved, note) => request('POST', `/api/runs/${enc(id)}/approve`, { node, approved, note }),
   uploadAttachment: (name, contentBase64) => request('POST', '/api/attachments', { name, contentBase64 }),
+  gitStatus: (target) => request('GET', `/api/git/${target}`),
+  gitAction: (target, action, body) => request('POST', `/api/git/${target}/${action}`, body ?? {}),
   diff: (base, head, file) => request('GET', `/api/diff?${new URLSearchParams({ base, head, ...(file ? { file } : {}) })}`),
 };
 
