@@ -1,4 +1,4 @@
-// Wizard Persiapan: bahasa, lalu syarat sebelum studio dipakai (Node, git, Claude Code / API key, folder project, GitHub).
+// The Setup wizard: language first, then the requirements before the studio can be used (Node, git, Claude Code / API key, project folder, GitHub).
 import { useCallback, useEffect, useState } from 'react';
 import { ClipboardCheck, FolderOpen, KeyRound, LogIn, PlayCircle, RefreshCw, Trash2 } from 'lucide-react';
 import Modal from '../../components/ui/Modal.jsx';
@@ -93,7 +93,7 @@ export default function SetupWizard({ workdir, onClose, onPickWorkdir, onDone })
       notify(errorMessage(t, err), 'error');
     }
   }, [notify, t]);
-  // Muat ulang juga saat folder project diganti dari wizard.
+  // Reload when the project folder is changed from the wizard too.
   useEffect(() => { load(); }, [load, workdir]);
 
   const runTest = async (key, name, target) => {

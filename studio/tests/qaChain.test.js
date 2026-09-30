@@ -1,4 +1,4 @@
-// QA: migrasi berantai (.local.json plain → app-data → terenkripsi), idempotensi, dan riwayat run format lama.
+// QA: the migration chain (.local.json plain → app-data → encrypted), idempotency, and run history in the legacy format.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -8,7 +8,7 @@ import { createConfig } from '../server/infra/config.js';
 import { emptyRun, reduceRun } from '../web/src/lib/model.js';
 import { RunRegistry } from '../server/repositories/runLogRepository.js';
 
-const KEY = 'sk-ant-api03-RAHASIA-CHAIN';
+const KEY = 'sk-ant-api03-SECRET-CHAIN';
 const quiet = { info() {}, warn() {}, error() {} };
 const codec = {
   encrypt: (p) => Buffer.from(`enc:${p}`).toString('base64'),
@@ -23,28 +23,28 @@ function fx() {
   return { root, studio, ud: path.join(root, 'ud'), mk, cfgRaw: () => fs.readFileSync(path.join(root, 'ud', 'config.json'), 'utf8') };
 }
 
-test('rantai: .local.json plain → app-data plain (tanpa codec) → terenkripsi (codec), diulang dua kali, isi lain utuh', () => {
+test('chain: .local.json plain → app-data plain (no codec) → encrypted (codec), repeated twice, the rest of the contents intact', () => {
   const f = fx();
   fs.writeFileSync(path.join(f.studio, '.local.json'), JSON.stringify({ workdir: path.join(f.root, 'work'), anthropicApiKey: KEY, setup: { done: true } }));
   assert.equal(f.mk(null).savedApiKey(), KEY);
-  assert.ok(f.cfgRaw().includes(KEY), 'tanpa codec masih plain (diketahui)');
+  assert.ok(f.cfgRaw().includes(KEY), 'without a codec it is still plain (a known limitation)');
   for (let i = 0; i < 2; i++) {
     const c = f.mk(codec);
-    assert.equal(c.savedApiKey(), KEY, `putaran ${i}`);
-    assert.ok(!f.cfgRaw().includes(KEY), `putaran ${i}: plain hilang dari config.json`);
+    assert.equal(c.savedApiKey(), KEY, `round ${i}`);
+    assert.ok(!f.cfgRaw().includes(KEY), `round ${i}: the plain text is gone from config.json`);
     assert.equal(JSON.parse(f.cfgRaw()).setup.done, true);
   }
 });
 
-test('rantai: key plain di .local.json lama tidak tertinggal di disk setelah migrasi terenkripsi', () => {
+test('chain: a plain key in the legacy .local.json is not left on disk after the encrypted migration', () => {
   const f = fx();
   fs.writeFileSync(path.join(f.studio, '.local.json'), JSON.stringify({ anthropicApiKey: KEY }));
   f.mk(codec).savedApiKey();
   const legacy = fs.readFileSync(path.join(f.studio, '.local.json'), 'utf8');
-  assert.ok(!legacy.includes(KEY), 'key plain masih ada di studio/.local.json');
+  assert.ok(!legacy.includes(KEY), 'the plain key is still in studio/.local.json');
 });
 
-test('rantai: key terenkripsi lalu dibuka tanpa codec tidak crash dan tidak menghapus ciphertext', () => {
+test('chain: an encrypted key opened without a codec does not crash and does not delete the ciphertext', () => {
   const f = fx();
   const c = f.mk(codec);
   c.saveApiKey(KEY);
@@ -53,11 +53,11 @@ test('rantai: key terenkripsi lalu dibuka tanpa codec tidak crash dan tidak meng
   assert.equal(f.mk(codec).savedApiKey(), KEY);
 });
 
-// --- riwayat run format lama ---
-// Salinan logika logText (shared.jsx tidak bisa diimpor Node karena JSX): msg diterjemahkan, selain itu text apa adanya.
+// --- run history in the legacy format ---
+// A copy of the logText logic (shared.jsx cannot be imported by Node because of the JSX): msg is translated, everything else is text as-is.
 const t = (k) => k;
-const logText = (tt, line) => { if (!line.msg) return line.text; const x = tt(line.msg.key, line.msg.params); return x === line.msg.key ? line.text : x; }; // kunci tak dikenal → logText harus jatuh ke text
-test('run lama (event tanpa code/params, teks Indonesia) tetap ter-reduce dan log-nya terbaca', () => {
+const logText = (tt, line) => { if (!line.msg) return line.text; const x = tt(line.msg.key, line.msg.params); return x === line.msg.key ? line.text : x; }; // an unknown key → logText must fall back to text
+test('a legacy run (events without code/params, Indonesian text) still reduces and its log stays readable', () => {
   const legacy = [
     { type: 'run_start', ts: 1, workflow: 'fitur-kecil', input: 'x', run: 'r1' },
     { type: 'node', ts: 2, node: 'a', status: 'running' },
@@ -75,11 +75,11 @@ test('run lama (event tanpa code/params, teks Indonesia) tetap ter-reduce dan lo
   assert.ok(lines.includes('Membaca berkas'));
 });
 
-test('file .jsonl lama dengan baris rusak dan event tak dikenal: events() tidak melempar', () => {
+test('a legacy .jsonl file with a corrupt line and an unknown event: events() does not throw', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'doz-runs-'));
   fs.writeFileSync(path.join(dir, 'old1.jsonl'), [
     JSON.stringify({ type: 'run_start', ts: 1, workflow: 'w', run: 'old1' }),
-    '{bukan json',
+    '{not json',
     JSON.stringify({ type: 'event_masa_depan', ts: 2, run: 'old1' }),
     JSON.stringify({ type: 'run_end', ts: 3, status: 'done', run: 'old1' }),
   ].join('\n') + '\n');

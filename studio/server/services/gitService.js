@@ -1,6 +1,6 @@
-// Sinkronisasi dengan GitHub (atau remote git lain) memakai git lokal dan kredensial milik user.
-// Target: 'repo' = repo doz-agent (agent/skill/workflow), 'workdir' = folder project aktif.
-// Tidak pernah force push; pull memakai rebase + autostash supaya perubahan lokal tidak hilang.
+// Synchronization with GitHub (or another git remote) using the local git and the user's own credentials.
+// Targets: 'repo' = the doz-agent repo (agents/skills/workflows), 'workdir' = the active project folder.
+// Never force-pushes; pull uses rebase + autostash so local changes are not lost.
 import { execFile } from 'node:child_process';
 import { badRequest } from '../lib/errors.js';
 import { childEnv } from '../lib/secretEnv.js';
@@ -12,7 +12,7 @@ function git(cwd, args) {
   return new Promise((resolve, reject) => {
     execFile('git', args, {
       cwd, timeout: TIMEOUT_MS, maxBuffer: 16 * 1024 * 1024,
-      // Jangan menunggu input password di terminal server; kredensial harus sudah tersimpan (ssh key / credential helper).
+      // Never wait for a password prompt in the server's terminal; credentials must already be stored (ssh key / credential helper).
       env: childEnv({ GIT_TERMINAL_PROMPT: '0' }),
     }, (err, stdout, stderr) => {
       if (err) reject(badRequest(redactText((stderr || stdout || err.message).trim().split('\n').slice(-6).join('\n'))));
@@ -21,7 +21,7 @@ function git(cwd, args) {
   });
 }
 
-// URL remote bisa berisi token (https://user:token@github.com/...). Jangan pernah dikirim ke UI.
+// A remote URL can contain a token (https://user:token@github.com/...). Never send it to the UI.
 export function redactRemote(url) {
   return url ? url.replace(/^(https?:\/\/)[^@/]+@/, '$1***@') : url;
 }
@@ -85,7 +85,7 @@ export function createGitService(config) {
       else await git(cwd, ['add', '-A']);
       return withStatus(target, await git(cwd, ['commit', '-m', message]));
     },
-    // Push ke upstream; kalau branch belum punya upstream, dibuat di origin dengan nama yang sama.
+    // Push to upstream; if the branch has no upstream yet, one is created on origin under the same name.
     async push(target) {
       const cwd = dirOf(target);
       const current = await status(target);

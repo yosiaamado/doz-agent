@@ -1,4 +1,4 @@
-// Membaca dan menyimpan file workflow dari folder sumber `workflows`.
+// Reads and saves workflow files from the `workflows` source folder.
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseWorkflow, serializeWorkflow, validateWorkflow, normalize } from '../domain/workflow.js';
@@ -39,7 +39,7 @@ export function createWorkflowService({ config, components }) {
       fs.writeFileSync(file, serializeWorkflow(wf));
       return { workflow: wf, errors: validateWorkflow(wf, agentNames()), file: displayPath(file, { workdir: config.getWorkdir(), repoRoot: config.repoRoot }) };
     },
-    // Workflow siap jalan: dari body (versi di canvas) atau dari file.
+    // The workflow that is ready to run: either from the body (the version on the canvas) or from the file.
     resolveForRun({ workflow, name }) {
       const wf = workflow ? normalize(workflow) : parseWorkflow(fs.readFileSync(locate(name), 'utf8'), name);
       return { wf, errors: validateWorkflow(wf, agentNames()) };

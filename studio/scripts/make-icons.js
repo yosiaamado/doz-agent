@@ -1,4 +1,4 @@
-// Membuat ikon placeholder (PNG 512 -> .ico dan .icns) tanpa dependency. Ganti file di build/ dengan ikon final bila sudah ada.
+// Generates placeholder icons (512 PNG -> .ico and .icns) with no dependencies. Replace the files in build/ with the final icons once they exist.
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
@@ -31,7 +31,7 @@ function png(size) {
       const dx = Math.max(r - x, 0, x - (size - 1 - r)), dy = Math.max(r - y, 0, y - (size - 1 - r));
       const inside = dx * dx + dy * dy <= r * r;
       const t = (x + y) / (2 * size);
-      // Gradien indigo -> violet, dengan titik terang di tengah sebagai penanda sederhana.
+      // Indigo -> violet gradient, with a bright dot in the middle as a simple marker.
       const cx = x - size / 2, cy = y - size / 2;
       const dot = cx * cx + cy * cy < (size * 0.18) ** 2;
       const [R, G, B] = dot ? [255, 255, 255] : [Math.round(79 + 70 * t), Math.round(70 + 30 * t), Math.round(229 - 20 * t)];
@@ -43,7 +43,7 @@ function png(size) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 
-// ICO dengan entri PNG (didukung Windows Vista+): 16..256.
+// ICO with PNG entries (supported on Windows Vista+): 16..256.
 const sizes = [16, 32, 48, 64, 128, 256];
 const pngs = sizes.map(png);
 const head = Buffer.alloc(6); head.writeUInt16LE(1, 2); head.writeUInt16LE(sizes.length, 4);
@@ -57,11 +57,11 @@ const dir = sizes.map((s, i) => {
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(path.join(out, 'icon.ico'), Buffer.concat([head, ...dir, ...pngs]));
 
-// ICNS: satu entri ic10 (PNG 512@2x/1024 tidak perlu untuk placeholder).
+// ICNS: a single ic10 entry (PNG 512@2x/1024 is unnecessary for a placeholder).
 const p512 = png(512);
 const ent = Buffer.concat([Buffer.from('ic09'), Buffer.from([0, 0, 0, 0]), p512]);
 ent.writeUInt32BE(p512.length + 8, 4);
 const icnsHead = Buffer.from('icns\0\0\0\0', 'latin1'); icnsHead.writeUInt32BE(8 + ent.length, 4);
 fs.writeFileSync(path.join(out, 'icon.icns'), Buffer.concat([icnsHead, ent]));
 fs.writeFileSync(path.join(out, 'icon.png'), p512);
-console.log('ikon ditulis ke', out);
+console.log('icons written to', out);

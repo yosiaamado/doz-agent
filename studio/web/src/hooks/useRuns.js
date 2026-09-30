@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, connectEvents } from '../lib/api.js';
 import { emptyRun, reduceRun } from '../lib/model.js';
 
-// State run yang sedang ditampilkan + daftar run. Event WebSocket direduksi ke run yang sama.
-// `onRunStarted(ev)` dipanggil saat run baru muncul (mis. dari Claude Code) supaya UI bisa mengikutinya.
+// The state of the run being displayed plus the run list. WebSocket events are reduced into the same run.
+// `onRunStarted(ev)` is called when a new run appears (e.g. from Claude Code) so the UI can follow it.
 export function useRuns({ onRunStarted } = {}) {
   const [run, setRun] = useState(emptyRun());
   const [runs, setRuns] = useState([]);
-  // Id disimpan di ref supaya event beruntun sebelum render berikutnya tetap masuk ke run yang benar.
+  // The id is kept in a ref so events arriving back to back before the next render still land on the right run.
   const runIdRef = useRef(null);
   const startedRef = useRef(onRunStarted);
   startedRef.current = onRunStarted;

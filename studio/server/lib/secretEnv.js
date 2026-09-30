@@ -1,5 +1,5 @@
-// Menjaga API key yang disuntikkan studio (wizard/config) ke process.env tidak ikut bocor ke child process yang tidak membutuhkannya.
-// Key yang sudah ada di environment sebelum studio start tidak disentuh: itu milik user.
+// Keeps the API key that the studio injects into process.env (from the wizard/config) from leaking into child processes that do not need it.
+// A key that was already in the environment before the studio started is left alone: that one belongs to the user.
 let injected = null;
 
 export const setInjectedApiKey = (key) => { injected = key || null; };

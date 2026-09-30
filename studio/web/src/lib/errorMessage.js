@@ -1,7 +1,7 @@
 import { kebabFromCode } from '../i18n/index.js';
 
-// Teks dari kode server: kunci `<prefix>.<code-kebab>` dengan params sebagai variabel.
-// Kunci belum ada (atau tanpa kode) → `fallback` (pesan Inggris dari server).
+// Copy for a server code: the key `<prefix>.<code-kebab>` with params as variables.
+// A key that does not exist yet (or no code at all) → `fallback` (the English message from the server).
 export function codeText(t, prefix, code, params, fallback) {
   if (code) {
     const key = `${prefix}.${kebabFromCode(code)}`;
@@ -11,24 +11,24 @@ export function codeText(t, prefix, code, params, fallback) {
   return fallback ?? '';
 }
 
-// Pesan error untuk user: kode diterjemahkan lewat `error.<code>`; tanpa kode atau kunci belum ada → err.message.
+// The error message for the user: the code is translated through `error.<code>`; with no code, or no key yet → err.message.
 export function errorMessage(t, err) {
   if (!err) return '';
   return codeText(t, 'error', err.code, err.params, err.message ?? '');
 }
 
-// Pesan utama + detail validasi dari server (tidak diterjemahkan), digabung dengan `sep`.
+// The main message plus the validation details from the server (untranslated), joined with `sep`.
 export function errorWithDetails(t, err, sep = ': ') {
   return [errorMessage(t, err), ...(err?.details ?? [])].join(sep);
 }
 
-// Error/warning/activity pada state run & node: { error, errorCode, errorParams, warning, warningCode, activity, activityCode, activityParams }.
+// The error/warning/activity on the run & node state: { error, errorCode, errorParams, warning, warningCode, activity, activityCode, activityParams }.
 export const nodeErrorText = (t, o) => codeText(t, 'error', o?.errorCode, o?.errorParams, o?.error ?? '');
 export const nodeWarningText = (t, o) => codeText(t, 'logs.code', o?.warningCode, o?.warningParams, o?.warning ?? '');
-// activityCode null/undefined = pakai teks activity apa adanya; activity kosong = tidak ada yang ditampilkan.
+// activityCode null/undefined = use the activity text as-is; an empty activity = nothing is shown.
 export const nodeActivityText = (t, o) => (o?.activity ? codeText(t, 'logs.code', o.activityCode, o.activityParams, o.activity) : '');
 
-// Nilai param yang berupa penanda (repo/workdir, studio/environment) dipetakan ke nama yang diterjemahkan.
+// Param values that are markers (repo/workdir, studio/environment) are mapped to a translated name.
 const TARGET_KEY = { repo: 'setup.target.repo', workdir: 'setup.target.workdir' };
 const SOURCE_KEY = { studio: 'setup.key-source.studio', environment: 'setup.key-source.environment' };
 
@@ -40,7 +40,7 @@ function mapParams(t, params) {
   return out;
 }
 
-// Detail/perbaikan dari server: `code`/`fixCode` diterjemahkan; perintah mentah (`fix` tanpa fixCode) ditampilkan apa adanya.
+// Details/fixes from the server: `code`/`fixCode` are translated; a raw command (`fix` without fixCode) is shown as-is.
 export function checkDetail(t, item) {
   return codeText(t, 'setup.code', item?.code, mapParams(t, item?.params), item?.detail);
 }

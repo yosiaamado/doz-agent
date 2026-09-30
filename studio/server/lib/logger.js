@@ -1,4 +1,4 @@
-// Logger terstruktur kecil. Satu baris JSON per event ke stderr, kecuali `banner` untuk pesan startup.
+// A small structured logger. One JSON line per event to stderr, except `banner` for startup messages.
 const LEVELS = { debug: 10, info: 20, warn: 30, error: 40 };
 const threshold = LEVELS[process.env.DOZ_LOG_LEVEL ?? 'info'] ?? LEVELS.info;
 

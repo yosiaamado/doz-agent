@@ -1,4 +1,4 @@
-// Penjelajah folder ala file manager untuk memilih workdir / folder sumber dari UI.
+// A file-manager-style folder browser for picking the workdir / source folders from the UI.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';

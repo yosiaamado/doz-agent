@@ -1,5 +1,5 @@
-// Snapshot working tree lewat index sementara (tanpa mengubah index/branch user), supaya perubahan file
-// per node bisa dihitung: snapshot sebelum node jalan vs sesudah. Termasuk file baru yang belum di-track.
+// Snapshots the working tree through a temporary index (without touching the user's index/branch), so the files changed
+// by each node can be computed: a snapshot before the node runs vs. after. Untracked new files included.
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';

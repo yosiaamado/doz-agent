@@ -1,4 +1,4 @@
-// Pemakaian Claude Code: batas 5 jam & 7 hari (dari rate_limit_event) + token lokal dari transcript.
+// Claude Code usage: the 5-hour and 7-day limits (from rate_limit_event) plus local tokens from the transcripts.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Gauge, RefreshCw } from 'lucide-react';

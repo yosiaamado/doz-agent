@@ -1,5 +1,5 @@
-// Dijalankan sebelum first paint (classic script di <head>): tema dan bahasa langsung benar, tanpa kedip.
-// File terpisah (bukan inline) supaya CSP cukup `script-src 'self'`.
+// Runs before the first paint (a classic script in <head>): the theme and language are right immediately, with no flash.
+// Kept in its own file (not inline) so the CSP can stay at `script-src 'self'`.
 (function () {
   var root = document.documentElement;
   try {
@@ -11,5 +11,5 @@
     var locale = localStorage.getItem('doz-studio:locale');
     if (locale !== 'en' && locale !== 'id') locale = /^id/i.test(navigator.language || '') ? 'id' : 'en';
     root.lang = locale;
-  } catch (e) { /* localStorage diblokir: biarkan lang bawaan */ }
+  } catch (e) { /* localStorage blocked: keep the default lang */ }
 })();

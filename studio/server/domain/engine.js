@@ -1,23 +1,23 @@
-// Orkestrator run workflow. Tidak tahu soal HTTP; semua kejadian dikirim lewat `emit(event)`.
+// Workflow run orchestrator. Knows nothing about HTTP; every event goes out through `emit(event)`.
 //
-// Aturan:
-// - Node siap jalan kalau semua edge masuk (non-loop) sudah selesai/di-skip dan minimal satu edge aktif.
-//   Semua edge masuk tidak aktif → node di-skip (cabang yang tidak dipilih condition).
-// - condition/approval memilih edge `when: true` atau `when: false`.
-// - Edge dengan `loop: N` mengulang node tujuan + semua node di bawahnya, maksimal N kali.
+// Rules:
+// - A node is ready to run once every incoming (non-loop) edge is done/skipped and at least one edge is active.
+//   Every incoming edge inactive → the node is skipped (the branch the condition did not pick).
+// - condition/approval picks the `when: true` or `when: false` edge.
+// - An edge with `loop: N` replays the target node plus every node below it, at most N times.
 import { BRANCHING_TYPES, WORK_TYPES, ancestors, chosenEdges, downstream, incoming, readyNodes } from './graph.js';
 import { EXECUTORS } from './executors.js';
 import { CodedError, codeOf } from '../lib/errors.js';
 
 const RESET_FIELDS = {
   endedAt: undefined, error: undefined, warning: undefined,
-  // Kode memakai null (bukan undefined): JSON membuang undefined, sehingga UI tidak akan pernah menghapus kode lama.
+  // The code uses null (not undefined): JSON drops undefined, which would mean the UI never clears the previous code.
   errorCode: null, errorParams: null, warningCode: null, activityCode: null, usage: undefined, cost: undefined,
   changes: undefined, diff: undefined, touched: undefined,
 };
 
 export class WorkflowRun {
-  // tracker: { snapshot(workdir), changes(workdir, base, head) } untuk menghitung file yang diubah tiap node.
+  // tracker: { snapshot(workdir), changes(workdir, base, head) } used to compute the files each node changed.
   constructor({ id, wf, agents, actions = [], input, workdir, runners, emit, tracker = null }) {
     this.id = id;
     this.wf = wf;
@@ -30,7 +30,7 @@ export class WorkflowRun {
     this.emit = (e) => emit({ ts: Date.now(), run: id, ...e });
     this.nodes = Object.fromEntries(wf.nodes.map((n) => [n.id, n]));
     this.state = Object.fromEntries(wf.nodes.map((n) => [n.id, { status: 'pending', attempts: 0 }]));
-    this.active = new Set(); // index edge yang aktif
+    this.active = new Set(); // indexes of the active edges
     this.loopCount = {};
     this.feedback = {};
     this.touched = {};
@@ -42,10 +42,10 @@ export class WorkflowRun {
     this.error = null;
   }
 
-  // ---- state (selalu diganti objek baru, tidak dimutasi) ----
+  // ---- state (always replaced with a new object, never mutated) ----
 
   setNode(id, rawPatch) {
-    // activityCode ikut dibersihkan saat activity diganti, supaya kode lama tidak menempel di UI.
+    // activityCode is cleared along with the activity, so stale code does not stick around in the UI.
     const patch = 'activity' in rawPatch && !('activityCode' in rawPatch) ? { ...rawPatch, activityCode: null } : rawPatch;
     this.state = { ...this.state, [id]: { ...this.state[id], ...patch } };
     this.emit({ type: 'node', node: id, ...patch });
@@ -71,7 +71,7 @@ export class WorkflowRun {
     });
   }
 
-  // ---- kueri untuk eksekutor ----
+  // ---- queries for the executors ----
 
   incomingOf(id) {
     return incoming(this.wf, id);
@@ -93,7 +93,7 @@ export class WorkflowRun {
       .map((n) => n.text);
   }
 
-  // ---- siklus hidup run ----
+  // ---- the run lifecycle ----
 
   async start() {
     this.status = 'running';
@@ -148,7 +148,7 @@ export class WorkflowRun {
         if (skip) this.setNode(node.id, { status: 'skipped' });
         else if (this.running.size < limit) this.startNode(node);
       }
-      // Skip bisa membuka node lain; ulangi sebelum menunggu kalau masih ada yang bisa dijalankan.
+      // A skip can unblock other nodes; loop again before waiting if anything else is runnable.
       const pending = readyNodes(this.wf, this.state, this.active);
       if (pending.some((r) => r.skip) || (pending.length && this.running.size < limit)) continue;
       if (!this.running.size) break;
@@ -216,7 +216,7 @@ export class WorkflowRun {
     if (resetSelf) this.setNode(node.id, { status: 'pending' });
   }
 
-  // Mengulang node tujuan loop beserta semua turunannya. Mengembalikan true kalau node asal ikut di-reset.
+  // Replays the loop target node and all of its descendants. Returns true if the source node was reset too.
   triggerLoop(edge, fromId) {
     const key = `${edge.from}->${edge.to}`;
     const count = (this.loopCount[key] ?? 0) + 1;

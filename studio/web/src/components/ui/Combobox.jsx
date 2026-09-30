@@ -1,4 +1,4 @@
-// Input bebas dengan saran (mis. model: opus/sonnet/haiku atau id model lengkap).
+// A free-text input with suggestions (e.g. the model: opus/sonnet/haiku or a full model id).
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';

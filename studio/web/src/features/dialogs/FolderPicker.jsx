@@ -1,4 +1,4 @@
-// Pemilih folder ala file manager (dijelajahi lewat server, karena browser tidak memberi path absolut).
+// A file-manager-style folder picker (browsed through the server, because the browser does not expose absolute paths).
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronRight, Folder, FolderOpen, HardDrive, Home, ArrowUp } from 'lucide-react';
 import Modal from '../../components/ui/Modal.jsx';
@@ -6,7 +6,7 @@ import { api } from '../../lib/api.js';
 import { errorMessage, errorWithDetails } from '../../lib/errorMessage.js';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 
-// Shortcut dikenali lewat `id` stabil dari server; `label` hanya cadangan Inggris (dan nama drive untuk id 'drive').
+// Shortcuts are recognized through a stable `id` from the server; `label` is only the English fallback (and the drive name for id 'drive').
 const ROOT_ICON = { home: Home, workdir: FolderOpen, repo: FolderOpen };
 const ROOT_LABEL = { home: 'dialogs.folder.root.home', workdir: 'dialogs.folder.root.project', repo: 'dialogs.folder.root.repo' };
 

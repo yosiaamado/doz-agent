@@ -1,5 +1,5 @@
-// Penjaga urutan untuk request async: hanya panggilan terakhir yang boleh menulis state.
-// `next()` mengembalikan fungsi `isCurrent()`; `cancel()` membatalkan semua yang masih berjalan (mis. saat unmount).
+// An ordering guard for async requests: only the most recent call may write state.
+// `next()` returns an `isCurrent()` function; `cancel()` cancels everything still in flight (e.g. on unmount).
 export function createLatest() {
   let seq = 0;
   return {

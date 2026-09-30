@@ -4,7 +4,7 @@ import { emptyRun, reduceRun, edgeState, runTokens, toFlow, fromFlow, validate, 
 
 const ev = (type, extra) => ({ type, ts: 1000, ...extra });
 
-test('reducer run: status, riwayat per eksekusi, token live', () => {
+test('the run reducer: status, history per execution, live tokens', () => {
   let run = emptyRun('r');
   run = reduceRun(run, ev('run_start', { workflow: 'wf' }));
   run = reduceRun(run, ev('node', { node: 'a', status: 'running', startedAt: 1000 }));
@@ -12,7 +12,7 @@ test('reducer run: status, riwayat per eksekusi, token live', () => {
   assert.equal(runTokens(run), 15);
   run = reduceRun(run, { ...ev('node', { node: 'a', status: 'done', usage: { input: 20, output: 5 } }), ts: 3000 });
   run = reduceRun(run, ev('node', { node: 'a', status: 'running', startedAt: 4000 }));
-  assert.equal(run.nodes.a.usage, undefined, 'eksekusi baru mulai dari nol');
+  assert.equal(run.nodes.a.usage, undefined, 'a new execution starts from zero');
   assert.equal(run.nodes.a.history.length, 1);
   assert.equal(run.nodes.a.history[0].durationMs, 2000);
   run = reduceRun(run, ev('run_end', { status: 'done', cost: 0.5 }));
@@ -20,7 +20,7 @@ test('reducer run: status, riwayat per eksekusi, token live', () => {
   assert.equal(run.cost, 0.5);
 });
 
-test('warna garis: hijau dilewati, biru menuju node aktif, redup cabang tak dipilih', () => {
+test('edge colors: green for the path already taken, blue leading to the active node, dim for the branch not picked', () => {
   const run = { ...emptyRun('r'), status: 'running', nodes: { a: { status: 'done', verdict: true }, b: { status: 'running' }, c: { status: 'skipped' } }, loops: {} };
   assert.equal(edgeState({ source: 'a', target: 'b', data: {} }, run, 'agent'), 'active');
   assert.equal(edgeState({ source: 'a', target: 'c', data: { when: false } }, run, 'condition'), 'dim');
@@ -28,7 +28,7 @@ test('warna garis: hijau dilewati, biru menuju node aktif, redup cabang tak dipi
   assert.equal(edgeState({ source: 'a', target: 'b', data: {} }, emptyRun(), 'agent'), null);
 });
 
-test('konversi workflow ⇄ canvas mempertahankan edge, loop, dan ukuran catatan', () => {
+test('the workflow ⇄ canvas conversion preserves edges, loops, and note sizes', () => {
   const wf = {
     name: 'w', nodes: [{ id: 's', type: 'start' }, { id: 'n', type: 'info', text: 'x' }, { id: 'c', type: 'condition', check: '?' }],
     edges: [{ from: 's', to: 'c' }, { from: 'c', to: 's', when: false, loop: 2 }], layout: { n: [0, 0, 300, 200] },

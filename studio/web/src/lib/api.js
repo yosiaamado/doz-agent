@@ -1,5 +1,5 @@
-// Klien API. Server selalu membalas { success, data } atau { success: false, error, code?, params?, details? }.
-// `code` + `params` diterjemahkan UI lewat errorMessage(); `message` (Inggris) adalah fallback.
+// The API client. The server always replies with { success, data } or { success: false, error, code?, params?, details? }.
+// `code` + `params` are translated by the UI through errorMessage(); `message` (English) is the fallback.
 export class ApiRequestError extends Error {
   constructor(message, { details = [], code = null, params = {} } = {}) {
     super(message);
@@ -68,14 +68,14 @@ export const api = {
   diff: (base, head, file) => request('GET', `/api/diff?${new URLSearchParams({ base, head, ...(file ? { file } : {}) })}`),
 };
 
-// WebSocket dengan reconnect otomatis.
+// A WebSocket with automatic reconnect.
 export function connectEvents(onMessage) {
   let ws;
   let closed = false;
   const open = () => {
     ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
     ws.onmessage = (m) => {
-      try { onMessage(JSON.parse(m.data)); } catch { /* pesan rusak diabaikan */ }
+      try { onMessage(JSON.parse(m.data)); } catch { /* a malformed message is ignored */ }
     };
     ws.onclose = () => { if (!closed) setTimeout(open, 1500); };
   };

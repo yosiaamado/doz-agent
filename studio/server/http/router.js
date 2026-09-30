@@ -1,4 +1,4 @@
-// Router kecil: pola path dengan parameter `:nama`, satu handler per method + path.
+// A tiny router: path patterns with `:name` parameters, one handler per method + path.
 import { notFound } from '../lib/errors.js';
 
 function compile(pattern) {

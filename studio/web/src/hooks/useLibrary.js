@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { api } from '../lib/api.js';
 
-// Komponen (agent/skill/action), folder sumber, dan daftar workflow dari server.
+// Components (agent/skill/action), the source folders, and the workflow list from the server.
 export function useLibrary() {
   const [library, setLibrary] = useState({ agents: [], skills: [], actions: [] });
   const [sources, setSources] = useState(null);

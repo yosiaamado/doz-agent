@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useState } from 'react';
 
-// Posisi popover (fixed) di bawah anchor; pindah ke atas kalau ruang di bawah tidak cukup.
+// Positions the popover (fixed) below its anchor; flips above when there is not enough room below.
 export function usePopover(anchorRef, open, { minWidth = 200, maxHeight = 320 } = {}) {
   const [style, setStyle] = useState(null);
   const place = useCallback(() => {

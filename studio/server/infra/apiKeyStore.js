@@ -1,6 +1,6 @@
-// Penyimpanan API key Anthropic di config.json. Dengan `codec` (disuntikkan Electron main process dari
-// safeStorage: DPAPI di Windows, Keychain di macOS) yang tersimpan hanya ciphertext base64.
-// Tanpa codec (mis. `npm start`) key tersimpan plain text; itu hanya terlindungi izin file/profil user OS.
+// Storage for the Anthropic API key in config.json. With a `codec` (injected by the Electron main process from
+// safeStorage: DPAPI on Windows, Keychain on macOS) only base64 ciphertext is stored.
+// Without a codec (e.g. `npm start`) the key is stored as plain text; it is then protected only by the file permissions / the user's OS profile.
 const ENCRYPTED_FIELD = 'anthropicApiKeyEnc';
 const PLAIN_FIELD = 'anthropicApiKey';
 
@@ -34,7 +34,7 @@ export function createApiKeyStore({ store, codec = null, logger }) {
   };
 
   const api = {
-    // 'none' | 'saved' | 'unreadable'. Ciphertext yang gagal dibuka TIDAK dihapus: penyebabnya bisa sementara.
+    // 'none' | 'saved' | 'unreadable'. Ciphertext that fails to decrypt is NOT deleted: the cause may be temporary.
     state() {
       const saved = store.read();
       if (saved[ENCRYPTED_FIELD] && !decryptSaved(saved)) return 'unreadable';
@@ -45,7 +45,7 @@ export function createApiKeyStore({ store, codec = null, logger }) {
       const decrypted = decryptSaved(saved);
       if (decrypted) return decrypted;
       const plain = saved[PLAIN_FIELD] ?? null;
-      if (plain && codec) api.set(plain); // migrasi key plain text lama ke bentuk terenkripsi saat pertama dibaca
+      if (plain && codec) api.set(plain); // migrate a legacy plain-text key to the encrypted form on first read
       else if (plain) warnPlainOnce();
       return plain;
     },

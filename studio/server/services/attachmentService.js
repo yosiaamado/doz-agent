@@ -1,6 +1,6 @@
-// Lampiran dokumen untuk permintaan run. Disimpan di <workdir>/.doz-studio/attachments/<id>/.
-// Teks (md, txt, kode, csv, json, docx) disisipkan ke prompt; PDF/gambar dirujuk lewat path supaya
-// agent membacanya dengan tool Read (Claude Code bisa membaca PDF dan gambar).
+// Document attachments for a run request. Stored in <workdir>/.doz-studio/attachments/<id>/.
+// Text files (md, txt, code, csv, json, docx) are inlined into the prompt; PDFs/images are referenced by path so
+// the agent reads them with the Read tool (Claude Code can read PDFs and images).
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -15,8 +15,8 @@ const TEXT_EXT = new Set(['.md', '.markdown', '.txt', '.csv', '.tsv', '.json', '
 const ID_RE = /^[a-f0-9]{16}$/;
 
 function safeName(name) {
-  const base = path.basename(String(name ?? 'dokumen')).replace(/[^\w.\- ]+/g, '_').slice(0, 120);
-  return base || 'dokumen';
+  const base = path.basename(String(name ?? 'document')).replace(/[^\w.\- ]+/g, '_').slice(0, 120);
+  return base || 'document';
 }
 
 function decodeXml(text) {
@@ -77,18 +77,18 @@ export function createAttachmentService(config) {
   };
 
   const section = (doc) => {
-    if (!doc.text) return `### ${doc.name}\nFile ${doc.kind} di \`${doc.relPath}\`. Baca dengan tool Read sebelum mengerjakan.`;
+    if (!doc.text) return `### ${doc.name}\nA ${doc.kind} file at \`${doc.relPath}\`. Read it with the Read tool before you start.`;
     const clipped = doc.text.length > MAX_INLINE_CHARS
-      ? `${doc.text.slice(0, MAX_INLINE_CHARS)}\n\n[... dipotong; isi lengkap di \`${doc.relPath}\`]`
+      ? `${doc.text.slice(0, MAX_INLINE_CHARS)}\n\n[... truncated; full contents at \`${doc.relPath}\`]`
       : doc.text;
     return `### ${doc.name}\n\`\`\`\n${clipped}\n\`\`\``;
   };
 
-  // Permintaan user + dokumen terlampir, jadi input node start.
+  // The user request plus the attached documents, which becomes the input of the start node.
   const composeInput = (input, ids = []) => {
     if (!ids.length) return input;
     const docs = ids.map(load);
-    return `${input}\n\n## Dokumen terlampir\n\n${docs.map(section).join('\n\n')}`;
+    return `${input}\n\n## Attached documents\n\n${docs.map(section).join('\n\n')}`;
   };
 
   return { save, load, composeInput };

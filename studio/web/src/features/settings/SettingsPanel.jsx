@@ -31,7 +31,7 @@ function EdgeSettings({ edge, sourceType, update, remove }) {
   );
 }
 
-// Bahasa antarmuka: tersimpan di browser ini, berlaku ke seluruh studio.
+// The interface language: stored in this browser, applies to the whole studio.
 function LanguageField() {
   const { t, locale, setLocale } = useI18n();
   return (

@@ -31,11 +31,11 @@ export function newNode(spec, ids) {
   if (spec.type === 'agent') node.agent = spec.agent;
   if (spec.type === 'skill') node.skill = spec.skill;
   if (spec.type === 'action' && spec.action) node.action = spec.action;
-  if (spec.type === 'condition') node.check = 'Did the previous step pass?'; // isi file workflow, bukan copy UI
+  if (spec.type === 'condition') node.check = 'Did the previous step pass?'; // workflow file content, not UI copy
   return { ...node, id: uniqueId(spec.agent ?? spec.skill?.split(':').pop() ?? spec.action ?? spec.type, ids) };
 }
 
-// State editor: meta workflow + node/garis React Flow + status belum disimpan.
+// Editor state: the workflow meta plus the React Flow nodes/edges plus the unsaved-changes flag.
 export function useWorkflowEditor({ agentNames, notify }) {
   const { t } = useI18n();
   const [meta, setMetaState] = useState(null);

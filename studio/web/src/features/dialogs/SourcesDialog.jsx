@@ -1,4 +1,4 @@
-// Folder yang dibaca studio. Folder ditambah lewat pemilih ala file manager; ditampilkan dalam bentuk pendek.
+// The folders the studio reads. Folders are added through the file-manager-style picker; they are displayed in short form.
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, CheckCircle2, CircleDashed, FolderCog, FolderPlus, Plus, Trash2 } from 'lucide-react';
 import Modal from '../../components/ui/Modal.jsx';

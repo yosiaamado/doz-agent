@@ -1,5 +1,5 @@
-// Smoke test render: me-mount aplikasi React di jsdom dan gagal (exit 1) kalau render melempar atau ErrorBoundary tampil.
-// Pakai: `node scripts/ui-smoke.js [en|id]`. Dipanggil oleh test/ui-smoke.test.js (satu proses per bahasa supaya DOM bersih).
+// Render smoke test: mounts the React app in jsdom and fails (exit 1) if rendering throws or the ErrorBoundary shows up.
+// Usage: `node scripts/ui-smoke.js [en|id]`. Called by test/ui-smoke.test.js (one process per language so the DOM stays clean).
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JSDOM } from 'jsdom';
@@ -25,7 +25,7 @@ window.DOMMatrixReadOnly = globalThis.DOMMatrixReadOnly;
 window.localStorage.setItem('doz-studio:locale', locale);
 window.localStorage.setItem('doz-studio:last-workflow', 'demo');
 
-// Data tiruan dengan bentuk yang sama seperti respons server.
+// Mock data shaped exactly like the server responses.
 const agent = { name: 'qa-tester', path: '/p/qa-tester.md', file: 'plugins/agents/qa-tester.md', description: 'Tests things', tools: ['Read', 'Grep'], model: 'sonnet', effort: 'high', maxTurns: 20, color: 'blue', shadowed: false };
 const workflow = {
   name: 'demo', description: 'Demo workflow', defaults: { runner: 'claude-cli' }, parallel: 3, budget_usd: null, notes: '',
@@ -71,7 +71,7 @@ try {
   const deadline = Date.now() + 8000;
   const has = (sel) => document.querySelector(sel);
   while (Date.now() < deadline && !(has('.topbar') && has('.fnode'))) await new Promise((r) => setTimeout(r, 50));
-  // Klik semua kontrol utama supaya dialog/panel lazy ikut ter-render (kelas bug: variabel bayangan, hook salah urutan).
+  // Click every main control so the lazy dialogs/panels get rendered too (bug class: shadowed variables, hooks in the wrong order).
   const pause = (ms) => new Promise((r) => setTimeout(r, ms));
   const escape = () => document.activeElement?.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   let modalsSeen = 0;
@@ -86,21 +86,21 @@ try {
     }
   }
   const boundary = has('[role="alert"].loading');
-  if (boundary) failure = `ErrorBoundary tampil: ${boundary.textContent}`;
-  else if (!has('.topbar')) failure = `UI tidak tampil (root: ${document.getElementById('root').innerHTML.slice(0, 200)})`;
-  else if (modalsSeen < 3) failure = `hanya ${modalsSeen} dialog yang terbuka saat klik-jelajah (harusnya >= 3)`;
-  else if (!has('.fnode')) failure = 'canvas tidak merender node';
-  else if (document.documentElement.lang !== locale) failure = `lang=${document.documentElement.lang}, diharapkan ${locale}`;
+  if (boundary) failure = `the ErrorBoundary showed up: ${boundary.textContent}`;
+  else if (!has('.topbar')) failure = `UI did not render (root: ${document.getElementById('root').innerHTML.slice(0, 200)})`;
+  else if (modalsSeen < 3) failure = `only ${modalsSeen} dialog(s) opened during the click sweep (expected >= 3)`;
+  else if (!has('.fnode')) failure = 'the canvas rendered no nodes';
+  else if (document.documentElement.lang !== locale) failure = `lang=${document.documentElement.lang}, expected ${locale}`;
   const fatal = errors.filter((e) => /TypeError|ReferenceError|is not a function|Uncaught|The above error/.test(e));
   if (!failure && fatal.length) failure = `error di console: ${fatal[0].slice(0, 300)}`;
 } catch (err) {
-  failure = `import/render gagal: ${err.stack ?? err}`;
+  failure = `import/render failed: ${err.stack ?? err}`;
 } finally {
   await server.close();
 }
 console.error = originalError;
 if (failure) {
-  console.error(`ui-smoke [${locale}] GAGAL: ${failure}`);
+  console.error(`ui-smoke [${locale}] FAILED: ${failure}`);
   for (const e of errors.slice(0, 3)) console.error(e.slice(0, 900));
   process.exit(1);
 }

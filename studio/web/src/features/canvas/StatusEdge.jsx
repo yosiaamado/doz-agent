@@ -13,7 +13,7 @@ function StatusEdge(props) {
     sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, borderRadius: 14, offset: loop ? 40 : 20,
   });
   const state = edgeState(props, run, nodeTypes[source]);
-  // Cabang ya/tidak sudah dilabeli di handle node; garis hanya diberi label kalau loop.
+  // The yes/no branches are already labelled on the node handles; the line is only labelled for loops.
   const label = loop ? t('canvas.edge.loop', { max: loop }) : null;
   return (
     <>

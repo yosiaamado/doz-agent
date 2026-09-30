@@ -1,4 +1,4 @@
-// Fungsi murni untuk membaca struktur graph workflow. Edge diberi index `i` supaya bisa dilacak.
+// Pure functions for reading the workflow graph structure. Edges carry an index `i` so they can be tracked.
 
 export const WORK_TYPES = Object.freeze(new Set(['agent', 'skill', 'action']));
 export const BRANCHING_TYPES = Object.freeze(new Set(['condition', 'approval']));
@@ -29,7 +29,7 @@ export function ancestors(wf, id) {
   return [...seen];
 }
 
-// Node ini dan semua turunannya lewat edge non-loop (yang diulang saat loop dipicu).
+// This node and all of its descendants through non-loop edges (the ones replayed when a loop fires).
 export function downstream(wf, id) {
   const seen = new Set();
   const stack = [id];
@@ -44,7 +44,7 @@ export function downstream(wf, id) {
 
 const SETTLED = new Set(['done', 'skipped']);
 
-// Node pending yang semua sumbernya sudah selesai. `skip` = tidak ada edge masuk yang aktif.
+// Pending nodes whose sources are all finished. `skip` = no incoming edge is active.
 export function readyNodes(wf, state, activeEdges) {
   return wf.nodes
     .filter((n) => state[n.id].status === 'pending')
@@ -53,7 +53,7 @@ export function readyNodes(wf, state, activeEdges) {
     .map(({ node, inc }) => ({ node, skip: inc.length > 0 && !inc.some((e) => activeEdges.has(e.i)) }));
 }
 
-// Edge keluar yang dipilih setelah node selesai. Untuk condition/approval hanya cabang `when` yang cocok.
+// The outgoing edges picked once a node finishes. For condition/approval only the matching `when` branch.
 export function chosenEdges(wf, id, verdict) {
   return outgoing(wf, id).filter((e) => verdict === undefined || e.when === undefined || e.when === verdict);
 }

@@ -1,6 +1,6 @@
-// Registry run + log JSONL di <workdir>/.doz-studio/runs/<id>.jsonl.
-// Run dari skill run-workflow (Claude Code di terminal) menulis format event yang sama ke folder ini,
-// jadi studio bisa menampilkannya realtime lewat polling file.
+// The run registry plus JSONL logs in <workdir>/.doz-studio/runs/<id>.jsonl.
+// Runs from the run-workflow skill (Claude Code in a terminal) write the same event format into this folder,
+// so the studio can show them in real time by polling the files.
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -19,7 +19,7 @@ export class RunRegistry {
     this.dir = dir;
     fs.mkdirSync(this.dir, { recursive: true });
     this.offsets.clear();
-    // Mulai dari akhir file yang sudah ada; riwayatnya dibaca saat diminta.
+    // Start at the end of the existing file; its history is read on demand.
     for (const f of this.files()) this.offsets.set(f, fs.statSync(path.join(this.dir, f)).size);
     clearInterval(this.timer);
     this.timer = setInterval(() => this.poll(), 700);
@@ -37,7 +37,7 @@ export class RunRegistry {
   poll() {
     for (const f of this.files()) {
       const id = path.basename(f, '.jsonl');
-      if (this.runs.get(id)?.run) continue; // run milik studio sendiri, sudah ada di memori
+      if (this.runs.get(id)?.run) continue; // one of the studio's own runs, already in memory
       const full = path.join(this.dir, f);
       const size = fs.statSync(full).size;
       const from = this.offsets.get(f) ?? 0;
@@ -48,7 +48,7 @@ export class RunRegistry {
       fs.closeSync(fd);
       const text = buf.toString('utf8');
       const lastNl = text.lastIndexOf('\n');
-      if (lastNl < 0) continue; // tunggu baris lengkap
+      if (lastNl < 0) continue; // wait for a complete line
       this.offsets.set(f, from + Buffer.byteLength(text.slice(0, lastNl + 1)));
       for (const line of text.slice(0, lastNl).split('\n')) {
         const ev = parseLine(line);
@@ -100,7 +100,7 @@ export class RunRegistry {
   events(id) {
     const r = this.runs.get(id);
     if (r?.run) return r.events;
-    // Run dari luar studio: file adalah sumber lengkapnya (memori hanya berisi baris sejak studio jalan).
+    // A run started outside the studio: the file is its complete source (memory only holds the lines since the studio started).
     const file = path.join(this.dir, `${id}.jsonl`);
     if (!/^[\w.-]+$/.test(id) || !fs.existsSync(file)) return r?.events ?? null;
     return fs.readFileSync(file, 'utf8').split('\n').map(parseLine).filter(Boolean)

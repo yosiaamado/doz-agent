@@ -1,4 +1,4 @@
-// Composition root: merakit config, repository, service, runner, dan route jadi satu server HTTP.
+// Composition root: wires config, repositories, services, runners, and routes into a single HTTP server.
 import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -45,9 +45,9 @@ function createRunnerStatus() {
 }
 
 export function createApp(options = {}) {
-  // secretCodec: { encrypt(plain) → string, decrypt(cipher) → string } dari Electron safeStorage; kosong di `npm start`.
+  // secretCodec: { encrypt(plain) → string, decrypt(cipher) → string } from Electron safeStorage; absent under `npm start`.
   const config = options.config ?? createConfig({ secretCodec: options.secretCodec });
-  // API key yang disimpan lewat wizard dipakai kalau environment belum punya.
+  // The API key saved through the wizard is used when the environment does not already provide one.
   if (!process.env.ANTHROPIC_API_KEY) {
     const saved = config.savedApiKey();
     if (saved) {
@@ -56,10 +56,10 @@ export function createApp(options = {}) {
     }
   }
   const components = createComponentRepository(config);
-  // probe dipanggil saat user menekan refresh, setelah `runners` terbentuk.
+  // probe is called when the user hits refresh, after `runners` has been built.
   const usage = createUsageService({
     usageFile: config.usageFile,
-    probe: () => runners['claude-cli'].judge({ prompt: 'Balas: ok', settings: { model: 'haiku' }, workdir: config.getWorkdir(), signal: new AbortController().signal }),
+    probe: () => runners['claude-cli'].judge({ prompt: 'Reply: ok', settings: { model: 'haiku' }, workdir: config.getWorkdir(), signal: new AbortController().signal }),
   });
   const runners = options.runners ?? createRunners({ config, components, usage });
 
@@ -84,7 +84,7 @@ export function createApp(options = {}) {
   });
   registerUpdateRoutes(router, { update });
 
-  // Overlay update web (S5) dicek per request, jadi aset baru langsung terlayani tanpa restart.
+  // The web update overlay (S5) is checked per request, so new assets are served immediately without a restart.
   const serveStatic = createStaticHandler(config.webDist, config.webOverlay);
   server.on('request', async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
@@ -104,7 +104,7 @@ export function createApp(options = {}) {
 }
 
 const HOST = '127.0.0.1';
-const PORT_FALLBACK_SPAN = 10; // port, port+1 ... port+9, lalu port acak dari OS
+const PORT_FALLBACK_SPAN = 10; // port, port+1 ... port+9, then a random port from the OS
 
 function listenOnce(server, port) {
   return new Promise((resolve, reject) => {
@@ -117,7 +117,7 @@ function listenOnce(server, port) {
 }
 
 async function listenWithFallback(server, wanted) {
-  // wanted = 0 berarti "port apa saja": jangan menghitung naik dari 1.
+  // wanted = 0 means "any port": do not count upward from 1.
   const candidates = wanted > 0 ? Array.from({ length: PORT_FALLBACK_SPAN }, (_, i) => wanted + i).filter((p) => p <= 65535) : [];
   for (const port of [...candidates, 0]) {
     try {
@@ -126,10 +126,10 @@ async function listenWithFallback(server, wanted) {
       if (err.code !== 'EADDRINUSE' && err.code !== 'EACCES') throw err;
     }
   }
-  throw new Error('Tidak bisa membuka port lokal');
+  throw new Error('Could not open a local port');
 }
 
-// runtime.json dibaca Electron main process untuk tahu URL yang harus dibuka.
+// runtime.json is read by the Electron main process to learn which URL to open.
 function publishRuntime(config, port) {
   const file = path.join(config.userDataDir, 'runtime.json');
   try {
@@ -140,11 +140,11 @@ function publishRuntime(config, port) {
     return () => {};
   }
   return () => {
-    try { fs.rmSync(file, { force: true }); } catch { /* proses sedang berhenti */ }
+    try { fs.rmSync(file, { force: true }); } catch { /* the process is shutting down */ }
   };
 }
 
-// Merakit app lalu listen; kalau port terpakai pindah ke port bebas. UI memakai URL relatif, jadi port baru otomatis benar.
+// Builds the app then listens; if the port is taken it moves to a free one. The UI uses relative URLs, so the new port is automatically correct.
 export async function startServer(options = {}) {
   const app = createApp(options);
   const { server, config } = app;

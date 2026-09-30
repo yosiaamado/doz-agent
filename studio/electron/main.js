@@ -1,4 +1,4 @@
-// Main process Electron: siapkan env, jalankan server Node di dalam app, lalu buka window ke URL-nya.
+// Electron main process: prepare the env, run the Node server inside the app, then open a window pointing at its URL.
 import { app, BrowserWindow, dialog, safeStorage, shell } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -20,16 +20,16 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 function fail(err) {
-  dialog.showErrorBox('Doz Studio tidak bisa dijalankan', String(err?.stack ?? err));
+  dialog.showErrorBox('Doz Studio could not start', String(err?.stack ?? err));
   app.exit(1);
 }
 
 async function boot() {
-  // Env harus di-set sebelum server dimuat. process.env diteruskan apa adanya (PATH untuk claude/git).
+  // The env must be set before the server is loaded. process.env is passed through as-is (PATH for claude/git).
   if (app.isPackaged) process.env.DOZ_RESOURCES_DIR = process.resourcesPath;
   process.env.DOZ_USER_DATA_DIR = app.getPath('userData');
   const { startServer } = await import(pathToFileURL(path.join(app.getAppPath(), 'server', 'app.js')).href);
-  // Enkripsi API key lewat OS (DPAPI/Keychain). Tanpa enkripsi OS, jangan kirim codec: server akan mencatat peringatan plain text.
+  // API key encryption via the OS (DPAPI/Keychain). Without OS encryption, do not pass a codec: the server would log a plain-text warning.
   const secretCodec = safeStorage.isEncryptionAvailable()
     ? {
         encrypt: (plain) => safeStorage.encryptString(plain).toString('base64'),

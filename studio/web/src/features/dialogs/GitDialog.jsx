@@ -1,4 +1,4 @@
-// Sinkronisasi GitHub: pull (rebase + autostash), commit semua perubahan, push ke upstream. Tidak pernah force push.
+// GitHub synchronization: pull (rebase + autostash), commit every change, push to upstream. Never a force push.
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, CloudDownload, CloudUpload, GitBranch, GitCommitHorizontal, Loader2, RefreshCw } from 'lucide-react';
 import Modal from '../../components/ui/Modal.jsx';

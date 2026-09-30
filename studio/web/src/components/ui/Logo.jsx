@@ -1,4 +1,4 @@
-// Logo Doz Studio: robot di tengah alur 4 langkah (dokumen → cek → data → pengaturan).
+// The Doz Studio logo: a robot in the middle of a 4-step flow (document → check → data → settings).
 export const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
 <defs>
 <linearGradient id="gl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f6bff"/><stop offset="1" stop-color="#18b8b0"/></linearGradient>
@@ -30,7 +30,7 @@ export default function Logo({ size = 28 }) {
   return (
     <span
       className="logo" role="img" aria-label={BRAND} style={{ width: size, height: size, display: 'inline-block', flex: 'none' }}
-      // SVG statis milik aplikasi sendiri (bukan input user), aman di-inline.
+      // Static SVG owned by the app itself (not user input), so inlining it is safe.
       dangerouslySetInnerHTML={{ __html: LOGO_SVG }}
     />
   );

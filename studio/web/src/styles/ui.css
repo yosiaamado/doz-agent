@@ -1,4 +1,4 @@
-/* Komponen dasar: tombol, input, select, modal, toast, segmented. */
+/* Base components: buttons, inputs, select, modal, toast, segmented. */
 .input, input:not([type=checkbox]):not([type=radio]), textarea {
   background: var(--panel-2); border: 1px solid var(--border-2); border-radius: var(--radius-sm); padding: 7px 10px; outline: none; min-width: 0;
   transition: border-color .15s, box-shadow .15s;

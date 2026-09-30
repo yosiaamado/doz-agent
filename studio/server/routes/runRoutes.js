@@ -1,4 +1,4 @@
-// Run workflow, persetujuan, lampiran, dan diff file per node.
+// Workflow runs, approvals, attachments, and the per-node file diff.
 import { startRunBody, approveBody, attachmentBody, diffQuery } from '../http/schemas.js';
 import { fileDiff } from '../infra/gitdiff.js';
 

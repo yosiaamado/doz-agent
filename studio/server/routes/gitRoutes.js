@@ -1,4 +1,4 @@
-// Pull / commit / push ke GitHub dari UI.
+// Pull / commit / push to GitHub from the UI.
 import { gitTarget, commitBody } from '../http/schemas.js';
 
 export function registerGitRoutes(router, { git }) {

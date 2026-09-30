@@ -1,10 +1,10 @@
-// Format workflow: file .md dengan frontmatter YAML (graph) + body markdown (catatan untuk semua agent).
-// Spesifikasi lengkap: plugins/workflows/README.md
+// Workflow format: a .md file with YAML frontmatter (the graph) plus a markdown body (notes shared by every agent).
+// Full specification: plugins/workflows/README.md
 import YAML from 'yaml';
 
 export const NODE_TYPES = ['start', 'agent', 'skill', 'action', 'condition', 'approval', 'info', 'output'];
 
-// Pengaturan yang bisa diisi di `defaults` workflow atau di node agent/skill (node menang).
+// Settings that can be filled in under the workflow's `defaults` or on an agent/skill node (the node wins).
 export const SETTING_KEYS = [
   'runner', 'model', 'effort', 'permission', 'inputs', 'max_turns',
   'timeout_min', 'retry', 'budget_usd', 'max_output_chars',
@@ -70,7 +70,7 @@ export function serializeWorkflow(wf) {
   }
   meta.layout = layout;
   const doc = new YAML.Document(meta);
-  // Edge dan posisi ditulis satu baris per item supaya diff git tetap pendek.
+  // Edges and positions are written one line per item to keep git diffs short.
   for (const item of doc.get('edges').items) item.flow = true;
   for (const pair of doc.get('layout').items) pair.value.flow = true;
   for (const node of doc.get('nodes').items) {
@@ -80,7 +80,7 @@ export function serializeWorkflow(wf) {
   return `---\n${yaml}---\n${w.notes ? `\n${w.notes.trim()}\n` : ''}`;
 }
 
-// Nilai kosong / "inherit" tidak ditulis, supaya file hanya berisi yang benar-benar diatur.
+// Empty / "inherit" values are not written, so the file only holds what was actually set.
 function compact(obj) {
   const out = {};
   for (const [k, v] of Object.entries(obj ?? {})) {
@@ -135,7 +135,7 @@ function hasCycle(wf) {
   return wf.nodes.some((n) => visit(n.id));
 }
 
-// node > defaults workflow > frontmatter agent > bawaan
+// node > workflow defaults > agent frontmatter > built-in
 export function resolveSettings(node, wf, agent) {
   const out = {};
   for (const key of SETTING_KEYS) {

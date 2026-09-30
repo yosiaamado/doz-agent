@@ -1,5 +1,5 @@
-// Edit / buat file agent, skill, atau action. Mode Form mengubah key frontmatter satu per satu
-// (key lain dan komentar tetap), mode Raw mengedit seluruh isi file.
+// Edit / create an agent, skill, or action file. Form mode changes frontmatter keys one at a time
+// (leaving the other keys and comments intact), Raw mode edits the whole file.
 import { useEffect, useState } from 'react';
 import { AlertTriangle, Bot, Sparkles, SquareTerminal } from 'lucide-react';
 import Modal from '../../components/ui/Modal.jsx';
@@ -70,7 +70,7 @@ export default function ComponentEditor({ kind, name, sources, onClose, onSaved 
       setRaw(it.text);
       if (!it.strict) setMode('raw');
     }).catch((err) => setError(errorMessage(t, err)));
-    // Muat sekali per komponen; ganti bahasa tidak boleh mereset form yang sedang diedit.
+    // Load once per component; switching language must not reset a form that is being edited.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, name, isNew]);
 

@@ -8,45 +8,45 @@ import { composeFile, splitFile } from '../server/lib/frontmatter.js';
 import { snapshot, changes, fileDiff } from '../server/infra/gitdiff.js';
 import { describeCommand } from '../server/runners/claude-cli.js';
 
-test('composeFile mengubah key tanpa membuang key lain', () => {
-  const text = '---\nname: qa\n# komentar\ntools: Read, Bash\nexperimental:\n  cacheTtl: 1h\n---\n\nisi lama\n';
-  const out = composeFile(text, { model: 'opus', tools: 'Read, Bash, Edit', name: 'lain' }, 'isi baru');
+test('composeFile changes keys without dropping the others', () => {
+  const text = '---\nname: qa\n# a comment\ntools: Read, Bash\nexperimental:\n  cacheTtl: 1h\n---\n\nold body\n';
+  const out = composeFile(text, { model: 'opus', tools: 'Read, Bash, Edit', name: 'other' }, 'new body');
   const parts = splitFile(out);
-  assert.equal(parts.meta.name, 'qa'); // ganti nama tidak lewat edit
+  assert.equal(parts.meta.name, 'qa'); // renaming does not happen through an edit
   assert.equal(parts.meta.model, 'opus');
   assert.equal(parts.meta.tools, 'Read, Bash, Edit');
   assert.deepEqual(parts.meta.experimental, { cacheTtl: '1h' });
-  assert.match(out, /# komentar/);
-  assert.equal(parts.body.trim(), 'isi baru');
+  assert.match(out, /# a comment/);
+  assert.equal(parts.body.trim(), 'new body');
 });
 
-test('snapshot git menangkap file baru dan diubah per node', async () => {
+test('the git snapshot catches new and changed files per node', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'doz-git-'));
   const g = (...args) => execFileSync('git', args, { cwd: dir });
   g('init', '-q');
   g('-c', 'user.email=a@b', '-c', 'user.name=a', 'commit', '-q', '--allow-empty', '-m', 'init');
-  fs.writeFileSync(path.join(dir, 'a.txt'), 'satu\n');
+  fs.writeFileSync(path.join(dir, 'a.txt'), 'one\n');
   const base = await snapshot(dir);
-  fs.writeFileSync(path.join(dir, 'a.txt'), 'satu\ndua\n');
-  fs.writeFileSync(path.join(dir, 'b.txt'), 'baru\n');
+  fs.writeFileSync(path.join(dir, 'a.txt'), 'one\ntwo\n');
+  fs.writeFileSync(path.join(dir, 'b.txt'), 'new\n');
   fs.mkdirSync(path.join(dir, '.doz-studio'));
   fs.writeFileSync(path.join(dir, '.doz-studio', 'x.jsonl'), '{}\n');
   const head = await snapshot(dir);
   const list = await changes(dir, base, head);
   assert.deepEqual(list.map((c) => [c.path, c.status, c.additions]), [['a.txt', 'modified', 1], ['b.txt', 'added', 1]]);
-  assert.match(await fileDiff(dir, base, head, 'a.txt'), /\+dua/);
-  assert.equal(execFileSync('git', ['status', '--porcelain'], { cwd: dir }).toString().includes('A '), false); // index user tidak disentuh
+  assert.match(await fileDiff(dir, base, head, 'a.txt'), /\+two/);
+  assert.equal(execFileSync('git', ['status', '--porcelain'], { cwd: dir }).toString().includes('A '), false); // the user's index is left untouched
 });
 
-test('command CLI bisa disalin dengan placeholder prompt', () => {
+test('the CLI command can be copied with the prompt placeholder', () => {
   const cmd = describeCommand({
     node: { type: 'agent' },
     agent: { name: 'qa-tester', description: 'x', tools: ['Read'], prompt: 'p', file: 'plugins/agents/qa-tester.md' },
     settings: { model: 'sonnet', max_turns: 40 },
-    prompt: 'rahasia panjang',
+    prompt: 'a long secret',
   }, { pluginDir: '/repo/plugins' });
   assert.match(cmd, /^claude -p --output-format stream-json --verbose --agents agents.json --agent qa-tester/);
   assert.match(cmd, /< prompt.md/);
-  assert.match(cmd, /isi plugins\/agents\/qa-tester.md/);
-  assert.ok(!cmd.includes('rahasia'));
+  assert.match(cmd, /the contents of plugins\/agents\/qa-tester.md/);
+  assert.ok(!cmd.includes('secret'));
 });

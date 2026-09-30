@@ -1,4 +1,4 @@
-// Wizard Persiapan: pemeriksaan syarat, tes nyata, dan perbaikan cepat (API key, identitas git, login Claude).
+// The Setup wizard: requirement checks, live tests, and quick fixes (API key, git identity, Claude login).
 import { setupTest, apiKeyBody, gitIdentityBody, claudeLoginBody, gitTarget } from '../http/schemas.js';
 
 export function registerSetupRoutes(router, { setup }) {

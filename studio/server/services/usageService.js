@@ -1,5 +1,5 @@
-// Pemakaian Claude Code: batas 5 jam / 7 hari (dari rate_limit_event yang dikirim `claude -p`) dan
-// total token lokal (dari transcript ~/.claude/projects/**/*.jsonl).
+// Claude Code usage: the 5-hour / 7-day limits (from the rate_limit_event that `claude -p` emits) and
+// the local token totals (from the transcripts in ~/.claude/projects/**/*.jsonl).
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -32,7 +32,7 @@ function tokensOf(u) {
   return (u.input_tokens ?? 0) + (u.output_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0);
 }
 
-// Satu pesan bisa tercatat beberapa kali (per content block), jadi dihitung per message id.
+// A single message can be recorded several times (once per content block), so it is counted per message id.
 async function scanTranscript(file, since, seen) {
   const rows = [];
   const rl = readline.createInterface({ input: fs.createReadStream(file), crlfDelay: Infinity });
@@ -71,7 +71,7 @@ export function createUsageService({ usageFile, projectsDir = path.join(os.homed
   };
 
   return {
-    // Dipanggil runner setiap kali Claude Code mengirim info rate limit.
+    // Called by the runner every time Claude Code sends rate limit information.
     recordRateLimit(info) {
       fs.writeFileSync(usageFile, JSON.stringify({ updatedAt: Date.now(), info }, null, 2));
     },
@@ -79,7 +79,7 @@ export function createUsageService({ usageFile, projectsDir = path.join(os.homed
       const saved = readJson(usageFile);
       return { limits: saved?.info ?? null, limitsUpdatedAt: saved?.updatedAt ?? null, local: await localUsage(), projectsDir };
     },
-    // Panggilan kecil ke Claude Code (haiku, 1 turn) hanya untuk mendapatkan rate_limit_event terbaru.
+    // A small call to Claude Code (haiku, 1 turn) purely to obtain the latest rate_limit_event.
     async refresh() {
       if (!probe) throw new Error('refresh is not available');
       await probe();

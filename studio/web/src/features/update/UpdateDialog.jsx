@@ -1,4 +1,4 @@
-// Dialog update sekali klik: cek versi → catatan rilis → file yang kamu edit + pilihan overwrite → update → hasil.
+// The one-click update dialog: version check → release notes → the files you edited + the overwrite choice → update → result.
 import { useState } from 'react';
 import { AlertTriangle, CheckCircle2, Download, Loader2, RefreshCw } from 'lucide-react';
 import Modal from '../../components/ui/Modal.jsx';
@@ -40,7 +40,7 @@ function Available({ result, overwrite, setOverwrite }) {
       {notes && (
         <>
           <div className="subhead">{t('update.notes')}</div>
-          {/* Teks biasa, bukan HTML: catatan rilis datang dari server update. */}
+          {/* Plain text, not HTML: the release notes come from the update server. */}
           <div className="small" style={{ whiteSpace: 'pre-wrap', margin: '0 0 12px' }}>{notes}</div>
         </>
       )}
@@ -93,7 +93,7 @@ export default function UpdateDialog({ update, onClose }) {
   const [overwrite, setOverwrite] = useState(false);
   const { status, result, checking, applying, error, applied, check, apply } = update;
   const busy = checking || applying;
-  // Hasil cek basi tidak boleh dipakai kalau cek/apply terakhir gagal (CR-2).
+  // A stale check result must not be used when the last check/apply failed (CR-2).
   const showAvailable = Boolean(result?.updateAvailable) && !applied && !error;
   const canApply = showAvailable && !busy;
   const lastChecked = status?.lastCheckedAt ? new Date(status.lastCheckedAt).toLocaleString(intl) : null;
@@ -106,7 +106,7 @@ export default function UpdateDialog({ update, onClose }) {
                     <span className="spacer" />
           <button type="button" className="btn" onClick={onClose}>{t('common.close')}</button>
           {applied?.reloadWeb && <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}><RefreshCw size={14} /> {t('update.reload')}</button>}
-          {/* Tetap ter-mount saat applying supaya fokus keyboard tidak jatuh ke <body> (CR-4). */}
+          {/* Stays mounted while applying so keyboard focus does not fall back to <body> (CR-4). */}
           {showAvailable && <button type="button" className="btn btn-primary" disabled={!canApply} onClick={() => apply(overwrite)}><Download size={14} /> {applying ? t('update.applying-short') : t('update.apply')}</button>}
         </>
       )}

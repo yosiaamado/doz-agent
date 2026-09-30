@@ -1,4 +1,4 @@
-// Menjalankan perintah shell untuk node action. Exit code 0 = PASS.
+// Runs the shell command for an action node. Exit code 0 = PASS.
 import { spawn } from 'node:child_process';
 import { childEnv } from '../lib/secretEnv.js';
 
@@ -30,7 +30,7 @@ export function runCommand({ command, workdir, signal, onLine }) {
     child.on('close', (code) => {
       signal?.removeEventListener('abort', onAbort);
       if (signal?.aborted) return reject(new Error('stopped'));
-      resolve({ code, output: output.length >= MAX_OUTPUT ? `${output}\n[... output dipotong]` : output });
+      resolve({ code, output: output.length >= MAX_OUTPUT ? `${output}\n[... output truncated]` : output });
     });
   });
 }

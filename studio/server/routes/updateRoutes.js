@@ -1,4 +1,4 @@
-// Update sekali klik: status lokal, cek manifest, terapkan, dan endpoint yang bisa diganti user.
+// One-click update: local status, manifest check, apply, and the user-overridable endpoint.
 import { updateCheckBody, updateApplyBody, updateSettingsBody } from '../http/schemas.js';
 
 export function registerUpdateRoutes(router, { update }) {

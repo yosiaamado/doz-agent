@@ -1,5 +1,5 @@
-// Mode pengembangan: server API + Vite (hot reload) sekaligus.
-// Catatan: kalau server pindah port (4317 terpakai), set DOZ_STUDIO_PORT=<port> agar proxy Vite menuju port yang benar.
+// Development mode: the API server and Vite (hot reload) at the same time.
+// Note: if the server moves to another port (4317 already in use), set DOZ_STUDIO_PORT=<port> so the Vite proxy points at the right one.
 import { spawn } from 'node:child_process';
 
 const procs = [

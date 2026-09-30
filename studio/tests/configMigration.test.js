@@ -1,4 +1,4 @@
-// Migrasi config lama (studio/.local.json, .usage.json) ke app-data: sekali jalan, idempoten, tidak menimpa.
+// Migration of the legacy config (studio/.local.json, .usage.json) into app-data: one-time, idempotent, never overwriting.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -19,7 +19,7 @@ function fixture() {
   return { root, studio, ud, here: path.join(studio, 'server', 'infra'), env: { DOZ_USER_DATA_DIR: ud } };
 }
 
-test('migrasi menyalin .local.json dan .usage.json, meninggalkan file lama + penanda', () => {
+test('the migration copies .local.json and .usage.json, leaving the old files plus a marker behind', () => {
   const f = fixture();
   fs.writeFileSync(path.join(f.studio, '.local.json'), JSON.stringify({ workdir: f.root, anthropicApiKey: 'sk-ant-x' }));
   fs.writeFileSync(path.join(f.studio, '.usage.json'), JSON.stringify({ updatedAt: 1 }));
@@ -27,25 +27,25 @@ test('migrasi menyalin .local.json dan .usage.json, meninggalkan file lama + pen
   assert.equal(config.savedApiKey(), 'sk-ant-x');
   assert.equal(config.getWorkdir(), f.root);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.ud, 'usage.json'), 'utf8')), { updatedAt: 1 });
-  assert.ok(fs.existsSync(path.join(f.studio, '.local.json')), 'file lama tidak dihapus');
+  assert.ok(fs.existsSync(path.join(f.studio, '.local.json')), 'the old file is not deleted');
   assert.ok(fs.existsSync(path.join(f.studio, '.local.json.migrated')));
   assert.equal(config.usageFile, path.join(f.ud, 'usage.json'));
 });
 
-test('idempoten dan tidak menimpa config baru yang sudah ada', () => {
+test('idempotent, and does not overwrite an existing new config', () => {
   const f = fixture();
   fs.mkdirSync(f.ud, { recursive: true });
-  fs.writeFileSync(path.join(f.ud, 'config.json'), JSON.stringify({ anthropicApiKey: 'sk-ant-baru' }));
-  fs.writeFileSync(path.join(f.studio, '.local.json'), JSON.stringify({ anthropicApiKey: 'sk-ant-lama' }));
+  fs.writeFileSync(path.join(f.ud, 'config.json'), JSON.stringify({ anthropicApiKey: 'sk-ant-new' }));
+  fs.writeFileSync(path.join(f.studio, '.local.json'), JSON.stringify({ anthropicApiKey: 'sk-ant-old' }));
   assert.deepEqual(migrateLegacyFiles({ studioDir: f.studio, userDataDir: f.ud, logger: quiet }), []);
   const config = createConfig({ argv: ['node', 'x'], env: f.env, here: f.here, logger: quiet });
-  assert.equal(config.savedApiKey(), 'sk-ant-baru');
+  assert.equal(config.savedApiKey(), 'sk-ant-new');
   assert.ok(!fs.existsSync(path.join(f.studio, '.local.json.migrated')));
   createConfig({ argv: ['node', 'x'], env: f.env, here: f.here, logger: quiet });
-  assert.equal(JSON.parse(fs.readFileSync(path.join(f.ud, 'config.json'), 'utf8')).anthropicApiKey, 'sk-ant-baru');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(f.ud, 'config.json'), 'utf8')).anthropicApiKey, 'sk-ant-new');
 });
 
-test('tanpa file lama: tidak ada yang dibuat sampai ada simpan pertama', () => {
+test('without an old file: nothing is created until the first save', () => {
   const f = fixture();
   const config = createConfig({ argv: ['node', 'x', '--workdir', f.root], env: f.env, here: f.here, logger: quiet });
   assert.equal(config.savedApiKey(), null);
@@ -55,7 +55,7 @@ test('tanpa file lama: tidak ada yang dibuat sampai ada simpan pertama', () => {
   if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(f.ud, 'config.json')).mode & 0o777, 0o600);
 });
 
-test('sources lama "plugins/..." dinormalkan ke {plugins}/ dan tetap ter-resolve', () => {
+test('legacy sources "plugins/..." are normalized to {plugins}/ and still resolve', () => {
   const f = fixture();
   fs.writeFileSync(path.join(f.studio, '.local.json'), JSON.stringify({ sources: { agents: ['plugins/agents', '{workdir}/.claude/agents'] } }));
   const config = createConfig({ argv: ['node', 'x', '--workdir', path.join(f.root, 'work')], env: f.env, here: f.here, logger: quiet });
@@ -66,7 +66,7 @@ test('sources lama "plugins/..." dinormalkan ke {plugins}/ dan tetap ter-resolve
   assert.deepEqual(config.getSources().agents, ['{plugins}/agents']);
 });
 
-test('tanpa repo induk: entri yang tidak ada di-skip, tidak melempar', () => {
+test('without a parent repo: entries that do not exist are skipped, with no throw', () => {
   const f = fixture();
   fs.rmSync(path.join(f.root, 'plugins'), { recursive: true });
   const config = createConfig({ argv: ['node', 'x', '--workdir', path.join(f.root, 'work')], env: f.env, here: f.here, logger: quiet });

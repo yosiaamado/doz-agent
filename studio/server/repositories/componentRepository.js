@@ -1,4 +1,4 @@
-// Repository komponen (agent, skill, action, file workflow) yang tersebar di beberapa folder sumber.
+// Repository for components (agent, skill, action, workflow files) spread across several source folders.
 import fs from 'node:fs';
 import path from 'node:path';
 import { splitFile, composeFile } from '../lib/frontmatter.js';
@@ -21,7 +21,7 @@ function safeRead(file) {
   }
 }
 
-// Nama sama di dua folder → yang pertama dipakai, sisanya ditandai `shadowed`.
+// The same name in two folders → the first one wins, the rest are marked `shadowed`.
 function markShadowed(items) {
   const seen = new Set();
   return items.map((it) => {
@@ -138,7 +138,7 @@ export function createComponentRepository(config) {
     return { ...item, text, meta: parts.meta, body: parts.body, strict: parts.strict, usedBy: usedBy(kind, name) };
   };
 
-  // Update file yang sudah ada: `text` (mode raw) atau `meta` + `body` (mode form).
+  // Updating an existing file: either `text` (raw mode) or `meta` + `body` (form mode).
   const update = (kind, name, { text, meta, body }) => {
     const item = find(kind, name);
     if (!item) throw notFound(`${kind} "${name}" not found`, { code: 'COMPONENT_NOT_FOUND', params: { kind, name: String(name).slice(0, 100) } });
@@ -159,7 +159,7 @@ export function createComponentRepository(config) {
     return path.join(dir, area ?? '', name, 'SKILL.md');
   };
 
-  // Membuat file baru di salah satu folder sumber yang terdaftar.
+  // Creates a new file in one of the registered source folders.
   const create = (kind, { name, dir, area, meta, body }) => {
     if (!NAME_RE.test(name ?? '')) throw badRequest('The name may only contain letters, digits, - and _', { code: 'NAME_INVALID' });
     const allowed = config.allowedDirs(kind);

@@ -1,4 +1,4 @@
-// Pengaturan eksekusi yang sama untuk node agent/skill dan untuk default workflow.
+// The execution settings shared by agent/skill nodes and the workflow defaults.
 import Select from '../../components/ui/Select.jsx';
 import Combobox from '../../components/ui/Combobox.jsx';
 import { Field, Section } from '../../components/ui/Field.jsx';

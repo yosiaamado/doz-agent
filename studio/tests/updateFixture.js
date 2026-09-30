@@ -1,5 +1,5 @@
-// Alat bantu test update: keypair sementara, manifest bertanda tangan, dan server HTTP lokal yang menyajikan payload.
-// Semua kunci dibuat di dalam test; tidak ada kunci nyata di repo.
+// Test helpers for updates: a temporary keypair, a signed manifest, and a local HTTP server that serves the payload.
+// Every key is generated inside the test; no real key lives in the repo.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -25,7 +25,7 @@ export function sign(manifest, privateKey, keyId = KEY_ID) {
 export const sha256 = (content) => crypto.createHash('sha256').update(content).digest('hex');
 export { canonicalJson };
 
-// files: [{ path, target, content }] → entri manifest dengan url payload/<target>/<path>.
+// files: [{ path, target, content }] → manifest entries with the url payload/<target>/<path>.
 export function buildManifest({ version = '1.21.0', minAppVersion = '1.0.0', base, files, removed, extra = {} }) {
   return {
     schema: 1,
@@ -47,7 +47,7 @@ export async function startPayloadServer() {
     hits.push(req.url);
     const r = routes.get(req.url);
     if (!r) { res.writeHead(404); res.end('nope'); return; }
-    await r.before?.(); // hook test: mis. mengubah disk di tengah unduhan
+    await r.before?.(); // a test hook: e.g. changing the disk midway through the download
     res.writeHead(r.status ?? 200, r.headers ?? {});
     res.end(r.body);
   });
@@ -57,7 +57,7 @@ export async function startPayloadServer() {
     base,
     hits,
     set: (pathname, body, extra = {}) => routes.set(pathname, { body, ...extra }),
-    // Sajikan manifest bertanda tangan + payload file-nya.
+    // Serve the signed manifest plus its payload files.
     publish({ manifest, files, privateKey, endpoint = '/doz-update.json' }) {
       routes.set(endpoint, { body: JSON.stringify(sign(manifest, privateKey)), headers: { 'content-type': 'application/json' } });
       for (const f of files) routes.set(`/payload/${f.target}/${f.path}`, { body: f.content });
@@ -71,9 +71,9 @@ export function makeEnvironment({ isRunActive = () => false, clock, serviceOptio
   const pluginDir = path.join(tmp, 'plugins');
   fs.mkdirSync(path.join(pluginDir, 'agents'), { recursive: true });
   fs.mkdirSync(path.join(tmp, 'work'));
-  // DOZ_RESOURCES_DIR memaksa mode packaged supaya tidak menyentuh repo asli.
+  // DOZ_RESOURCES_DIR forces packaged mode so the real repo is never touched.
   const env = { DOZ_USER_DATA_DIR: path.join(tmp, 'ud'), DOZ_PLUGIN_DIR: pluginDir, DOZ_RESOURCES_DIR: path.join(tmp, 'res') };
-  // studio tiruan: jangan sampai test membaca/memigrasi .local.json milik studio asli.
+  // A fake studio: the tests must never read/migrate the real studio .local.json.
   const here = path.join(tmp, 'studio', 'server', 'infra');
   fs.mkdirSync(here, { recursive: true });
   fs.writeFileSync(path.join(tmp, 'studio', 'package.json'), JSON.stringify({ version: '1.20.0' }));
@@ -93,8 +93,8 @@ export async function rejectsWith(promiseOrFn, code, status) {
   try {
     await (typeof promiseOrFn === 'function' ? promiseOrFn() : promiseOrFn);
   } catch (e) {
-    if (e.code !== code || (status && e.status !== status)) throw new Error(`diharapkan ${code}${status ? `/${status}` : ''}, dapat ${e.code}/${e.status}: ${e.message}`);
+    if (e.code !== code || (status && e.status !== status)) throw new Error(`expected ${code}${status ? `/${status}` : ''}, got ${e.code}/${e.status}: ${e.message}`);
     return e;
   }
-  throw new Error(`diharapkan error ${code}, tetapi tidak melempar`);
+  throw new Error(`expected the error ${code}, but nothing was thrown`);
 }

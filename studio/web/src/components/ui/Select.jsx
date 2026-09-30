@@ -1,4 +1,4 @@
-// Dropdown modern yang bisa dipakai dengan keyboard (↑ ↓ Enter Esc) dan punya pencarian kalau opsinya banyak.
+// A modern dropdown that works with the keyboard (↑ ↓ Enter Esc) and gains a search box when there are many options.
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Search } from 'lucide-react';

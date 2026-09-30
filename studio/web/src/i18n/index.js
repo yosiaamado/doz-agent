@@ -1,4 +1,4 @@
-// i18n tanpa dependency: kunci flat `namespace.subject.item`, bahasa sumber `en`, fallback ke `en`, lalu ke kunci itu sendiri.
+// i18n with no dependencies: flat `namespace.subject.item` keys, `en` as the source language, falling back to `en`, then to the key itself.
 import en from './locales/en.json' with { type: 'json' };
 import id from './locales/id.json' with { type: 'json' };
 
@@ -13,7 +13,7 @@ export function normalizeLocale(value) {
   return LOCALES.includes(value) ? value : null;
 }
 
-// Pertama kali dipakai: bahasa browser diawali "id" → id, selain itu en.
+// On first use: a browser language starting with "id" → id, otherwise en.
 export function detectLocale(language = globalThis.navigator?.language) {
   return String(language ?? '').toLowerCase().startsWith('id') ? 'id' : DEFAULT_LOCALE;
 }
@@ -33,13 +33,13 @@ function lookup(locale, key) {
   return Object.hasOwn(DICTS[DEFAULT_LOCALE], key) ? DICTS[DEFAULT_LOCALE][key] : undefined;
 }
 
-// Murni. `{name}` diganti dari vars; placeholder tanpa nilai dibiarkan supaya kelihatan kalau ada yang lupa.
+// Pure. `{name}` is substituted from vars; a placeholder with no value is left in place so a forgotten one is visible.
 export function translate(locale, key, vars) {
   const raw = lookup(locale, key);
   if (raw === undefined) {
     if (import.meta.env?.DEV && !warned.has(key)) {
       warned.add(key);
-      console.warn(`[i18n] kunci tidak ada: ${key}`);
+      console.warn(`[i18n] missing key: ${key}`);
     }
     return String(key);
   }
@@ -47,7 +47,7 @@ export function translate(locale, key, vars) {
   return raw.replace(/\{(\w+)\}/g, (m, name) => (Object.hasOwn(vars, name) && vars[name] !== undefined && vars[name] !== null ? String(vars[name]) : m));
 }
 
-// Bentuk jamak: kunci `<base>.one` / `<base>.other`; kategori dipilih Intl.PluralRules sesuai bahasa. `count` otomatis jadi variabel.
+// Plural forms: the keys `<base>.one` / `<base>.other`; the category is picked by Intl.PluralRules for the language. `count` automatically becomes a variable.
 export function plural(t, intl, base, count, vars) {
   const category = new Intl.PluralRules(intl).select(count);
   return t(`${base}.${category === 'one' ? 'one' : 'other'}`, { ...vars, count });

@@ -1,4 +1,4 @@
-// Dialog jalankan workflow: permintaan + lampiran dokumen (md, txt, docx, pdf, gambar, file kode).
+// The run workflow dialog: the request plus document attachments (md, txt, docx, pdf, images, code files).
 import { useRef, useState } from 'react';
 import { FileText, Loader2, Paperclip, Play, X } from 'lucide-react';
 import Modal from '../../components/ui/Modal.jsx';

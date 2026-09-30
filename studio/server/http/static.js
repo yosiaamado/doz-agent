@@ -7,12 +7,12 @@ const MIME = {
   '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.json': 'application/json',
 };
 
-// Header untuk semua respons statis: cegah MIME sniffing dan kebocoran URL lewat Referer.
+// Headers for every static response: block MIME sniffing and URL leaks through Referer.
 const BASE_HEADERS = Object.freeze({ 'x-content-type-options': 'nosniff', 'referrer-policy': 'no-referrer' });
 
-// Skrip inline (mis. penerapan tema sebelum render) diizinkan lewat hash isinya, dihitung dari HTML yang benar-benar
-// disajikan. Begitu frontend memindahkan skrip itu ke file .js, hash otomatis hilang dan CSP jadi `script-src 'self'` murni.
-// 'unsafe-inline' hanya untuk style karena React memakai atribut style.
+// Inline scripts (e.g. applying the theme before render) are allowed through a hash of their content, computed from the HTML
+// actually served. Once the frontend moves that script into a .js file, the hash disappears on its own and the CSP becomes a plain `script-src 'self'`.
+// 'unsafe-inline' is only there for styles, because React uses the style attribute.
 export function buildCsp(html) {
   const hashes = [...html.matchAll(/<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/gi)]
     .map((m) => `'sha256-${crypto.createHash('sha256').update(m[1]).digest('base64')}'`);
@@ -30,13 +30,13 @@ export function buildCsp(html) {
   ].join('; ');
 }
 
-// Pemisah path wajib: startsWith(root) saja meloloskan folder bersaudara berawalan sama (dist2).
+// The path separator is required: startsWith(root) alone would let through a sibling folder with the same prefix (dist2).
 export function isInsideDir(root, candidate) {
   return candidate === root || candidate.startsWith(root + path.sep);
 }
 
-// overlayDir (opsional) dicari lebih dulu per file, lalu distDir. Permintaan aset (berekstensi) yang tidak ada dijawab 404,
-// bukan index.html: fallback SPA hanya untuk rute tanpa ekstensi, supaya <script src> tidak menerima HTML.
+// overlayDir (optional) is searched first per file, then distDir. A missing asset request (one with an extension) gets a 404,
+// not index.html: the SPA fallback is only for extensionless routes, so a <script src> never receives HTML.
 export function createStaticHandler(distDir, overlayDir = null) {
   const base = path.resolve(distDir);
   const roots = [overlayDir, distDir].filter(Boolean).map((d) => path.resolve(d));
@@ -61,7 +61,7 @@ export function createStaticHandler(distDir, overlayDir = null) {
     try {
       rel = path.normalize(decodeURIComponent(url.pathname)).replace(/^([/\\])+/, '');
     } catch {
-      // %-encoding rusak: perlakukan sebagai route SPA biasa.
+      // A broken %-encoding: treat it as an ordinary SPA route.
     }
     let file = rel === null ? null : findFile(rel);
     if (!file) {

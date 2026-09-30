@@ -1,4 +1,4 @@
-// Teks yang dibuat server harus mengirim code + params (UI menerjemahkan) dengan fallback bahasa Inggris, bukan kalimat Indonesia.
+// Server-authored text must send code + params (the UI translates) with an English fallback, not an Indonesian sentence.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -15,7 +15,7 @@ const INDONESIAN = /\b(tidak|belum|gagal|ditemukan|terpasang|untuk|dengan|sudah|
 const quiet = { info() {}, warn() {}, error() {} };
 const tempDir = (name) => fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), name)));
 
-// Studio tiruan supaya test tidak menyentuh .local.json asli; DOZ_RESOURCES_DIR = mode packaged (repoRoot null).
+// A fake studio so the tests never touch the real .local.json; DOZ_RESOURCES_DIR = packaged mode (repoRoot null).
 function packagedConfig(tmp, extraEnv = {}) {
   const here = path.join(tmp, 'studio', 'server', 'infra');
   fs.mkdirSync(here, { recursive: true });
@@ -26,7 +26,7 @@ function packagedConfig(tmp, extraEnv = {}) {
 
 const fakeApiRunner = { testApiConnection: async () => ({ model: 'm', reply: 'ok', ms: 1 }), resetClient() {} };
 
-test('/api/setup: setiap item membawa teks Inggris; item yang kita tulis punya code, repo memakai target', async () => {
+test('/api/setup: every item carries English text; the items we author carry a code, and repo uses target', async () => {
   const tmp = tempDir('doz-msg-');
   const config = packagedConfig(tmp);
   const setup = createSetupService({ config, apiRunner: fakeApiRunner, claudeRunner: {} });
@@ -34,7 +34,7 @@ test('/api/setup: setiap item membawa teks Inggris; item yang kita tulis punya c
   for (const key of ['node', 'claude', 'claudeAuth', 'plugin', 'apiKey', 'git', 'repo', 'project']) {
     const item = res[key];
     for (const field of ['detail', 'fix']) assert.doesNotMatch(item[field] ?? '', INDONESIAN, `${key}.${field}: ${item[field]}`);
-    if (item.fix && /Install|install/.test(item.fix)) assert.ok(item.fixCode, `${key} butuh fixCode`);
+    if (item.fix && /Install|install/.test(item.fix)) assert.ok(item.fixCode, `${key} needs a fixCode`);
   }
   assert.equal(res.repo.code, 'REPO_SKIPPED');
   assert.equal(res.repo.skipped, true);
@@ -44,7 +44,7 @@ test('/api/setup: setiap item membawa teks Inggris; item yang kita tulis punya c
   assert.doesNotMatch(res.project.detail, INDONESIAN);
 });
 
-test('setup.test: hasil sukses dan error membawa code + params', async () => {
+test('setup.test: both the success and the error results carry code + params', async () => {
   const tmp = tempDir('doz-msg-');
   const config = packagedConfig(tmp);
   const previous = process.env.ANTHROPIC_API_KEY;
@@ -57,7 +57,7 @@ test('setup.test: hasil sukses dan error membawa code + params', async () => {
     assert.equal(cli.code, 'TEST_CLI_OK');
     delete process.env.ANTHROPIC_API_KEY;
     await assert.rejects(setup.test('api'), (e) => e.code === 'API_KEY_REQUIRED');
-    await assert.rejects(setup.test('lain'), (e) => e.code === 'SETUP_TEST_UNKNOWN' && e.params.name === 'lain');
+    await assert.rejects(setup.test('other'), (e) => e.code === 'SETUP_TEST_UNKNOWN' && e.params.name === 'other');
     await assert.rejects(setup.test('github', 'repo'), (e) => e.code === 'REPO_UNAVAILABLE');
   } finally {
     if (previous === undefined) delete process.env.ANTHROPIC_API_KEY;
@@ -65,7 +65,7 @@ test('setup.test: hasil sukses dan error membawa code + params', async () => {
   }
 });
 
-test('shortcut folder: id stabil + label Inggris; shortcut repo hanya kalau ada repo induk', () => {
+test('folder shortcuts: a stable id + an English label; the repo shortcut only when there is a parent repo', () => {
   const tmp = tempDir('doz-msg-');
   const packaged = createFolderService(packagedConfig(tmp)).list(tmp).roots;
   assert.deepEqual(packaged.slice(0, 2).map((r) => r.id), ['home', 'workdir']);
@@ -76,7 +76,7 @@ test('shortcut folder: id stabil + label Inggris; shortcut repo hanya kalau ada 
   assert.ok(withRepo.every((r) => r.id));
 });
 
-test('chip runner: detail Inggris + code stabil', async () => {
+test('the runner chip: English detail + a stable code', async () => {
   const tmp = tempDir('doz-msg-');
   const previous = process.env.ANTHROPIC_API_KEY;
   const started = await startServer({ config: packagedConfig(tmp), port: 0, runners: { 'claude-cli': {}, api: {} } });
@@ -90,7 +90,7 @@ test('chip runner: detail Inggris + code stabil', async () => {
     assert.equal(withoutKey.api.code, 'API_KEY_NOT_SET');
     for (const runner of Object.values(withoutKey)) {
       assert.doesNotMatch(runner.detail, INDONESIAN);
-      if (!runner.available) assert.ok(runner.code, 'runner tidak tersedia harus punya code');
+      if (!runner.available) assert.ok(runner.code, 'an unavailable runner must carry a code');
     }
   } finally {
     await new Promise((r) => started.server.close(r));
@@ -115,7 +115,7 @@ async function runWorkflow(wf, { runner, onEvent, budget } = {}) {
 
 const edge = (from, to, extra = {}) => ({ from, to, ...extra });
 
-test('engine: agent tidak ada → errorCode di node dan NODE_FAILED di run_end, tanpa teks Indonesia', async () => {
+test('engine: a missing agent → errorCode on the node and NODE_FAILED in run_end, with no Indonesian text', async () => {
   const { status, r, events } = await runWorkflow({ name: 'w', nodes: [{ id: 's', type: 'start' }, { id: 'a', type: 'agent', agent: 'nope' }], edges: [edge('s', 'a')] });
   assert.equal(status, 'failed');
   assert.equal(r.state.a.errorCode, 'AGENT_NOT_FOUND');
@@ -126,13 +126,13 @@ test('engine: agent tidak ada → errorCode di node dan NODE_FAILED di run_end, 
   assert.doesNotMatch(end.error, INDONESIAN);
 });
 
-test('engine: budget terlampaui → BUDGET_EXCEEDED dengan params angka', async () => {
+test('engine: the budget is exceeded → BUDGET_EXCEEDED with numeric params', async () => {
   const { r } = await runWorkflow({ name: 'w', nodes: [{ id: 's', type: 'start' }, { id: 'a', type: 'agent', agent: 'dev' }], edges: [edge('s', 'a')] }, { budget: 0.05 });
   assert.equal(r.errorCode, 'BUDGET_EXCEEDED');
   assert.deepEqual(r.errorParams, { budget: 0.05, cost: 0.1 });
 });
 
-test('engine: approval → activityCode saat menunggu, dibersihkan setelahnya; approve node lain → NODE_NOT_WAITING', async () => {
+test('engine: approval → activityCode while waiting, cleared afterwards; approving another node → NODE_NOT_WAITING', async () => {
   const wf = { name: 'w', nodes: [{ id: 's', type: 'start' }, { id: 'ok', type: 'approval' }, { id: 'end', type: 'output' }], edges: [edge('s', 'ok'), edge('ok', 'end', { when: true })] };
   const { events, r } = await runWorkflow(wf, { onEvent: (e, run) => { if (e.type === 'node' && e.status === 'waiting') setTimeout(() => run.approve(e.node, true)); } });
   const waiting = events.find((e) => e.type === 'node' && e.status === 'waiting');
@@ -144,7 +144,7 @@ test('engine: approval → activityCode saat menunggu, dibersihkan setelahnya; a
   assert.throws(() => r.approve('ok', true), (e) => e.code === 'NODE_NOT_WAITING' && e.params.node === 'ok');
 });
 
-test('engine: retry dan judging mengirim activity dengan code + params', async () => {
+test('engine: retry and judging send an activity with code + params', async () => {
   let calls = 0;
   const runner = { run: async () => { calls += 1; if (calls === 1) throw new Error('boom'); return { output: 'ok', cost: 0 }; }, judge: async () => ({ output: 'VERDICT: PASS', cost: 0 }) };
   const wf = { name: 'w', nodes: [{ id: 's', type: 'start' }, { id: 'a', type: 'agent', agent: 'dev', retry: 1 }, { id: 'c', type: 'condition', check: 'is it fine?', mode: 'llm' }, { id: 'e', type: 'output' }], edges: [edge('s', 'a'), edge('a', 'c'), edge('c', 'e', { when: true })] };
@@ -156,8 +156,8 @@ test('engine: retry dan judging mengirim activity dengan code + params', async (
   for (const e of events.filter((ev) => ev.type === 'activity')) assert.doesNotMatch(e.text, INDONESIAN);
 });
 
-// Pesan log dibaca saat pembeli melapor masalah: harus Inggris (sapuan atas semua sumber server).
-test('pesan logger dan banner di server/** tidak berbahasa Indonesia', () => {
+// The log messages get read when a buyer reports a problem: they must be English (a sweep over every server source).
+test('the logger and banner messages in server/** are not in Indonesian', () => {
   const words = /\b(tidak|gagal|belum|dari|untuk|dengan|sudah|jalan|terpakai|disalin|dipindahkan|bisa|dimatikan|dibersihkan|rahasia|tersimpan)\b/i;
   const offenders = [];
   const walk = (dir) => {

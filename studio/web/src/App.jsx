@@ -59,7 +59,7 @@ export default function App() {
     setTimeout(() => fitView({ padding: 0.2, maxZoom: 1, duration: 200 }), 50);
   }, [editor, fitView]);
 
-  // Ikuti run baru (termasuk dari Claude Code) kalau workflow-nya ada dan canvas tidak punya perubahan.
+  // Follow a new run (including one from Claude Code) when its workflow exists and the canvas has no unsaved changes.
   const followRun = useCallback((ev) => {
     setLogsOpen(true);
     const { meta, dirty, workflows } = stateRef.current;
@@ -73,7 +73,7 @@ export default function App() {
     (async () => {
       const [st, wfs] = await Promise.all([api.status(), lib.reload()]);
       setStatus(st);
-      // Pertama kali dipakai: buka wizard Persiapan.
+      // First use: open the Setup wizard.
       api.setup().then((s) => {
         const pending = !s.state?.completedAt;
         setSetupPending(pending);
@@ -85,7 +85,7 @@ export default function App() {
       else await editor.createFrom('new-workflow', null);
       runsState.refresh();
     })().catch((err) => notify(t('app.load-failed', { message: errorMessage(t, err) }), 'error'));
-    // Hanya saat pertama kali dibuka.
+    // Only when first opened.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -117,7 +117,7 @@ export default function App() {
     }
   }, [editor, lib, dialog, notify, t]);
 
-  // Jumlah file berubah di repo doz-agent (badge tombol GitHub).
+  // The number of changed files in the doz-agent repo (the badge on the GitHub button).
   const refreshGit = useCallback(() => api.gitStatus('repo').then((s) => setGitChanges(s.files?.length ?? 0)).catch(() => {}), []);
   useEffect(() => { refreshGit(); }, [refreshGit]);
 

@@ -1,4 +1,4 @@
-// Menyusun prompt untuk satu node dari: catatan workflow, input start, node info, output node sebelumnya, umpan balik loop.
+// Builds the prompt for a single node from: workflow notes, start input, node info, previous node output, loop feedback.
 
 export const VERDICT_INSTRUCTION =
   'End your answer with one separate line, exactly: `VERDICT: PASS` (passed, may continue) or `VERDICT: FAIL` (not passed). Explain your reasoning above that line.';

@@ -1,4 +1,4 @@
-// Skema validasi input API (zod). Semua body dan query divalidasi sebelum masuk service.
+// API input validation schemas (zod). Every body and query is validated before it reaches a service.
 import { z } from 'zod';
 
 const shortText = z.string().max(500);
@@ -50,7 +50,7 @@ export const folderQuery = z.object({ path: z.string().max(4096).optional() });
 export const gitTarget = z.enum(['repo', 'workdir']);
 
 export const commitBody = z.object({
-  message: z.string().trim().min(1, 'pesan commit wajib diisi').max(2000),
+  message: z.string().trim().min(1, 'a commit message is required').max(2000),
   files: z.array(z.string().min(1).max(4096)).max(500).optional(),
 });
 
@@ -68,9 +68,9 @@ export const gitIdentityBody = z.object({
 
 export const claudeLoginBody = z.object({ console: z.boolean().default(false) });
 
-// slot S5 (terisi): skema update ada di blok "Update sekali klik" di bawah
+// slot S5 (filled): the update schemas live in the "One-click update" block below
 
-// --- Update sekali klik (S5) ---
+// --- One-click update (S5) ---
 export const UPDATE_TARGETS = Object.freeze(['plugins', 'web']);
 export const MAX_UPDATE_FILE_BYTES = 20 * 1024 * 1024;
 export const MAX_UPDATE_TOTAL_BYTES = 80 * 1024 * 1024;
@@ -78,12 +78,12 @@ export const MAX_UPDATE_FILES = 2000;
 const MAX_NOTES_CHARS = 20_000;
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
-// Nama device Windows (CON, NUL, COM1, ...) dengan atau tanpa ekstensi; ditolak di semua OS supaya manifest portabel.
-// Di Windows, membuat file bernama NUL lewat Node menghasilkan entri yang sulit dihapus dari Explorer.
+// Windows device names (CON, NUL, COM1, ...) with or without an extension; rejected on every OS so manifests stay portable.
+// On Windows, creating a file named NUL through Node produces an entry that is hard to delete from Explorer.
 const WINDOWS_DEVICE = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])$/i;
 
-// Path relatif POSIX yang aman ditulis di bawah folder tujuan. Cek ini hanya lapis pertama;
-// updateService mengecek ulang hasil path.resolve + symlink saat menulis.
+// A relative POSIX path that is safe to write under the destination folder. This check is only the first layer;
+// updateService re-checks the path.resolve result plus symlinks at write time.
 export function isSafeRelativePath(p) {
   if (typeof p !== 'string' || !p || p.length > 500) return false;
   if (p.includes('\\') || p.includes('\0') || p.includes(':') || p.startsWith('/')) return false;
@@ -93,7 +93,7 @@ export function isSafeRelativePath(p) {
 const semver = z.string().max(64).regex(SEMVER, 'version must be semver x.y.z');
 const updatePath = z.string().max(500).refine(isSafeRelativePath, 'UNSAFE_PATH');
 const updateTarget = z.enum(UPDATE_TARGETS);
-// Target `plugins` memakai path yang diawali `plugins/` (relatif ke root repo); prefix itu dibuang saat ditulis ke pluginDir.
+// The `plugins` target uses paths prefixed with `plugins/` (relative to the repo root); that prefix is stripped when writing into pluginDir.
 const targetPrefixOk = (e) => e.target !== 'plugins' || e.path.startsWith('plugins/');
 
 const manifestFile = z.object({
@@ -112,7 +112,7 @@ export const updateManifest = z.object({
   schema: z.literal(1),
   contentVersion: semver,
   releasedAt: z.string().max(64),
-  // Wajib: manifest tanpa field ini ditolak (tidak diam-diam dianggap cocok dengan semua binary).
+  // Required: a manifest without this field is rejected (never silently treated as compatible with every binary).
   minAppVersion: semver,
   notes: z.object({ en: z.string().max(MAX_NOTES_CHARS), id: z.string().max(MAX_NOTES_CHARS).optional() }),
   baseUrl: z.string().max(2048).url().refine((u) => u.startsWith('https:') || u.startsWith('http:'), 'baseUrl must use https').refine((u) => u.endsWith('/'), 'baseUrl must end with /'),

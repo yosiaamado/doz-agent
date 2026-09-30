@@ -1,4 +1,4 @@
-// Workflow baru: nama + titik awal (kosong atau salinan workflow/template yang ada).
+// A new workflow: a name plus a starting point (empty, or a copy of an existing workflow/template).
 import { useState } from 'react';
 import { FilePlus2 } from 'lucide-react';
 import Modal from '../../components/ui/Modal.jsx';

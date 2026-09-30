@@ -1,6 +1,6 @@
-// Runner lewat Claude Code CLI (`claude -p`), memakai login Claude Code atau ANTHROPIC_API_KEY di env.
-// Prompt dikirim lewat stdin dan definisi agent lewat file sementara, jadi argumen CLI selalu pendek
-// dan aman di-quote (juga di Windows, tempat `claude` biasanya berupa claude.cmd).
+// A runner that goes through the Claude Code CLI (`claude -p`), using the Claude Code login or ANTHROPIC_API_KEY from the env.
+// The prompt is sent over stdin and the agent definitions through a temporary file, so the CLI arguments stay short
+// and safe to quote (on Windows too, where `claude` is usually claude.cmd).
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -30,7 +30,7 @@ function permissionArgs(agent, settings) {
   const readOnly = settings.permission === 'read-only';
   if (!agent) return readOnly ? ['--disallowedTools', [...WRITE_TOOLS].join(',')] : ['--permission-mode', 'acceptEdits'];
   const tools = agentTools(agent, settings.permission);
-  // Mode -p tidak bisa menanyakan izin, jadi tool agent diizinkan di depan.
+  // In -p mode there is no way to ask for permission, so the agent's tools are allowed up front.
   const allowed = readOnly ? tools.filter((t) => t !== 'Bash').concat(tools.includes('Bash') ? READONLY_BASH : []) : tools;
   return ['--allowedTools', allowed.join(','), ...(readOnly ? [] : ['--permission-mode', 'acceptEdits'])];
 }
@@ -39,7 +39,7 @@ export function agentDefinition(agent, permission) {
   return { [agent.name]: { description: agent.description, prompt: agent.prompt, tools: agentTools(agent, permission) } };
 }
 
-// Argumen CLI tanpa prompt (prompt lewat stdin). `agentsFile` = path JSON definisi agent.
+// The CLI arguments without the prompt (the prompt goes over stdin). `agentsFile` = the path of the agent definition JSON.
 export function buildArgs({ agent, settings }, { pluginDir, agentsFile } = {}) {
   const args = ['-p', '--output-format', 'stream-json', '--verbose'];
   if (agent) args.push('--agents', agentsFile ?? '<agents.json>', '--agent', agent.name);
@@ -48,7 +48,7 @@ export function buildArgs({ agent, settings }, { pluginDir, agentsFile } = {}) {
   if (settings.effort) args.push('--effort', String(settings.effort));
   if (settings.max_turns) args.push('--max-turns', String(settings.max_turns));
   if (settings.budget_usd) args.push('--max-budget-usd', String(settings.budget_usd));
-  // Skill doz-agent:* tersedia walau plugin belum ter-install di project.
+// The doz-agent:* skills are available even when the plugin is not installed in the project.
   if (pluginDir && settings.load_plugin !== false) args.push('--plugin-dir', pluginDir);
   return args;
 }
@@ -61,10 +61,10 @@ function shellQuote(s) {
   return /^[\w@%+=:,./-]+$/.test(s) ? s : `'${String(s).replace(/'/g, `'\\''`)}'`;
 }
 
-// Perintah yang bisa disalin ke terminal (prompt.md = isi tab Input, agents.json = definisi agent).
+// A command that can be pasted into a terminal (prompt.md = the contents of the Input tab, agents.json = the agent definitions).
 export function describeCommand(opts, { pluginDir } = {}) {
   const args = buildArgs(opts, { pluginDir, agentsFile: 'agents.json' });
-  const agentNote = opts.agent ? `   # agents.json = {"${opts.agent.name}": isi ${opts.agent.file ?? 'file agent'}}` : '';
+  const agentNote = opts.agent ? `   # agents.json = {"${opts.agent.name}": the contents of ${opts.agent.file ?? 'the agent file'}}` : '';
   return `claude ${args.map(shellQuote).join(' ')} < prompt.md${agentNote}`;
 }
 
@@ -92,7 +92,7 @@ function sumUsage(list) {
   }), { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
 }
 
-// Membaca satu event stream-json dan meneruskannya ke callback. Mengembalikan state baru.
+// Reads one stream-json event and forwards it to the callback. Returns the new state.
 export function reduceStreamEvent(state, ev, { workdir, onActivity, onUsage, onRateLimit }) {
   if (ev.type === 'result' || (ev.total_cost_usd !== undefined && ev.usage)) return { ...state, result: ev };
   if (ev.type === 'rate_limit_event' && ev.rate_limit_info) onRateLimit?.(ev.rate_limit_info);

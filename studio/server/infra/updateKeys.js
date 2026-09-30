@@ -1,15 +1,15 @@
-// Public key penanda tangan manifest update (ed25519) + canonical JSON + verifikasi signature.
-// Hanya public key yang boleh ada di file ini. Private key TIDAK PERNAH masuk repo.
+// The public key of the update manifest signer (ed25519) plus canonical JSON and signature verification.
+// Only public keys may live in this file. A private key NEVER enters the repo.
 import crypto from 'node:crypto';
 
-// Cara mengisi (dilakukan pemilik produk sekali, di mesin sendiri):
-//   1. `npm run keygen -- --out <path di LUAR repo>`  → private key ditulis ke file itu (mode 0600),
-//      public key (base64 SPKI DER) dicetak ke layar.
-//   2. Simpan private key sebagai secret CI (mis. DOZ_UPDATE_SIGNING_KEY) atau di password manager.
-//   3. Tempel public key di bawah menggantikan PLACEHOLDER. Rotasi = tambah keyId baru, jangan timpa yang lama
-//      sampai semua pembeli sudah memakai app yang mengenal kunci baru.
-// Selama masih PLACEHOLDER, semua manifest ditolak dengan UPDATE_SIGNATURE_INVALID (fail closed).
-// TODO(release): isi public key nyata sebelum rilis pertama.
+// How to fill this in (done once by the product owner, on their own machine):
+//   1. `npm run keygen -- --out <path OUTSIDE the repo>`  -> the private key is written to that file (mode 0600),
+//      and the public key (base64 SPKI DER) is printed to the screen.
+//   2. Store the private key as a CI secret (e.g. DOZ_UPDATE_SIGNING_KEY) or in a password manager.
+//   3. Paste the public key below in place of PLACEHOLDER. Rotation = add a new keyId; do not overwrite the old one
+//      until every buyer is running an app that knows the new key.
+// While PLACEHOLDER is still in place, every manifest is rejected with UPDATE_SIGNATURE_INVALID (fail closed).
+// TODO(release): fill in the real public key before the first release.
 export const KEY_PLACEHOLDER = 'MCowBQYDK2VwAyEAb8b8E5kVDyUq8cghj6rdHSH3VfDvo5/zm+tUJaKsrqM=';
 
 export const PUBLIC_KEYS = Object.freeze({
@@ -18,7 +18,7 @@ export const PUBLIC_KEYS = Object.freeze({
 
 const ED25519_SIGNATURE_BYTES = 64;
 
-// Kunci objek diurutkan rekursif, tanpa whitespace. Penanda tangan dan verifier harus memakai fungsi yang sama.
+// Object keys are sorted recursively, with no whitespace. Signer and verifier must use the same function.
 export function canonicalJson(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
   if (value && typeof value === 'object') {
@@ -33,8 +33,8 @@ export function manifestPayload(manifest) {
   return Buffer.from(canonicalJson(rest), 'utf8');
 }
 
-// Dipanggil pada objek mentah hasil JSON.parse (bukan hasil zod, yang membuang kunci tak dikenal).
-// Mengembalikan false untuk semua kegagalan; tidak pernah melempar.
+// Called on the raw object from JSON.parse (not the zod output, which drops unknown keys).
+// Returns false for every failure; never throws.
 export function verifyManifestSignature(manifest, keys = PUBLIC_KEYS) {
   try {
     const sig = manifest?.signature;

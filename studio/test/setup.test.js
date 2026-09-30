@@ -10,7 +10,7 @@ import { ApiError } from '../server/lib/errors.js';
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'doz-setup-'));
 const config = createConfig({ argv: ['node', 'x', '--workdir', tmp], env: {}, localFile: path.join(tmp, 'local.json') });
 
-test('pesan error tes dibuat bisa ditindaklanjuti', () => {
+test('the error messages from a test are actionable', () => {
   assert.equal(friendlyError({ status: 401 }).code, 'API_KEY_REJECTED');
   assert.equal(friendlyError({ status: 429 }).code, 'API_RATE_LIMITED');
   assert.equal(friendlyError(new Error('fetch failed')).code, 'API_UNREACHABLE');
@@ -18,7 +18,7 @@ test('pesan error tes dibuat bisa ditindaklanjuti', () => {
   assert.equal(friendlyError(own), own);
 });
 
-test('API key: dipasang untuk sesi, disimpan hanya kalau diminta, lalu bisa dihapus', () => {
+test('API key: applied for the session, stored only when asked, then removable', () => {
   const before = process.env.ANTHROPIC_API_KEY;
   let resets = 0;
   const setup = createSetupService({ config, apiRunner: { resetClient: () => { resets++; } }, claudeRunner: {} });
@@ -35,7 +35,7 @@ test('API key: dipasang untuk sesi, disimpan hanya kalau diminta, lalu bisa diha
   if (before) process.env.ANTHROPIC_API_KEY = before;
 });
 
-test('tes memakai runner yang di-inject dan hasilnya dicatat', async () => {
+test('the tests use the injected runner and their results are recorded', async () => {
   const setup = createSetupService({
     config,
     apiRunner: { resetClient() {}, testApiConnection: async () => { throw Object.assign(new Error('401'), { status: 401 }); } },
@@ -49,14 +49,14 @@ test('tes memakai runner yang di-inject dan hasilnya dicatat', async () => {
   assert.equal(config.setupState()['claude-cli'].ok, true);
   assert.equal(config.setupState().api.ok, false);
   assert.ok(setup.complete().completedAt);
-  await assert.rejects(setup.test('lain'), /Unknown test/);
+  await assert.rejects(setup.test('other'), /Unknown test/);
 });
 
-test('pemeriksaan lengkap mengembalikan semua item', async () => {
+test('a full check returns every item', async () => {
   const setup = createSetupService({ config, apiRunner: {}, claudeRunner: {} });
   const res = await setup.check();
   for (const key of ['node', 'claude', 'claudeAuth', 'plugin', 'apiKey', 'git', 'repo', 'project']) {
     assert.ok(['ok', 'warn', 'error'].includes(res[key].status), key);
   }
-  assert.equal(res.project.status, 'warn'); // tmp bukan repo git
+  assert.equal(res.project.status, 'warn'); // tmp is not a git repo
 });

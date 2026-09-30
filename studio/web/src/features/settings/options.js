@@ -1,4 +1,4 @@
-// Deskripsi berupa kunci i18n; gunakan modelSuggestions(t) di titik render.
+// The descriptions are i18n keys; use modelSuggestions(t) at the render site.
 export const MODEL_SUGGESTIONS = [
   { value: 'opus', description: 'settings.model.opus' },
   { value: 'sonnet', description: 'settings.model.sonnet' },

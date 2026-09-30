@@ -19,7 +19,7 @@ export default function TopBar({
   ];
   return (
     <header className="topbar">
-      {/* i18n-ignore: nama produk */}
+      {/* i18n-ignore: product name */}
       <div className="brand"><Logo size={30} /><span className="brand-name">Doz <span>Studio</span></span></div>
       <span className="topbar-divider" />
       <Select

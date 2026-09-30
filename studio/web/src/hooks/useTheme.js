@@ -4,7 +4,7 @@ import { readStorage, writeStorage } from '../lib/storage.js';
 const KEY = 'doz-studio:theme';
 const media = () => window.matchMedia?.('(prefers-color-scheme: dark)');
 
-// Preferensi: 'system' | 'light' | 'dark'. Tema aktif ditulis ke <html data-theme>.
+// The preference: 'system' | 'light' | 'dark'. The active theme is written to <html data-theme>.
 export function useTheme() {
   const [preference, setPreference] = useState(() => readStorage(KEY, 'system'));
   const [systemDark, setSystemDark] = useState(() => media()?.matches ?? true);

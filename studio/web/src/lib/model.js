@@ -1,5 +1,5 @@
-// Logika UI tanpa React: meta tipe node, konversi workflow ⇄ React Flow, reducer event run, dan warna garis.
-// Teks yang tampil ke user berupa kunci i18n; diterjemahkan di titik render. Formatter menerima `t`/`intl` dari useI18n().
+// UI logic without React: node type meta, workflow ⇄ React Flow conversion, the run event reducer, and edge colors.
+// Text shown to the user is an i18n key, translated at the render site. The formatters take `t`/`intl` from useI18n().
 import { translate } from '../i18n/index.js';
 
 const tEn = (key, vars) => translate('en', key, vars);
@@ -15,7 +15,7 @@ export const NODE_META = {
   output: { label: 'canvas.node.output.label', hint: 'canvas.node.output.hint' },
 };
 
-// Label / petunjuk tipe node yang sudah diterjemahkan; null kalau tipenya tidak dikenal.
+// The translated label / hint for a node type; null when the type is unknown.
 export const nodeTypeLabel = (t, type) => (Object.hasOwn(NODE_META, type) ? t(NODE_META[type].label) : null);
 export const nodeTypeHint = (t, type) => (Object.hasOwn(NODE_META, type) ? t(NODE_META[type].hint) : '');
 
@@ -24,7 +24,7 @@ const STATUS_KEY = {
   waiting: 'common.status.waiting', stopped: 'common.status.stopped', pending: 'common.status.pending',
 };
 
-// Label status run/node yang sudah diterjemahkan; status tak dikenal ditampilkan apa adanya.
+// The translated label for a run/node status; an unknown status is shown as-is.
 export const statusLabel = (t, status) => (Object.hasOwn(STATUS_KEY, status) ? t(STATUS_KEY[status]) : (status ?? ''));
 
 export const BRANCHING = new Set(['condition', 'approval']);
@@ -37,7 +37,7 @@ export const AGENT_COLORS = {
 
 const BUILTIN = { runner: 'claude-cli', inputs: 'previous', timeout_min: 30, retry: 0, max_output_chars: 12000 };
 
-// Sama dengan resolveSettings di server: node > defaults workflow > agent > bawaan.
+// Same as resolveSettings on the server: node > workflow defaults > agent > built-in.
 export function effectiveSetting(key, node, wf, agent) {
   for (const v of [node?.[key], wf?.defaults?.[key]]) {
     if (v !== undefined && v !== null && v !== '' && v !== 'inherit') return { value: v, from: v === node?.[key] ? 'node' : 'workflow' };
@@ -55,7 +55,7 @@ export function emptyWorkflow(name) {
     parallel: 3,
     budget_usd: null,
     notes: '',
-    // i18n-ignore: label bawaan yang ditulis ke file workflow, bukan copy UI
+    // i18n-ignore: a default label written into the workflow file, not UI copy
     nodes: [{ id: 'start', type: 'start', label: 'Request' }],
     edges: [],
     layout: { start: [0, 120] },
@@ -149,8 +149,8 @@ const FINAL = new Set(['done', 'failed', 'stopped']);
 
 export function reduceRun(run, ev) {
   const next = { ...run, nodes: { ...run.nodes } };
-  // Teks dari server/Claude (activity) dipakai apa adanya; pesan buatan studio disimpan sebagai kunci + params
-  // (`msg`) supaya ikut berganti bahasa, dengan `text` Inggris sebagai cadangan.
+  // Text from the server/Claude (activity) is used as-is; studio-authored messages are stored as a key + params
+  // (`msg`) so they follow the language, with the English `text` as a fallback.
   const push = (entry) => {
     next.log = [...run.log, { ts: ev.ts ?? Date.now(), node: ev.node ?? null, ...entry }].slice(-2000);
   };
@@ -170,15 +170,15 @@ export function reduceRun(run, ev) {
       const patch = { ...ev };
       for (const k of ['type', 'ts', 'run', 'node', 'source']) delete patch[k];
       if (patch.summary && !patch.output) patch.output = patch.summary;
-      // activityCode null = activity dibersihkan; jangan ada kode lama yang menempel.
+      // activityCode null = the activity was cleared; no stale code may stick around.
       if ('activity' in patch && !('activityCode' in patch)) patch.activityCode = null;
       if (ev.status === 'running' && !patch.startedAt) patch.startedAt = ev.ts ?? Date.now();
       if (FINAL.has(ev.status) && !patch.endedAt) patch.endedAt = ev.ts ?? Date.now();
-      // Eksekusi baru (loop/ulang): mulai dari nol, riwayat dipertahankan.
+      // A new execution (loop/retry): start from zero, keep the history.
       const fresh = ev.status === 'running' && prev.status !== 'running';
       const merged = fresh ? { history: prev.history ?? [], ...patch } : { ...prev, ...patch };
       if (FINAL.has(ev.status) && merged.startedAt && !merged.durationMs) merged.durationMs = merged.endedAt - merged.startedAt;
-      // Satu entri riwayat per eksekusi node (loop dan retry bikin node jalan lebih dari sekali).
+      // One history entry per node execution (loops and retries make a node run more than once).
       if (FINAL.has(ev.status) && prev.status === 'running') {
         merged.history = [...(prev.history ?? []), {
           status: ev.status, startedAt: merged.startedAt, endedAt: merged.endedAt, durationMs: merged.durationMs,
@@ -235,7 +235,7 @@ export function runTokens(run) {
   return sum;
 }
 
-// Status garis: 'done' (hijau, aliran sudah lewat), 'active' (biru, menuju node yang sedang jalan), atau null.
+// The edge status: 'done' (green, the flow already passed through), 'active' (blue, leading to the running node), or null.
 export function edgeState(edge, run, sourceType) {
   if (run.status === 'idle') return null;
   const src = run.nodes[edge.source];

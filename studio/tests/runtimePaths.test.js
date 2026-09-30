@@ -1,4 +1,4 @@
-// Resolusi path 3 mode runtime (dev, standalone, packaged) dan override lewat env.
+// Path resolution across the 3 runtime modes (dev, standalone, packaged) and the env overrides.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -8,10 +8,10 @@ import { detectRuntimePaths, seedPlugins, resolveUserDataDir } from '../server/i
 
 const mk = (...parts) => fs.mkdirSync(path.join(...parts), { recursive: true });
 const sandbox = () => fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'doz-rt-')));
-// `here` meniru studio/server/infra di dalam root tertentu.
+// `here` imitates studio/server/infra inside a given root.
 const hereOf = (studio) => path.join(studio, 'server', 'infra');
 
-test('mode dev: plugins + .git di induk studio', () => {
+test('dev mode: plugins + .git in the studio parent', () => {
   const root = sandbox();
   mk(root, 'plugins', 'agents'); mk(root, '.git'); mk(root, 'studio', 'web', 'dist');
   const p = detectRuntimePaths({ env: { DOZ_USER_DATA_DIR: path.join(root, 'ud') }, here: hereOf(path.join(root, 'studio')) });
@@ -21,7 +21,7 @@ test('mode dev: plugins + .git di induk studio', () => {
   assert.equal(p.webDist, path.join(root, 'studio', 'web', 'dist'));
 });
 
-test('mode standalone: plugins di induk tanpa .git → repoRoot = induk', () => {
+test('standalone mode: plugins in the parent without .git → repoRoot = the parent', () => {
   const root = sandbox();
   mk(root, 'plugins', 'skills'); mk(root, 'studio');
   const p = detectRuntimePaths({ env: { DOZ_USER_DATA_DIR: path.join(root, 'ud') }, here: hereOf(path.join(root, 'studio')) });
@@ -30,7 +30,7 @@ test('mode standalone: plugins di induk tanpa .git → repoRoot = induk', () => 
   assert.equal(p.repoRoot, root);
 });
 
-test('mode standalone: plugins di dalam studio → repoRoot null', () => {
+test('standalone mode: plugins inside studio → repoRoot null', () => {
   const root = sandbox();
   mk(root, 'studio', 'plugins', 'agents');
   const p = detectRuntimePaths({ env: { DOZ_USER_DATA_DIR: path.join(root, 'ud') }, here: hereOf(path.join(root, 'studio')) });
@@ -39,7 +39,7 @@ test('mode standalone: plugins di dalam studio → repoRoot null', () => {
   assert.equal(p.repoRoot, null);
 });
 
-test('standalone tanpa plugins di mana pun: tidak melempar, pluginDir = app-data, repoRoot null', () => {
+test('standalone with no plugins anywhere: no throw, pluginDir = app-data, repoRoot null', () => {
   const root = sandbox();
   mk(root, 'studio');
   const ud = path.join(root, 'ud');
@@ -64,11 +64,11 @@ test('mode packaged: DOZ_RESOURCES_DIR → pluginDir writable di app-data, webDi
   const seedFile = path.join(ud, 'plugins', '.doz-seed.json');
   assert.equal(JSON.parse(fs.readFileSync(seedFile, 'utf8')).contentVersion, '1.20.0');
   assert.ok(fs.existsSync(path.join(ud, 'plugins', 'agents')));
-  assert.equal(seedPlugins({ ...p, version: '9.9.9' }), false, 'seeding hanya sekali');
+  assert.equal(seedPlugins({ ...p, version: '9.9.9' }), false, 'seeding happens only once');
   assert.equal(JSON.parse(fs.readFileSync(seedFile, 'utf8')).contentVersion, '1.20.0');
 });
 
-test('aset web hasil update ada di overlay app-data; webDist tetap dist terpaket (overlay per file, bukan pengganti)', () => {
+test('web assets from an update live in the app-data overlay; webDist stays the packaged dist (a per-file overlay, not a replacement)', () => {
   const root = sandbox();
   const ud = path.join(root, 'ud');
   const res = path.join(root, 'res');
@@ -79,7 +79,7 @@ test('aset web hasil update ada di overlay app-data; webDist tetap dist terpaket
   assert.equal(p.webDist, path.join(res, 'web', 'dist'));
 });
 
-test('DOZ_PLUGIN_DIR dan DOZ_WEB_DIST menimpa hasil deteksi', () => {
+test('DOZ_PLUGIN_DIR and DOZ_WEB_DIST override what was detected', () => {
   const root = sandbox();
   mk(root, 'plugins', 'agents'); mk(root, '.git'); mk(root, 'studio'); mk(root, 'custom');
   const env = { DOZ_USER_DATA_DIR: path.join(root, 'ud'), DOZ_PLUGIN_DIR: path.join(root, 'custom'), DOZ_WEB_DIST: path.join(root, 'webx') };
@@ -88,11 +88,11 @@ test('DOZ_PLUGIN_DIR dan DOZ_WEB_DIST menimpa hasil deteksi', () => {
   assert.equal(p.webDist, path.join(root, 'webx'));
 });
 
-test('DOZ_PLUGIN_DIR yang tidak ada → error jelas, bukan fallback diam-diam', () => {
+test('a DOZ_PLUGIN_DIR that does not exist → a clear error, not a silent fallback', () => {
   const root = sandbox();
   mk(root, 'plugins', 'agents'); mk(root, '.git'); mk(root, 'studio');
-  const env = { DOZ_USER_DATA_DIR: path.join(root, 'ud'), DOZ_PLUGIN_DIR: path.join(root, 'tidak-ada') };
-  assert.throws(() => detectRuntimePaths({ env, here: hereOf(path.join(root, 'studio')) }), /DOZ_PLUGIN_DIR.*tidak-ada/);
+  const env = { DOZ_USER_DATA_DIR: path.join(root, 'ud'), DOZ_PLUGIN_DIR: path.join(root, 'does-not-exist') };
+  assert.throws(() => detectRuntimePaths({ env, here: hereOf(path.join(root, 'studio')) }), /DOZ_PLUGIN_DIR.*does-not-exist/);
 });
 
 test('folder app-data per OS', () => {

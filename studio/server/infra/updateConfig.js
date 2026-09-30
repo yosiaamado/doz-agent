@@ -1,8 +1,8 @@
-// Endpoint update: default, override user, validasi HTTPS, dan perbandingan semver.
+// The update endpoint: default, user override, HTTPS validation, and semver comparison.
 import { badRequest } from '../lib/errors.js';
 
-// Diturunkan dari `git remote get-url origin` (github.com/yosiaamado/doz-agent) → GitHub Releases.
-// Kalau repo/asset belum ada, cek update gagal-lunak dengan UPDATE_UNREACHABLE; studio tetap jalan.
+// Derived from `git remote get-url origin` (github.com/yosiaamado/doz-agent) -> GitHub Releases.
+// If the repo/asset does not exist yet, the update check soft-fails with UPDATE_UNREACHABLE; the studio keeps running.
 export const DEFAULT_UPDATE_ENDPOINT = 'https://github.com/yosiaamado/doz-agent/releases/latest/download/doz-update.json';
 
 export const MAX_ENDPOINT_LENGTH = 2048;
@@ -10,11 +10,11 @@ const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost']);
 
 const insecure = (endpoint) => badRequest('Update endpoint must use HTTPS', { code: 'UPDATE_INSECURE_ENDPOINT', params: { endpoint: String(endpoint).slice(0, 200) } });
 
-// Pintu keluar http hanya hidup di runtime test (node --test menyetel NODE_TEST_CONTEXT; NODE_ENV=test untuk runner lain).
-// Build produksi tidak punya penanda itu, jadi DOZ_UPDATE_ALLOW_HTTP=1 saja tidak cukup untuk menurunkan HTTPS.
+// The http escape hatch only exists in the test runtime (node --test sets NODE_TEST_CONTEXT; NODE_ENV=test for other runners).
+// A production build carries neither marker, so DOZ_UPDATE_ALLOW_HTTP=1 on its own is not enough to downgrade from HTTPS.
 export const isTestRuntime = (env = process.env) => env.NODE_ENV === 'test' || env.NODE_TEST_CONTEXT !== undefined;
 
-// http hanya untuk test otomatis: runtime test + DOZ_UPDATE_ALLOW_HTTP=1 + host loopback.
+// http is for automated tests only: test runtime + DOZ_UPDATE_ALLOW_HTTP=1 + a loopback host.
 export function isAllowedUrl(url, env = process.env) {
   if (url.username || url.password) return false;
   if (url.protocol === 'https:') return true;
@@ -41,7 +41,7 @@ export function resolveEndpoint(saved) {
 const SEMVER_RE = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/;
 export const isSemver = (v) => typeof v === 'string' && v.length <= 64 && SEMVER_RE.test(v);
 
-// -1 | 0 | 1. Versi tanpa pre-release lebih besar dari versi pre-release yang sama.
+// -1 | 0 | 1. A version without a pre-release is greater than the same version with one.
 export function compareVersions(a, b) {
   const [, ...pa] = SEMVER_RE.exec(a) ?? [];
   const [, ...pb] = SEMVER_RE.exec(b) ?? [];

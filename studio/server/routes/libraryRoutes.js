@@ -1,7 +1,7 @@
-// Komponen (agent/skill/action) dan workflow.
+// Components (agent/skill/action) and workflows.
 import { componentKind, createComponentBody, updateComponentBody, saveWorkflowBody } from '../http/schemas.js';
 
-// Isi prompt agent tidak ikut di daftar supaya respons tetap kecil.
+// Agent prompt bodies are left out of the listing to keep the response small.
 const withoutPrompt = ({ prompt, ...rest }) => rest;
 
 export function registerLibraryRoutes(router, { components, workflows }) {

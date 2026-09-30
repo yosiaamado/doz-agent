@@ -1,10 +1,10 @@
-// Utilitas file markdown dengan frontmatter YAML (agent, skill, action, workflow).
+// Helpers for markdown files with YAML frontmatter (agent, skill, action, workflow).
 import YAML from 'yaml';
 
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
 
-// Claude Code membaca frontmatter dengan longgar (mis. description berisi ": "), jadi YAML ketat
-// dicoba dulu lalu jatuh ke parser baris `key: value`.
+// Claude Code parses frontmatter loosely (e.g. a description containing ": "), so strict YAML
+// is tried first and then falls back to a line-based `key: value` parser.
 export function parseFrontmatter(raw) {
   try {
     return { meta: YAML.parse(raw) ?? {}, strict: true };
@@ -25,12 +25,12 @@ export function splitFile(text) {
 
 const isEmpty = (v) => v === null || v === undefined || v === '' || (Array.isArray(v) && !v.length);
 
-// Mengubah key frontmatter tanpa membuang key lain dan komentar. Nilai kosong = hapus key.
-// Nama tidak ikut diubah lewat edit (ganti nama = file baru).
+// Changes frontmatter keys without dropping the other keys and comments. An empty value = delete the key.
+// The name is never changed through an edit (renaming = a new file).
 export function composeFile(existingText, patch, body) {
   const current = existingText ? splitFile(existingText) : { raw: '', body: '' };
   const doc = current.raw ? YAML.parseDocument(current.raw) : new YAML.Document({});
-  if (doc.errors.length) throw new Error('Frontmatter file ini bukan YAML ketat. Edit lewat mode Raw.');
+  if (doc.errors.length) throw new Error('The frontmatter of this file is not strict YAML. Edit it in Raw mode.');
   for (const [key, value] of Object.entries(patch ?? {})) {
     if (key === 'name' && existingText) continue;
     if (isEmpty(value)) doc.delete(key);

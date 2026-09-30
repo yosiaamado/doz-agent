@@ -1,4 +1,4 @@
-// Konfigurasi studio: workdir aktif dan folder sumber komponen. Disimpan di app-data OS (config.json).
+// Studio configuration: the active workdir and the component source folders. Stored in the OS app-data folder (config.json).
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -10,8 +10,8 @@ import { createApiKeyStore } from './apiKeyStore.js';
 
 export const SOURCE_KINDS = Object.freeze(['agents', 'skills', 'actions', 'workflows']);
 
-// `{plugins}` = folder plugin aktif, `{workdir}` = folder project aktif, `~` = home.
-// Folder pertama jadi tujuan file baru.
+// `{plugins}` = the active plugin folder, `{workdir}` = the active project folder, `~` = home.
+// The first folder becomes the destination for new files.
 export const DEFAULT_SOURCES = Object.freeze({
   agents: ['{plugins}/agents', '{workdir}/.claude/agents'],
   skills: ['{plugins}/skills', '{workdir}/.claude/skills'],
@@ -28,7 +28,7 @@ function isDirectory(dir) {
   return fs.existsSync(dir) && fs.statSync(dir).isDirectory();
 }
 
-// Config lama menyimpan 'plugins/agents' (relatif ke root repo); sekarang relatif ke folder plugin aktif.
+// Older configs stored 'plugins/agents' (relative to the repo root); it is now relative to the active plugin folder.
 const normalizeEntry = (entry) => String(entry).trim().replace(/^plugins(?=[/\\])/, '{plugins}');
 
 function normalizeSources(raw) {
@@ -48,7 +48,7 @@ export function createConfig({ argv = process.argv, env = process.env, localFile
   const { studioDir, userDataDir, pluginDir, repoRoot } = paths;
   const appVersion = readAppVersion(studioDir);
 
-  // `localFile` (dipakai test) menggantikan lokasi app-data sepenuhnya, termasuk migrasi.
+  // `localFile` (used by tests) replaces the app-data location entirely, migration included.
   const configFile = localFile ?? path.join(userDataDir, 'config.json');
   const usageFile = localFile ? path.join(path.dirname(localFile), 'usage.json') : path.join(userDataDir, 'usage.json');
   if (!localFile) {
@@ -59,11 +59,11 @@ export function createConfig({ argv = process.argv, env = process.env, localFile
   const store = createConfigStore(configFile);
   const saved = store.read();
   const apiKeys = createApiKeyStore({ store, codec: secretCodec, logger });
-  if (secretCodec) apiKeys.get(); // key plain text lama langsung dienkripsi saat pertama dibuka di bawah Electron
+  if (secretCodec) apiKeys.get(); // a legacy plain-text key is encrypted immediately on first open under Electron
   let workdir = path.resolve(argValue(argv, '--workdir') ?? env.DOZ_WORKDIR ?? saved.workdir ?? env.INIT_CWD ?? process.cwd());
   let sources = normalizeSources({ ...DEFAULT_SOURCES, ...(saved.sources ?? {}) });
 
-  // Entri relatif lain di-resolve ke root repo kalau ada, kalau tidak ke parent folder plugin.
+  // Other relative entries resolve against the repo root when there is one, otherwise against the plugin folder's parent.
   const relativeBase = repoRoot ?? path.dirname(pluginDir);
   const resolveSource = (entry) => {
     const expanded = String(entry)
@@ -82,7 +82,7 @@ export function createConfig({ argv = process.argv, env = process.env, localFile
     userDataDir,
     repoRoot,
     pluginDir,
-    // Getter: lokasi dist terpaket dicek saat dipakai (folder resources bisa baru muncul setelah config dibuat, mis. di test).
+    // Getter: the packaged dist location is checked on use (the resources folder may appear only after the config is created, e.g. in tests).
     get webDist() { return resolveWebDist({ env, studioDir, resourcesDir: paths.resourcesDir }); },
     webOverlay: paths.webOverlay,
     getWorkdir: () => workdir,
@@ -93,14 +93,14 @@ export function createConfig({ argv = process.argv, env = process.env, localFile
       store.merge({ workdir: abs });
       return abs;
     },
-    // API key dari wizard Persiapan: terenkripsi lewat secretCodec kalau ada, kalau tidak plain text (lihat apiKeyStore.js).
+    // The API key from the Setup wizard: encrypted through secretCodec when available, otherwise plain text (see apiKeyStore.js).
     savedApiKey: () => apiKeys.get(),
     saveApiKey: (key) => apiKeys.set(key),
-    // 'none' | 'saved' | 'unreadable' (ciphertext ada tetapi tidak bisa didekripsi di sesi ini; tidak pernah dihapus otomatis)
+    // 'none' | 'saved' | 'unreadable' (ciphertext exists but cannot be decrypted in this session; never deleted automatically)
     apiKeyState: () => apiKeys.state(),
     setupState: () => store.read().setup ?? {},
     saveSetupState: (state) => store.merge({ setup: { ...(store.read().setup ?? {}), ...state } }),
-    // Akses config.json mentah untuk modul lain (mis. update.endpoint).
+    // Raw config.json access for other modules (e.g. update.endpoint).
     readSaved: () => store.read(),
     mergeSaved: (patch) => store.merge(patch),
     getSources: () => sources,
@@ -113,7 +113,7 @@ export function createConfig({ argv = process.argv, env = process.env, localFile
       return sources;
     },
     resolveSource,
-    // Folder absolut yang benar-benar ada, urut sesuai konfigurasi.
+    // The absolute folders that actually exist, in configuration order.
     sourceDirs: (kind) => (sources[kind] ?? []).map(resolveSource).filter(isDirectory),
     allowedDirs: (kind) => (sources[kind] ?? []).map(resolveSource),
     primaryDir(kind) {

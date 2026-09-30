@@ -1,4 +1,4 @@
-// Menjalankan fn dengan signal sendiri yang ikut batal saat node dihentikan atau waktu habis.
+// Runs fn with its own signal, which is aborted when the node is stopped or the time runs out.
 export function withTimeout(minutes, signal, fn) {
   const ctrl = new AbortController();
   const onAbort = () => ctrl.abort();

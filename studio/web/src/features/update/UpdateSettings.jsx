@@ -1,4 +1,4 @@
-// Endpoint update yang bisa diganti user (HTTPS wajib; divalidasi server). Kosong = endpoint bawaan.
+// The user-overridable update endpoint (HTTPS required; validated on the server). Empty = the built-in endpoint.
 import { useCallback, useEffect, useState } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Field, Section } from '../../components/ui/Field.jsx';
@@ -50,7 +50,7 @@ export default function UpdateSettings() {
       </Field>
       {error && <p className="err small" role="alert">{errorMessage(t, error)}</p>}
       <div style={{ display: 'flex', gap: 8 }}>
-        {/* Gagal memuat: input terkunci, jadi harus ada jalan keluar (retry). */}
+        {/* Loading failed: the input is locked, so there has to be a way out (retry). */}
         {!saved && !loading && (
           <button type="button" className="btn btn-sm" onClick={load}><RefreshCw size={13} /> {t('common.retry')}</button>
         )}

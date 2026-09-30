@@ -1,4 +1,4 @@
-// Memulai, menghentikan, dan menyetujui run; menyimpan event lewat run log repository.
+// Starts, stops, and approves runs; persists events through the run log repository.
 import crypto from 'node:crypto';
 import { WorkflowRun } from '../domain/engine.js';
 import { badRequest, notFound, codeOf } from '../lib/errors.js';
@@ -20,9 +20,9 @@ export function createRunService({ config, components, workflows, attachments, r
 
   return {
     list: () => runLog.list(),
-    // Dipakai guard update: `claude-cli` memakai --plugin-dir selama run berjalan.
-    // Run studio selalu dihitung; run dari terminal (source claude-code) dihitung selama event terakhirnya segar,
-    // supaya run yang crash tanpa run_end tidak memblokir update selamanya.
+    // Used by the update guard: `claude-cli` uses --plugin-dir for as long as a run is in flight.
+    // Studio runs always count; runs from a terminal (source claude-code) count while their last event is still fresh,
+    // so a run that crashed without a run_end does not block updates forever.
     hasActive: (now = Date.now()) => [...runLog.runs.values()].some((r) => r.status === 'running'
       && (r.run || now - (r.events.at(-1)?.ts ?? r.started) < EXTERNAL_RUN_FRESH_MS)),
     events(id) {

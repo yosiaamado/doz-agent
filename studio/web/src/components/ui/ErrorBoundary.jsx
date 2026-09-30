@@ -1,7 +1,7 @@
 import { Component } from 'react';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 
-// Class component tidak bisa memakai hook; teks diambil dari komponen kecil ini.
+// A class component cannot use hooks; the copy comes from this small component instead.
 function Fallback({ error, onRetry }) {
   const { t } = useI18n();
   return (

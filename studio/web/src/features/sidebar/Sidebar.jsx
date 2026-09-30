@@ -1,5 +1,5 @@
-// Sidebar kiri: rail ikon saat menyempit, melebar (melayang di atas canvas) saat di-hover atau difokus,
-// dan menyempit lagi saat kursor pergi atau saat item mulai diseret ke canvas.
+// The left sidebar: an icon rail when collapsed, expanded (floating above the canvas) on hover or focus,
+// and collapsed again when the cursor leaves or when an item starts being dragged onto the canvas.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FolderCog, History, LayoutGrid } from 'lucide-react';
 import Segmented from '../../components/ui/Segmented.jsx';

@@ -1,4 +1,4 @@
-// Hub WebSocket: semua klien menerima event run yang sama.
+// WebSocket hub: every client receives the same run events.
 import { WebSocketServer } from 'ws';
 import { isLocalRequest } from './middleware.js';
 

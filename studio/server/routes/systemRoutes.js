@@ -1,4 +1,4 @@
-// Status studio, workdir, folder sumber, penjelajah folder, dan pemakaian Claude Code.
+// Studio status, the workdir, the source folders, the folder browser, and Claude Code usage.
 import { SOURCE_KINDS } from '../infra/config.js';
 import { isGitRepo } from '../infra/gitdiff.js';
 import { shortName } from '../lib/paths.js';
@@ -13,7 +13,7 @@ export function registerSystemRoutes(router, { config, runLog, runnerStatus, fol
     mode: config.mode,
     port: config.port,
     userDataDir: config.userDataDir,
-    // Dua nomor berbeda: binary (app) vs plugins + web yang bisa di-update (content).
+    // Two different numbers: the binary (app) vs. the updatable plugins + web assets (content).
     appVersion: config.appVersion,
     contentVersion: contentVersion(),
     platform: process.platform,

@@ -1,4 +1,4 @@
-// localStorage bisa melempar (mode privat / diblokir); semua akses dibungkus.
+// localStorage can throw (private mode / blocked); every access is wrapped.
 export function readStorage(key, fallback = null) {
   try {
     const v = window.localStorage.getItem(key);
@@ -11,5 +11,5 @@ export function readStorage(key, fallback = null) {
 export function writeStorage(key, value) {
   try {
     window.localStorage.setItem(key, value);
-  } catch { /* abaikan */ }
+  } catch { /* ignored */ }
 }

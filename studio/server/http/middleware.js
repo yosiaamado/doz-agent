@@ -1,9 +1,9 @@
 import { forbidden, badRequest } from '../lib/errors.js';
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
-const MAX_BODY = 25 * 1024 * 1024; // cukup untuk lampiran dokumen base64
+const MAX_BODY = 25 * 1024 * 1024; // enough for base64 document attachments
 
-// Menolak request yang tidak berasal dari localhost (DNS rebinding / CSRF dari situs lain).
+// Rejects requests that do not originate from localhost (DNS rebinding / CSRF from another site).
 export function assertLocalRequest(req) {
   const host = (req.headers.host ?? '').replace(/:\d+$/, '');
   if (!LOCAL_HOSTS.has(host)) throw forbidden('Only localhost may access this server', { code: 'LOCAL_ONLY' });

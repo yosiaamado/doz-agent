@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-// Jam yang berdetak tiap detik selama `active`, untuk durasi live node yang sedang jalan.
+// A clock that ticks every second while `active`, for the live duration of a running node.
 export function useNow(active) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {

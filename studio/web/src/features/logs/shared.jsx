@@ -11,7 +11,7 @@ export function copy(text) {
   navigator.clipboard?.writeText(text).catch(() => {});
 }
 
-// Teks satu baris log: pesan buatan studio (msg) diterjemahkan, teks dari server/Claude ditampilkan apa adanya.
+// The text of one log line: studio-authored messages (msg) are translated, text from the server/Claude is shown as-is.
 export function logText(t, line) {
   if (!line.msg) return line.text;
   const params = { ...line.msg.params };

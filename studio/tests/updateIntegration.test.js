@@ -1,5 +1,5 @@
-// Integrasi FE↔BE update: klien asli `web/src/lib/api.js` melawan route + service asli (kunci uji disuntikkan),
-// plus interaksi config yang dimigrasi, webDist setelah update, dan urutan/batas apply.
+// FE↔BE update integration: the real client `web/src/lib/api.js` against the real routes + service (with a test key injected),
+// plus the migrated config interaction, webDist after an update, and the apply order/limits.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -24,7 +24,7 @@ const P = (rel, content, target = 'plugins') => ({ path: target === 'plugins' ? 
 const ENDPOINT = () => `${srv.base}/doz-update.json`;
 const quiet = { info() {}, warn() {}, error() {} };
 
-// Meniru composition root app.js (router + envelope + static per request), tetapi dengan kunci uji.
+// Mimics the app.js composition root (router + envelope + static per request), but with a test key.
 async function mount(env) {
   const service = createUpdateService({ config: env.config, env: { DOZ_UPDATE_ALLOW_HTTP: '1', NODE_ENV: 'test' }, keys: env.keys });
   const router = new Router();
@@ -48,7 +48,7 @@ function publish(env, { version, files, removed }) {
 }
 const rejects = (p, code) => assert.rejects(p, (e) => { assert.equal(e.name, 'ApiRequestError'); assert.equal(e.code, code); return true; });
 
-test('FE api.js dan route: bentuk status/check/apply/settings persis yang dibaca UpdateDialog dan useUpdate', async () => {
+test('FE api.js and the routes: the status/check/apply/settings shapes are exactly what UpdateDialog and useUpdate read', async () => {
   const env = makeEnvironment();
   const app = await mount(env);
   try {
@@ -80,7 +80,7 @@ test('FE api.js dan route: bentuk status/check/apply/settings persis yang dibaca
   } finally { await app.close(); }
 });
 
-test('AC-9 lewat klien: overwriteLocalEdits=true menimpa file edit dan backup berisi isi edit', async () => {
+test('AC-9 through the client: overwriteLocalEdits=true overwrites the edited file and the backup holds the edited contents', async () => {
   const env = makeEnvironment();
   const app = await mount(env);
   try {
@@ -95,7 +95,7 @@ test('AC-9 lewat klien: overwriteLocalEdits=true menimpa file edit dan backup be
   } finally { await app.close(); }
 });
 
-test('urutan: apply tanpa check, apply dua kali, manifest lebih lama, endpoint diganti di tengah semuanya STALE', async () => {
+test('ordering: apply without a check, apply twice, an older manifest, the endpoint changed midway — all STALE', async () => {
   const env = makeEnvironment();
   const app = await mount(env);
   try {
@@ -121,7 +121,7 @@ test('urutan: apply tanpa check, apply dua kali, manifest lebih lama, endpoint d
   } finally { await app.close(); }
 });
 
-test('input tidak valid dari klien: VALIDATION_FAILED / UPDATE_INSECURE_ENDPOINT', async () => {
+test('invalid input from the client: VALIDATION_FAILED / UPDATE_INSECURE_ENDPOINT', async () => {
   const env = makeEnvironment();
   const app = await mount(env);
   try {
@@ -132,7 +132,7 @@ test('input tidak valid dari klien: VALIDATION_FAILED / UPDATE_INSECURE_ENDPOINT
   } finally { await app.close(); }
 });
 
-test('config hasil migrasi .local.json tetap utuh setelah check dan apply', async () => {
+test('a config produced by the .local.json migration stays intact through check and apply', async () => {
   const env = makeEnvironment();
   const studioDir = path.join(env.tmp, 'studio');
   fs.writeFileSync(path.join(studioDir, '.local.json'), JSON.stringify({ anthropicApiKey: 'sk-test', setup: { completed: true }, sources: [{ path: 'x' }], workdir: path.join(env.tmp, 'work') }));
@@ -160,7 +160,7 @@ function withBundle(env) {
   fs.writeFileSync(path.join(bundle, 'assets', 'vendor.js'), 'VENDOR');
 }
 
-test('overlay userData/web/dist: aset baru hasil update terlayani tanpa restart', async () => {
+test('the userData/web/dist overlay: new assets from an update are served without a restart', async () => {
   const env = makeEnvironment();
   withBundle(env);
   const app = await mount(env);
@@ -175,7 +175,7 @@ test('overlay userData/web/dist: aset baru hasil update terlayani tanpa restart'
   } finally { await app.close(); }
 });
 
-test('QA: update web parsial (hanya file yang berubah) tidak boleh membuat aset bundel lama hilang', async () => {
+test('QA: a partial web update (only the changed files) must not make the older bundle assets disappear', async () => {
   const env = makeEnvironment();
   withBundle(env);
   const app = await mount(env);

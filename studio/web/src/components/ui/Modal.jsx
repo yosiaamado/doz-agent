@@ -1,4 +1,4 @@
-// Modal dengan fokus terkelola: fokus pindah ke modal saat dibuka, kembali ke elemen asal saat ditutup, Esc menutup.
+// A modal with managed focus: focus moves into the modal when it opens, returns to the original element when it closes, and Esc closes it.
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';

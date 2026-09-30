@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 
-// Data yang dibaca node & garis di canvas: agent, meta workflow, run aktif, dan aksi approve/edit.
+// The data read by the nodes & edges on the canvas: agents, the workflow meta, the active run, and the approve/edit actions.
 export const StudioContext = createContext(null);
 
 export const useStudio = () => useContext(StudioContext);

@@ -1,5 +1,5 @@
-// Canvas React Flow. Navigasi: drag kiri/tengah = geser, scroll = geser, Ctrl/⌘ + scroll atau pinch = zoom,
-// Shift + drag = pilih banyak. Node menempel ke grid 20px.
+// The React Flow canvas. Navigation: left/middle drag = pan, scroll = pan, Ctrl/⌘ + scroll or pinch = zoom,
+// Shift + drag = multi-select. Nodes snap to a 20px grid.
 import { forwardRef } from 'react';
 import { ReactFlow, Background, BackgroundVariant, MiniMap, Panel, useReactFlow } from '@xyflow/react';
 import { Maximize, Play, Plus, Square, ZoomIn, ZoomOut } from 'lucide-react';

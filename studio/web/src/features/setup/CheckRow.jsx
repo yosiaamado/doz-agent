@@ -5,7 +5,7 @@ import { CopyBtn } from '../logs/shared.jsx';
 
 const ICONS = { ok: CheckCircle2, warn: AlertTriangle, error: XCircle, loading: Loader2, skipped: CircleSlash };
 
-// Satu baris pemeriksaan: status, judul, detail, perintah perbaikan (bisa disalin), dan aksi.
+// One check row: status, title, details, the fix command (copyable), and the action.
 export default function CheckRow({ title, check, test, children }) {
   const { t } = useI18n();
   const status = test?.status ?? check?.status ?? 'loading';

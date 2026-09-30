@@ -1,4 +1,4 @@
-// Field form editor komponen per jenis (agent / skill / action).
+// The component editor form fields per kind (agent / skill / action).
 import Select from '../../components/ui/Select.jsx';
 import { Field } from '../../components/ui/Field.jsx';
 import { AGENT_COLORS } from '../../lib/model.js';

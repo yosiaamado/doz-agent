@@ -1,5 +1,5 @@
-/* Design token. Tema gelap = abu-abu netral ala n8n, tema terang = putih lembut.
-   Hijau = selesai, biru = sedang jalan, oranye-merah = aksi utama. */
+/* Design tokens. Dark theme = neutral greys in the n8n style, light theme = a soft white.
+   Green = done, blue = running, orange-red = the primary action. */
 :root,
 :root[data-theme='dark'] {
   --canvas: #262626;

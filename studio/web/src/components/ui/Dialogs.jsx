@@ -1,4 +1,4 @@
-// Pengganti window.confirm / window.prompt: modal yang mengembalikan Promise.
+// A replacement for window.confirm / window.prompt: a modal that returns a Promise.
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { AlertTriangle, PencilLine } from 'lucide-react';
 import Modal from './Modal.jsx';

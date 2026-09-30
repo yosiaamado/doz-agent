@@ -1,4 +1,4 @@
-// doz-studio: server lokal (127.0.0.1) untuk editor visual workflow + runner.
+// doz-studio: a local server (127.0.0.1) for the visual workflow editor and runner.
 import { startServer } from './app.js';
 import { claudeVersion } from './runners/claude-cli.js';
 import { apiAvailable } from './runners/api.js';

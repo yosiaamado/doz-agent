@@ -10,7 +10,7 @@ export function toPosix(p) {
   return p.split(path.sep).join('/');
 }
 
-// Path pendek untuk ditampilkan: relatif ke workdir/repo/home, selain itu dua segmen terakhir.
+// A short path for display: relative to the workdir/repo/home, otherwise the last two segments.
 export function displayPath(file, { workdir, repoRoot } = {}) {
   if (!file) return '';
   if (workdir && (file === workdir || isInside(workdir, file))) return `{workdir}${file === workdir ? '' : `/${toPosix(path.relative(workdir, file))}`}`;

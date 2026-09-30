@@ -1,4 +1,4 @@
-// Resolusi path runtime: mode dev / standalone (zip) / packaged (Electron), app-data OS, dan seeding plugins.
+// Runtime path resolution: dev / standalone (zip) / packaged (Electron) modes, the OS app-data folder, and plugin seeding.
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -17,7 +17,7 @@ function isDirectory(dir) {
   }
 }
 
-// Folder plugin dianggap valid kalau berisi agents/ atau skills/.
+// A plugin folder counts as valid when it contains agents/ or skills/.
 export function hasPlugins(dir) {
   return isDirectory(path.join(dir, 'agents')) || isDirectory(path.join(dir, 'skills'));
 }
@@ -38,27 +38,27 @@ function detectMode({ env, studioDir }) {
 function resolvePluginDir({ env, mode, studioDir, resourcesDir, userDataDir }) {
   if (env.DOZ_PLUGIN_DIR) {
     const dir = path.resolve(env.DOZ_PLUGIN_DIR);
-    // Override eksplisit yang salah harus gagal keras, bukan diam-diam pindah ke folder lain.
-    if (!isDirectory(dir)) throw new Error(`DOZ_PLUGIN_DIR menunjuk ke folder yang tidak ada: ${dir}`);
+    // An explicit override that is wrong must fail loudly, not quietly fall back to another folder.
+    if (!isDirectory(dir)) throw new Error(`DOZ_PLUGIN_DIR points at a folder that does not exist: ${dir}`);
     return dir;
   }
   const userPlugins = path.join(userDataDir, 'plugins');
-  // Packaged: tujuan tulis selalu app-data; resources read-only hanya dipakai sebagai seed.
+  // Packaged: the write destination is always app-data; the read-only resources are used only as a seed.
   if (mode === MODES.packaged) return userPlugins;
   const candidates = [userPlugins, path.resolve(studioDir, '..', 'plugins'), path.join(studioDir, 'plugins')];
   if (resourcesDir) candidates.push(path.join(resourcesDir, 'plugins'));
   return candidates.find(hasPlugins) ?? userPlugins;
 }
 
-// Aset web terpaket (read-only). Aset hasil update (S5) ada di overlay terpisah, lihat resolveWebOverlay.
+// Packaged web assets (read-only). Assets installed by an update (S5) live in a separate overlay, see resolveWebOverlay.
 export function resolveWebDist({ env, studioDir, resourcesDir }) {
   if (env.DOZ_WEB_DIST) return path.resolve(env.DOZ_WEB_DIST);
   if (resourcesDir && isDirectory(path.join(resourcesDir, 'web', 'dist'))) return path.join(resourcesDir, 'web', 'dist');
   return path.join(studioDir, 'web', 'dist');
 }
 
-// Overlay per file: static handler mencari file di sini dulu, lalu jatuh ke webDist. Update web parsial pun aman
-// karena aset yang tidak berubah tetap dilayani dari dist terpaket.
+// A per-file overlay: the static handler looks here first, then falls back to webDist. Even a partial web update is safe
+// because unchanged assets keep being served from the packaged dist.
 export const resolveWebOverlay = (userDataDir) => path.join(userDataDir, 'web', 'dist');
 
 function resolveRepoRoot({ mode, studioDir }) {
@@ -86,7 +86,7 @@ export function detectRuntimePaths({ env = process.env, here = defaultHere, plat
   };
 }
 
-// Copy plugins bawaan ke app-data satu kali, supaya folder plugin bisa ditulis (edit komponen + update).
+// Copies the bundled plugins into app-data once, so the plugin folder is writable (component edits plus updates).
 export function seedPlugins({ pluginDir, resourcesDir, userDataDir, version }) {
   const seedSource = resourcesDir ? path.join(resourcesDir, 'plugins') : null;
   if (!seedSource || pluginDir !== path.join(userDataDir, 'plugins')) return false;

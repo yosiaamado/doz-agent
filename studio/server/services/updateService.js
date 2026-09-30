@@ -1,5 +1,5 @@
-// Update sekali klik: unduh + verifikasi manifest bertanda tangan, lalu ganti file plugin dan aset web secara transaksional.
-// Jalur ini menulis file di mesin user, jadi semua yang datang dari manifest diperlakukan sebagai input tak tepercaya.
+// One-click update: download and verify a signed manifest, then replace the plugin files and web assets transactionally.
+// This path writes files on the user's machine, so everything coming from the manifest is treated as untrusted input.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -29,7 +29,7 @@ const applyFailed = (p) => err(500, 'Update failed and was rolled back', 'UPDATE
 const sha256File = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 const isInside = (root, abs) => abs.startsWith(root + path.sep);
 
-// Isi manifest ditulis dengan path yang diawali `plugins/` untuk target plugins; folder tujuan sudah pluginDir.
+// Manifest entries are written with paths prefixed by `plugins/` for the plugins target; the destination folder is already pluginDir.
 const relativeInTarget = (entry) => (entry.target === 'plugins' ? entry.path.slice('plugins/'.length) : entry.path);
 const entryKey = (entry) => `${entry.target}/${entry.path}`;
 
@@ -41,8 +41,8 @@ function lstatOrNull(p) {
   }
 }
 
-// Menolak kalau ada komponen path (folder atau file akhir) berupa symlink, supaya penulisan tidak keluar folder tujuan.
-// allowHardlink (jalur baca: check) melaporkan hardlink lewat return value; jalur tulis tetap menolak keras.
+// Rejects any path component (a folder or the final file) that is a symlink, so writes cannot escape the destination folder.
+// allowHardlink (the read path: check) reports hardlinks through the return value; the write path still refuses outright.
 function assertNoSymlinks(root, abs, displayed, { allowHardlink = false } = {}) {
   let current = root;
   for (const segment of path.relative(root, abs).split(path.sep)) {
@@ -53,7 +53,7 @@ function assertNoSymlinks(root, abs, displayed, { allowHardlink = false } = {}) 
   }
   const final = lstatOrNull(abs);
   if (!final?.isFile()) throw pathRejected(displayed);
-  // File yang kita kelola tidak pernah punya hardlink; nlink > 1 berarti inode-nya dibagi dengan path lain (mis. di luar folder ini).
+  // The files we manage never have hardlinks; nlink > 1 means the inode is shared with another path (e.g. outside this folder).
   if (final.nlink > 1) {
     if (!allowHardlink) throw pathRejected(displayed);
     return { hardlinked: true };
@@ -61,9 +61,9 @@ function assertNoSymlinks(root, abs, displayed, { allowHardlink = false } = {}) 
   return { hardlinked: false };
 }
 
-// Setelah folder induk dibuat: pastikan lokasi nyata (symlink/junction terselesaikan) masih di dalam root.
-// Celah waktu antara cek dan tulis tidak bisa ditutup total tanpa openat/O_NOFOLLOW, jadi cek diulang tepat sebelum
-// tiap tulis/hapus/backup dan lokasi nyata diverifikasi; penyerang harus sudah punya izin tulis di folder plugin.
+// After the parent folder is created: make sure the real location (with symlinks/junctions resolved) is still inside the root.
+// The window between check and write cannot be closed completely without openat/O_NOFOLLOW, so the check is repeated right before
+// every write/delete/backup and the real location is verified; an attacker would already need write access to the plugin folder.
 function assertRealInside(root, abs, displayed) {
   let realRoot;
   try {
@@ -100,7 +100,7 @@ async function fetchWithRedirects(startUrl, { env, timeoutMs, headers }) {
       } catch {
         next = null;
       }
-      // Setiap redirect harus tetap HTTPS; downgrade ke http ditolak.
+      // Every redirect must stay on HTTPS; a downgrade to http is rejected.
       if (!next || !isAllowedUrl(next, env)) throw unreachable({ status: res.status });
       url = next.toString();
       continue;
@@ -136,7 +136,7 @@ function valueAt(root, pathParts) {
   return pathParts.reduce((acc, key) => (acc && typeof acc === 'object' ? acc[key] : undefined), root);
 }
 
-// Urutan: JSON → schema → signature (pada objek mentah) → bentuk (zod) → host URL. Tidak ada file yang diunduh sebelum semuanya lolos.
+// Order: JSON → schema → signature (on the raw object) → shape (zod) → URL host. No file is downloaded before all of it passes.
 function parseManifest(text, { env, keys }) {
   let raw;
   try {
@@ -173,7 +173,7 @@ function parseManifest(text, { env, keys }) {
   return { ...manifest, files };
 }
 
-// restoreFile bisa diganti di test untuk mensimulasikan rollback yang gagal.
+// restoreFile can be swapped out in tests to simulate a rollback that fails.
 export function createUpdateService({ config, isRunActive = () => false, env = process.env, now = Date.now, keys = PUBLIC_KEYS, restoreFile = fs.copyFileSync }) {
   const userData = path.resolve(config.userDataDir);
   const installedFile = path.join(userData, 'installed.json');
@@ -181,7 +181,7 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
   const backupsRoot = path.join(userData, 'backups');
   const targetRoot = (target) => (target === 'plugins' ? path.resolve(config.pluginDir) : path.join(userData, 'web', 'dist'));
 
-  let cache = null; // { at, endpoint, manifest, data } — hanya di memori
+  let cache = null; // { at, endpoint, manifest, data } — in memory only
   let applying = false;
 
   const readJson = (file) => {
@@ -197,12 +197,12 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
     return data && typeof data === 'object' && data.files && typeof data.files === 'object' ? data : null;
   };
   const seedInfo = () => readJson(path.join(config.pluginDir, '.doz-seed.json'));
-  // Content version (plugins + web), BUKAN versi binary. Fallback ke appVersion hanya untuk mode dev tanpa installed.json/seed.
-  // Berkas lama (sebelum rename) memakai kunci `version`; dibaca sebagai fallback, selalu ditulis dengan `contentVersion`.
+  // The content version (plugins + web), NOT the binary version. The appVersion fallback is only for dev mode without installed.json/seed.
+  // Older files (before the rename) used the `version` key; it is read as a fallback but always written as `contentVersion`.
   const versionOf = (data) => (typeof data?.contentVersion === 'string' ? data.contentVersion : typeof data?.version === 'string' ? data.version : undefined);
   const contentVersion = () => versionOf(readInstalled()) ?? versionOf(seedInfo()) ?? config.appVersion;
 
-  // server/** ada di dalam app.asar dan tidak bisa di-update; konten yang butuh binary lebih baru harus ditolak sebelum mengunduh apa pun.
+  // server/** lives inside app.asar and cannot be updated; content that needs a newer binary must be rejected before anything is downloaded.
   function assertAppCompatible(manifest) {
     if (compareVersions(config.appVersion, manifest.minAppVersion) < 0) {
       throw err(422, `This update needs app version ${manifest.minAppVersion} or newer (installed: ${config.appVersion}). Download and install the latest installer, then check for updates again.`, 'UPDATE_REQUIRES_NEW_APP', { minAppVersion: manifest.minAppVersion, appVersion: config.appVersion });
@@ -213,12 +213,12 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
     try {
       config.mergeSaved({ update: { ...savedUpdate(), ...patch } });
     } catch (e) {
-      // Gagal menyimpan status tidak boleh membuat update/cek gagal (AC-10).
+      // Failing to persist the status must not make the update/check fail (AC-10).
       logger.warn('could not save update status', { error: e?.message });
     }
   };
   const currentEndpoint = () => resolveEndpoint(config.readSaved());
-  // Hasil cek dari endpoint ad-hoc (override sekali pakai) tidak boleh dipakai apply() yang berjalan atas endpoint tersimpan.
+  // A check result from an ad-hoc endpoint (a one-off override) must not be used by an apply() that runs against the stored endpoint.
   const normalizedEndpoint = () => {
     try {
       return validateEndpoint(currentEndpoint().endpoint, env);
@@ -228,8 +228,8 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
   };
   const freshCache = () => (cache && now() - cache.at < CACHE_TTL_MS && cache.endpoint === normalizedEndpoint() ? cache : null);
 
-  // Hash yang tercatat untuk file ini. Tanpa installed.json, file hasil seeding yang belum disentuh
-  // (mtime <= waktu seeding) dianggap masih asli; selain itu dianggap edit lokal (konservatif).
+  // The hash recorded for this file. Without installed.json, a seeded file that has not been touched
+  // (mtime <= the seeding time) counts as still pristine; anything else counts as a local edit (conservatively).
   function recordedHash(key, dest, diskHash) {
     const installed = readInstalled();
     if (installed) return installed.files[key];
@@ -238,7 +238,7 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
     return undefined;
   }
 
-  // Instalasi pertama dari seed: catat file bawaan yang belum disentuh user supaya update berikutnya tidak menganggapnya edit lokal.
+  // The first install from the seed: record the bundled files the user has not touched, so the next update does not treat them as local edits.
   function seededFiles() {
     const seededAt = seedInfo()?.seededAt;
     const out = {};
@@ -253,7 +253,7 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
         }
       }
     };
-    try { walk(root); } catch { /* folder belum ada */ }
+    try { walk(root); } catch { /* the folder does not exist yet */ }
     return out;
   }
 
@@ -263,7 +263,7 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
     const dest = resolveInside(root, relativeInTarget(file), file.path);
     const link = assertNoSymlinks(root, dest, file.path, { allowHardlink: true });
     if (!lstatOrNull(dest)) return { file, dest, state: 'new' };
-    // Hardlink (mis. hasil restore tool backup/dedup): terbaca sebagai 'edited' supaya check tetap jalan; menulisnya baru ditolak keras.
+    // A hardlink (e.g. left by a backup/dedup tool restore): read as 'edited' so check still works; only writing to it is refused outright.
     if (link?.hardlinked) return { file, dest, state: 'edited', hardlinked: true };
     const diskHash = sha256File(dest);
     if (diskHash === file.sha256) return { file, dest, state: 'same' };
@@ -329,7 +329,7 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
       fs.renameSync(src, dest);
     } catch (e) {
       if (e.code !== 'EXDEV') throw e;
-      // Lepas entri lama dulu: copy langsung ke dest akan menulis menembus hardlink/symlink yang muncul belakangan.
+      // Detach the old entry first: copying straight to dest would write through a hardlink/symlink that appeared later.
       fs.rmSync(dest, { force: true });
       fs.copyFileSync(src, dest);
       fs.unlinkSync(src);
@@ -338,20 +338,20 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
 
   function backupFile(backupDir, entry, dest) {
     assertNoSymlinks(targetRoot(entry.target), dest, entry.path);
-    // Struktur backup mengikuti struktur asli di folder tujuan (tanpa awalan plugins/ yang hanya ada di manifest).
+    // The backup mirrors the original structure in the destination folder (without the plugins/ prefix, which only exists in the manifest).
     const target = resolveInside(path.join(backupDir, entry.target), relativeInTarget(entry), entry.path);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.copyFileSync(dest, target);
     return target;
   }
 
-  // Mengembalikan semua file yang sudah disentuh. Mengembalikan daftar kegagalan; pemanggil wajib melaporkannya,
-  // karena rollback parsial meninggalkan campuran versi lama dan baru (backup tetap ada untuk pemulihan manual).
+  // Restores every file that was already touched. Returns the list of failures; the caller must report them,
+  // because a partial rollback leaves a mix of old and new versions behind (the backup stays for manual recovery).
   function rollback(done) {
     const failures = [];
     for (const step of [...done].reverse()) {
       try {
-        // Tidak ada yang perlu dipulihkan: file baru yang belum sempat ditulis.
+        // Nothing to restore: a new file that was never written.
         if (!step.backup && !lstatOrNull(step.dest)) continue;
         assertNoSymlinks(step.root, step.dest, step.path);
         if (step.backup) {
@@ -381,7 +381,7 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
       const dirs = fs.readdirSync(backupsRoot).filter((d) => /^\d+$/.test(d)).sort((a, b) => Number(b) - Number(a));
       for (const dir of dirs.slice(BACKUP_GENERATIONS)) fs.rmSync(path.join(backupsRoot, dir), { recursive: true, force: true });
     } catch {
-      // belum ada backup
+      // no backup yet
     }
   }
 
@@ -400,7 +400,7 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
         lastResult: saved.lastResult ?? 'never',
         available: live?.data.updateAvailable ? live.data : null,
         applying,
-        // Entri lama (sebelum rename) menyimpan `version`; dinormalkan supaya UI hanya melihat satu nama.
+        // Older entries (before the rename) stored `version`; it is normalized so the UI only ever sees one name.
         history: Array.isArray(saved.history) ? saved.history.map(({ version, ...h }) => ({ ...h, contentVersion: h.contentVersion ?? version })) : [],
       };
     },
@@ -418,7 +418,7 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
     },
 
     async check({ endpoint } = {}) {
-      const target = validateEndpoint(endpoint || currentEndpoint().endpoint, env); // endpoint tersimpan pun diperiksa ulang
+      const target = validateEndpoint(endpoint || currentEndpoint().endpoint, env); // the stored endpoint is re-validated too
       const checkedAt = now();
       try {
         const manifest = await loadManifest(target);
@@ -442,10 +442,10 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
       let stagingDir = null;
       try {
         const live = freshCache();
-        // Versi yang sama atau lebih lama ditolak juga: mencegah downgrade lewat manifest lama yang masih bertanda tangan valid.
+        // The same or an older version is rejected too: this prevents a downgrade through an old manifest that is still validly signed.
         if (!live || live.manifest.contentVersion !== requested || compareVersions(requested, contentVersion()) <= 0) throw stale();
         const { manifest } = live;
-        assertAppCompatible(manifest); // sebelum apa pun diunduh
+        assertAppCompatible(manifest); // before anything is downloaded
 
         const plan = manifest.files.map(classify);
         const skipped = [];
@@ -463,13 +463,13 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
           if (!lstatOrNull(dest)) continue;
           assertNoSymlinks(root, dest, entry.path);
           const recorded = installedBefore?.files[entryKey(entry)];
-          // File yang bukan milik studio (tidak tercatat) tidak disentuh; yang sudah diedit di-skip.
+          // Files that are not the studio's (not recorded) are left alone; the ones already edited are skipped.
           if (!recorded) continue;
           if (sha256File(dest) !== recorded) skipped.push({ path: entry.path, target: entry.target, reason: 'local-edit' });
           else toRemove.push({ entry, dest });
         }
 
-        // Semua unduhan harus lolos checksum sebelum satu pun file target disentuh.
+        // Every download must pass its checksum before a single target file is touched.
         stagingDir = path.join(stagingRoot, manifest.contentVersion);
         fs.rmSync(stagingDir, { recursive: true, force: true });
         fs.mkdirSync(stagingDir, { recursive: true });
@@ -499,7 +499,7 @@ export function createUpdateService({ config, isRunActive = () => false, env = p
         try {
           for (const item of toWrite) {
             current = item.file.path;
-            // Dicatat sebelum dipindah: kalau pemindahan gagal di tengah, rollback tetap mencoba memulihkan file ini.
+            // Recorded before the move: if the move fails halfway through, the rollback still tries to restore this file.
             done.push({ dest: item.dest, root: targetRoot(item.file.target), path: item.file.path, backup: backupOf.get(item.dest) ?? null });
             moveFile(staged.get(item), item.dest, targetRoot(item.file.target), item.file.path);
             touched += 1;

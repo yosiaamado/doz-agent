@@ -1,5 +1,5 @@
-// Wizard Persiapan: memeriksa semua syarat sebelum studio dipakai dan menjalankan tes nyata.
-// Pemeriksaan cepat (tanpa biaya) di `check()`, tes yang memanggil layanan di `test(name)`.
+// The Setup wizard: checks every requirement before the studio is used, and runs the live tests.
+// Cheap checks (no cost) live in `check()`, the tests that call out to a service in `test(name)`.
 import { execFile, spawn } from 'node:child_process';
 import { ApiError, badRequest } from '../lib/errors.js';
 import { redactText } from './gitService.js';
@@ -20,7 +20,7 @@ function run(bin, args, { cwd, timeout = 30_000, input } = {}) {
 
 const result = (status, detail, extra = {}) => ({ status, detail, ...extra });
 
-// Error dari SDK/CLI diterjemahkan jadi pesan yang bisa ditindaklanjuti user.
+// Errors from the SDK/CLI are turned into messages the user can act on.
 export function friendlyError(err) {
   if (err instanceof ApiError) return err;
   const status = err?.status;
@@ -81,10 +81,10 @@ async function checkGit(cwd) {
   return result('ok', `${version.out} · ${name.out} <${email.out}>`, { name: name.out, email: email.out });
 }
 
-// Instalasi tanpa repo induk (app terpaket): pemeriksaan ini tidak berlaku, bukan gagal.
+// An installation without a parent repo (the packaged app): this check does not apply, and is not a failure.
 const skippedRepo = () => result('skipped', 'No doz-agent repository in this installation', { code: 'REPO_SKIPPED', ok: null, skipped: true });
 
-// target: 'repo' | 'workdir' — UI memetakan ke nama yang bisa diterjemahkan; `label` hanya fallback Inggris.
+// target: 'repo' | 'workdir' — the UI maps this to a translatable name; `label` is only the English fallback.
 async function checkRepo(cwd, label, target) {
   const inside = await run('git', ['rev-parse', '--is-inside-work-tree'], { cwd });
   if (!inside.ok) return result('warn', `${label} is not a git repository (per-node diff and GitHub sync are unavailable)`, { code: 'REPO_NOT_GIT', params: { target }, fix: 'git init && git remote add origin <url-github>' });
@@ -110,10 +110,10 @@ export function createSetupService({ config, apiRunner, claudeRunner }) {
   };
 
   const tests = {
-    // Menjalankan `claude -p` sungguhan dengan haiku, 1 turn.
+    // Actually runs `claude -p` with haiku, 1 turn.
     'claude-cli': async () => {
       const started = Date.now();
-      const res = await claudeRunner.judge({ prompt: 'Balas satu kata: ok', settings: { model: 'haiku' }, workdir: config.getWorkdir(), signal: AbortSignal.timeout(90_000) });
+      const res = await claudeRunner.judge({ prompt: 'Reply with one word: ok', settings: { model: 'haiku' }, workdir: config.getWorkdir(), signal: AbortSignal.timeout(90_000) });
       return result('ok', `claude -p replied "${res.output.trim().slice(0, 40)}" in ${Date.now() - started} ms`, { code: 'TEST_CLI_OK', params: { reply: res.output.trim().slice(0, 40), ms: Date.now() - started }, cost: res.cost });
     },
     api: async () => {
@@ -121,7 +121,7 @@ export function createSetupService({ config, apiRunner, claudeRunner }) {
       const res = await apiRunner.testApiConnection();
       return result('ok', `${res.model} replied "${res.reply}" in ${res.ms} ms`, { code: 'TEST_API_OK', params: { model: res.model, reply: String(res.reply).slice(0, 80), ms: res.ms } });
     },
-    // Membaca remote tanpa mengubah apa pun: membuktikan kredensial GitHub bisa dipakai.
+    // Reads the remote without changing anything: proves the GitHub credentials work.
     github: async (target = 'repo') => {
       const cwd = target === 'workdir' ? config.getWorkdir() : config.repoRoot;
       if (!cwd) throw badRequest('Repository is not available in this installation', { code: 'REPO_UNAVAILABLE' });
@@ -165,7 +165,7 @@ export function createSetupService({ config, apiRunner, claudeRunner }) {
       if (!a.ok || !b.ok) throw badRequest(a.err || b.err);
       return checkGit(config.getWorkdir());
     },
-    // `claude auth login` membuka browser di komputer ini. URL login dikembalikan kalau browser tidak terbuka otomatis.
+    // `claude auth login` opens a browser on this computer. The login URL is returned in case the browser does not open on its own.
     startClaudeLogin({ console: useConsole } = {}) {
       return new Promise((resolve) => {
         const child = spawn('claude', ['auth', 'login', ...(useConsole ? ['--console'] : [])], { shell: IS_WINDOWS, stdio: ['ignore', 'pipe', 'pipe'] });

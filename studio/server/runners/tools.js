@@ -1,4 +1,4 @@
-// Tool lokal untuk runner API. Semua path dikurung di workdir.
+// Local tools for the API runner. Every path is confined to the workdir.
 import fs from 'node:fs';
 import path from 'node:path';
 import { runCommand } from './shell.js';
@@ -9,7 +9,7 @@ const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'build', '.next', 'bi
 
 function clip(s) {
   s = String(s);
-  return s.length > MAX_RESULT ? `${s.slice(0, MAX_RESULT)}\n[... dipotong, ${s.length - MAX_RESULT} karakter lagi]` : s;
+  return s.length > MAX_RESULT ? `${s.slice(0, MAX_RESULT)}\n[... truncated, ${s.length - MAX_RESULT} characters more]` : s;
 }
 
 export function confine(workdir, p) {
@@ -52,7 +52,7 @@ function walk(root, onFile, limit = 5000) {
 const DEFS = {
   read_file: {
     from: 'Read',
-    description: 'Baca file teks. Pakai offset/limit (nomor baris) untuk file besar.',
+    description: 'Read a text file. Use offset/limit (line numbers) for large files.',
     input_schema: { type: 'object', properties: { path: { type: 'string' }, offset: { type: 'integer' }, limit: { type: 'integer' } }, required: ['path'] },
     run: ({ path: p, offset = 1, limit = 400 }, wd) => {
       const lines = fs.readFileSync(confine(wd, p), 'utf8').split('\n');
@@ -62,7 +62,7 @@ const DEFS = {
   },
   glob: {
     from: 'Glob',
-    description: 'Cari file berdasarkan pola glob relatif ke workdir, mis. "src/**/*.ts".',
+    description: 'Find files by a glob pattern relative to the workdir, e.g. "src/**/*.ts".',
     input_schema: { type: 'object', properties: { pattern: { type: 'string' } }, required: ['pattern'] },
     run: ({ pattern }, wd) => {
       const re = globToRegExp(pattern);
@@ -73,7 +73,7 @@ const DEFS = {
   },
   grep: {
     from: 'Grep',
-    description: 'Cari regex di isi file. Hasil: path:baris:isi.',
+    description: 'Search for a regex in file contents. Results: path:line:content.',
     input_schema: { type: 'object', properties: { pattern: { type: 'string' }, path: { type: 'string' }, glob: { type: 'string' } }, required: ['pattern'] },
     run: ({ pattern, path: p = '.', glob }, wd) => {
       const re = new RegExp(pattern);
@@ -95,19 +95,19 @@ const DEFS = {
   write_file: {
     from: 'Write',
     write: true,
-    description: 'Tulis (timpa) seluruh isi file.',
+    description: 'Write (overwrite) the entire contents of a file.',
     input_schema: { type: 'object', properties: { path: { type: 'string' }, content: { type: 'string' } }, required: ['path', 'content'] },
     run: ({ path: p, content }, wd) => {
       const abs = confine(wd, p);
       fs.mkdirSync(path.dirname(abs), { recursive: true });
       fs.writeFileSync(abs, content);
-      return `ditulis ${p} (${content.length} karakter)`;
+      return `wrote ${p} (${content.length} characters)`;
     },
   },
   edit_file: {
     from: 'Edit',
     write: true,
-    description: 'Ganti satu potongan teks yang persis dan unik di file.',
+    description: 'Replace one exact, unique piece of text in a file.',
     input_schema: { type: 'object', properties: { path: { type: 'string' }, old_string: { type: 'string' }, new_string: { type: 'string' } }, required: ['path', 'old_string', 'new_string'] },
     run: ({ path: p, old_string: a, new_string: b }, wd) => {
       const abs = confine(wd, p);
@@ -115,13 +115,13 @@ const DEFS = {
       const count = text.split(a).length - 1;
       if (count !== 1) throw new Error(`old_string found ${count}x, must be exactly 1x`);
       fs.writeFileSync(abs, text.replace(a, () => b));
-      return `diedit ${p}`;
+      return `edited ${p}`;
     },
   },
   bash: {
     from: 'Bash',
     write: true,
-    description: 'Jalankan perintah shell di workdir (timeout 2 menit).',
+    description: 'Run a shell command in the workdir (2 minute timeout).',
     input_schema: { type: 'object', properties: { command: { type: 'string' } }, required: ['command'] },
     run: async ({ command }, wd) => {
       const res = await runCommand({ command, workdir: wd, signal: AbortSignal.timeout(BASH_TIMEOUT_MS) });
@@ -130,7 +130,7 @@ const DEFS = {
   },
   load_skill: {
     from: 'Skill',
-    description: 'Muat isi skill doz-agent (mis. "doz-agent:backend-patterns") kalau butuh standar kerjanya.',
+    description: 'Load the contents of a doz-agent skill (e.g. "doz-agent:backend-patterns") when you need its working standards.',
     input_schema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] },
     run: ({ name }, wd, ctx) => {
       const skills = ctx?.listSkills?.() ?? [];
@@ -141,7 +141,7 @@ const DEFS = {
   },
 };
 
-// Tool agent (nama Claude Code) → tool lokal. read-only membuang tool yang bisa mengubah sesuatu.
+// Agent tools (Claude Code names) → local tools. read-only drops every tool that could change something.
 export function toolsFor(agentTools, permission) {
   const names = agentTools?.length ? agentTools : ['Read', 'Grep', 'Glob'];
   return Object.entries(DEFS)

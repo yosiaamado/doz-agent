@@ -23,7 +23,7 @@ function sources(dir, out = []) {
   return out;
 }
 
-// Semua kode SCREAMING_SNAKE yang server kirim (code/errorCode/fixCode/activityCode/warningCode/CodedError/err()/fail()).
+// Every SCREAMING_SNAKE code the server sends (code/errorCode/fixCode/activityCode/warningCode/CodedError/err()/fail()).
 function serverCodes() {
   const found = new Set();
   const context = /code|Code|CodedError|\berr\(|\bfail\(|\bresult\(/;
@@ -37,15 +37,15 @@ function serverCodes() {
 }
 
 const CODE_PREFIXES = ['error', 'logs.code', 'runner.code', 'setup.code', 'setup.fix'];
-// Env var / konstanta yang kebetulan satu baris dengan kode, bukan kode untuk UI.
+// An env var / constant that happens to sit on the same line as a code, rather than a code meant for the UI.
 const NOT_UI_CODES = new Set([
   'DOZ_UPDATE_ALLOW_HTTP', 'DOZ_STUDIO_PORT', 'DOZ_USER_DATA_DIR', 'DOZ_PLUGIN_DIR', 'DOZ_WEB_DIST', 'DOZ_RESOURCES_DIR', 'DOZ_WORKDIR',
   'ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN',
 ]);
 
-test('semua kode dari server punya terjemahan di en dan id', () => {
+test('every code from the server has a translation in en and id', () => {
   const codes = serverCodes().filter((c) => !NOT_UI_CODES.has(c));
-  assert.ok(codes.length > 60, `terlalu sedikit kode ditemukan: ${codes.length}`);
+  assert.ok(codes.length > 60, `too few codes found: ${codes.length}`);
   const missing = codes.filter((code) => {
     const kebab = kebabFromCode(code);
     return !CODE_PREFIXES.some((p) => en[`${p}.${kebab}`] && id[`${p}.${kebab}`]);
@@ -53,7 +53,7 @@ test('semua kode dari server punya terjemahan di en dan id', () => {
   assert.deepEqual(missing, []);
 });
 
-test('kode update lengkap dan pesan signature menjelaskan penyebab (fail closed)', () => {
+test('the update codes are complete and the signature message explains the cause (fail closed)', () => {
   for (const code of ['INSECURE_ENDPOINT', 'BUSY_RUN', 'ALREADY_RUNNING', 'STALE_MANIFEST', 'SIGNATURE_INVALID', 'SCHEMA_UNSUPPORTED',
     'MANIFEST_INVALID', 'PATH_REJECTED', 'CHECKSUM_MISMATCH', 'MANIFEST_TOO_LARGE', 'REQUIRES_NEW_APP', 'UNREACHABLE', 'APPLY_FAILED']) {
     const key = `error.update-${kebabFromCode(code)}`;
@@ -65,22 +65,22 @@ test('kode update lengkap dan pesan signature menjelaskan penyebab (fail closed)
   assert.match(errorMessage(tEn, off), /keeps working normally/);
 });
 
-test('setup: code + params diterjemahkan, target/source dipetakan, fixCode vs perintah mentah', () => {
+test('setup: code + params are translated, target/source are mapped, fixCode vs. a raw command', () => {
   assert.equal(checkDetail(tEn, { code: 'REPO_NOT_GIT', params: { target: 'repo' }, detail: 'raw' }), 'doz-agent repo is not a git repository (per-node diff and GitHub sync are unavailable)');
   assert.match(checkDetail(tId, { code: 'REPO_NO_ORIGIN', params: { target: 'workdir' }, detail: 'raw' }), /^Repo project tidak punya remote origin/);
   assert.equal(checkDetail(tEn, { code: 'API_KEY_SET', params: { source: 'studio' }, detail: 'raw' }), 'API key is set (saved in the studio)');
-  assert.equal(checkDetail(tEn, { detail: 'Node 20' }), 'Node 20', 'tanpa kode: teks server apa adanya');
+  assert.equal(checkDetail(tEn, { detail: 'Node 20' }), 'Node 20', 'without a code: the server text as-is');
   assert.equal(codeText(tId, 'setup.fix', 'FIX_INSTALL_GIT', undefined, 'x'), 'Pasang git dari git-scm.com');
   assert.equal(codeText(tEn, 'setup.fix', undefined, undefined, 'git init && git remote add origin <url>'), 'git init && git remote add origin <url>');
 });
 
-test('activity: activityCode diterjemahkan, null = teks apa adanya, activity kosong = tidak ada teks', () => {
+test('activity: activityCode is translated, null = the text as-is, an empty activity = no text', () => {
   let run = emptyRun('r');
   run = reduceRun(run, { type: 'node', node: 'n', status: 'running', activity: 'Judging: ok?', activityCode: 'ACTIVITY_JUDGING', ts: 1 });
   run.nodes.n.activityParams = { check: 'ok?' };
   assert.equal(nodeActivityText(tId, run.nodes.n), 'Menilai: ok?');
   run = reduceRun(run, { type: 'node', node: 'n', activity: 'Reading file', ts: 2 });
-  assert.equal(run.nodes.n.activityCode, null, 'kode lama tidak menempel');
+  assert.equal(run.nodes.n.activityCode, null, 'the previous code does not stick around');
   assert.equal(nodeActivityText(tId, run.nodes.n), 'Reading file');
   run = reduceRun(run, { type: 'node', node: 'n', activity: null, activityCode: null, ts: 3 });
   assert.equal(nodeActivityText(tEn, run.nodes.n), '');
@@ -89,7 +89,7 @@ test('activity: activityCode diterjemahkan, null = teks apa adanya, activity kos
   assert.deepEqual(run.log.at(-1).msg, { key: 'logs.code.activity-retry', params: { reason: 'x' } });
 });
 
-test('error node dan run membawa code + params untuk diterjemahkan', () => {
+test('node and run errors carry code + params so they can be translated', () => {
   let run = emptyRun('r');
   run = reduceRun(run, { type: 'node', node: 'n', status: 'running', ts: 1 });
   run = reduceRun(run, { type: 'node', node: 'n', status: 'failed', error: 'Agent "x" not found', errorCode: 'AGENT_NOT_FOUND', errorParams: { agent: 'x' }, ts: 2 });
@@ -107,7 +107,7 @@ async function withFetch(impl, fn) {
 }
 const json = (body, status = 200) => ({ status, json: async () => body });
 
-test('api update: endpoint, method, dan body sesuai kontrak', async () => {
+test('update api: the endpoint, method, and body match the contract', async () => {
   await withFetch(() => json({ success: true, data: { ok: 1 } }), async (calls) => {
     await api.updateStatus();
     await api.updateCheck();
@@ -126,7 +126,7 @@ test('api update: endpoint, method, dan body sesuai kontrak', async () => {
   });
 });
 
-test('api update: error server jadi ApiRequestError dengan code dan params; offline = SERVER_UNREACHABLE', async () => {
+test('update api: a server error becomes an ApiRequestError with code and params; offline = SERVER_UNREACHABLE', async () => {
   const body = { success: false, error: 'Cannot reach the update server', code: 'UPDATE_UNREACHABLE', params: { status: 404 } };
   await withFetch(() => json(body, 503), async () => {
     await assert.rejects(() => api.updateCheck(), (e) => e instanceof ApiRequestError && e.code === 'UPDATE_UNREACHABLE' && e.params.status === 404);
@@ -136,7 +136,7 @@ test('api update: error server jadi ApiRequestError dengan code dan params; offl
   });
 });
 
-test('kontrak versi: UI tidak lagi membaca field lama dan pesan REQUIRES_NEW_APP mengarah ke installer baru', () => {
+test('the version contract: the UI no longer reads the old field, and the REQUIRES_NEW_APP message points to the new installer', () => {
   const root = path.join(STUDIO, 'web/src');
   const src = ['features/update/UpdateDialog.jsx', 'hooks/useUpdate.js'].map((f) => fs.readFileSync(path.join(root, f), 'utf8')).join('\n');
   assert.doesNotMatch(src, /pluginVersion|currentVersion|result\.version|applied\.version|updateApply\(\{ version/);

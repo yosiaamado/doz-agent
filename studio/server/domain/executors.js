@@ -1,4 +1,4 @@
-// Eksekutor per tipe node. Setiap fungsi menerima `ctx` (WorkflowRun) dan mengembalikan hasil node.
+// One executor per node type. Each function takes `ctx` (WorkflowRun) and returns the node result.
 import { resolveSettings } from './workflow.js';
 import { buildNodePrompt, buildJudgePrompt, parseVerdict } from './prompt.js';
 import { withTimeout } from './timeout.js';

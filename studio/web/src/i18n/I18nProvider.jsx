@@ -1,4 +1,4 @@
-// Bahasa UI: disimpan di localStorage (`doz-studio:locale`), <html lang> ikut berubah.
+// The UI language: stored in localStorage (`doz-studio:locale`), and <html lang> follows it.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { readStorage, writeStorage } from '../lib/storage.js';
 import { DEFAULT_LOCALE, detectLocale, intlLocale, normalizeLocale, plural, translate } from './index.js';
