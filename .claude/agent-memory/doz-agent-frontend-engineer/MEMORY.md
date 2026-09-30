@@ -1,6 +1,6 @@
 # Memory frontend-engineer (doz studio)
 Repo: studio/ = React 19 + Vite 8 (web/), Node ESM server. Tanpa linter. Perintah dari studio/: `npm test`, `npm run build`, `npm run i18n:check`.
-Test web murni Node (`node --test`, tanpa jsdom); logika UI diuji lewat lib/*.js.
+Test web: logika murni lewat node --test; render lewat scripts/ui-smoke.js (jsdom, klik-jelajah dialog). Mock API ada di skrip itu: tambahkan route baru kalau fitur baru memanggil endpoint saat mount.
 Baseline test gagal di Windows (bukan FE): engine.test 'tool api' (path POSIX), runners.test menggantung.
 
 ## Fitur
@@ -15,3 +15,4 @@ Baseline test gagal di Windows (bukan FE): engine.test 'tool api' (path POSIX), 
 - String ber-{count} wajib .one/.other (helper tp / plural); i18n:check menegakkan pasangannya.
 - Script inline dilarang (CSP script-src 'self'): pakai file di web/public.
 - Tampilan yang butuh JSX tidak bisa diuji Node tanpa jsdom: ekstrak logika ke lib/*.js agar bisa dites.
+- Variabel loop/callback jangan bernama `t` di komponen yang memakai t() dari useI18n (membayangi terjemahan -> "t is not a function" saat render). Bug ini lolos karena tidak ada test render; sekarang scripts/ui-smoke.js (jsdom + vite ssrLoadModule) dijalankan test/ui-smoke.test.js untuk en dan id.

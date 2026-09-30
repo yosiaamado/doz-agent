@@ -32,10 +32,10 @@ function AgentFields({ form, set }) {
       </Field>
       <Field label={t('dialogs.component.field.tools')} hint={t('dialogs.component.hint.tools')}>
         <div className="tool-grid">
-          {TOOLS.map((t) => (
-            <label key={t} className="check">
-              <input type="checkbox" checked={tools.includes(t)} onChange={(e) => set('tools', e.target.checked ? [...tools, t] : tools.filter((x) => x !== t))} />
-              {t}
+          {TOOLS.map((tool) => (
+            <label key={tool} className="check">
+              <input type="checkbox" checked={tools.includes(tool)} onChange={(e) => set('tools', e.target.checked ? [...tools, tool] : tools.filter((x) => x !== tool))} />
+              {tool}
             </label>
           ))}
         </div>

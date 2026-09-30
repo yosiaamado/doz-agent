@@ -17,8 +17,8 @@ function Rail({ tab, onPick, onSources }) {
       <button type="button" className={`rail-item ${tab === 'editor' ? 'active' : ''}`} title={t('sidebar.tab.editor')} onClick={() => onPick('editor')}><LayoutGrid size={18} /></button>
       <button type="button" className={`rail-item ${tab === 'executions' ? 'active' : ''}`} title={t('sidebar.tab.executions')} onClick={() => onPick('executions')}><History size={18} /></button>
       <hr />
-      {['agent', 'skill', 'action', 'condition'].map((t) => (
-        <button key={t} type="button" className="rail-item" title={t('sidebar.rail.components')} onClick={() => onPick('editor')}><TypeIcon type={t} size={18} /></button>
+      {['agent', 'skill', 'action', 'condition'].map((type) => (
+        <button key={type} type="button" className="rail-item" title={t('sidebar.rail.components')} onClick={() => onPick('editor')}><TypeIcon type={type} size={18} /></button>
       ))}
       <button type="button" className="rail-item rail-bottom" title={t('sidebar.sources.label')} onClick={onSources}><FolderCog size={18} /></button>
     </nav>
@@ -44,7 +44,7 @@ export default function Sidebar({ tab, setTab, onSources, ...panelProps }) {
       className={`sidebar ${expanded ? 'expanded' : ''}`} onMouseEnter={expand} onMouseLeave={() => collapse()}
       onFocus={expand} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && collapse()}
     >
-      <Rail tab={tab} onPick={(t) => { setTab(t); expand(); }} onSources={onSources} />
+      <Rail tab={tab} onPick={(tabName) => { setTab(tabName); expand(); }} onSources={onSources} />
       <div className="sidebar-inner">
         <div className="sidebar-top">
           <Segmented

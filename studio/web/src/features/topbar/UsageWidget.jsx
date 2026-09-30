@@ -85,8 +85,8 @@ export default function UsageWidget() {
   const load = useCallback(() => api.usage().then(setData).catch(() => {}), []);
   useEffect(() => {
     load();
-    const t = setInterval(load, POLL_MS);
-    return () => clearInterval(t);
+    const timer = setInterval(load, POLL_MS);
+    return () => clearInterval(timer);
   }, [load]);
   useEffect(() => { if (open) load(); }, [open, load]);
 

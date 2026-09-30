@@ -193,7 +193,7 @@ export default function App() {
         />
         <div className="workspace">
           <Sidebar
-            tab={tab} setTab={(t) => { setTab(t); if (t === 'executions') runsState.refresh(); }}
+            tab={tab} setTab={(name) => { setTab(name); if (name === 'executions') runsState.refresh(); }}
             library={lib.library} onAdd={addNode} onEdit={onEditComponent}
             onCreate={(kind) => setModal({ kind: 'component', type: kind, name: null })} onSources={() => setModal({ kind: 'sources' })}
             runs={runsState.runs} workflowName={editor.meta.name} currentRunId={run.id} onSelectRun={selectRun}
