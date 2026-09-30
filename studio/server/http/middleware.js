@@ -6,16 +6,16 @@ const MAX_BODY = 25 * 1024 * 1024; // cukup untuk lampiran dokumen base64
 // Menolak request yang tidak berasal dari localhost (DNS rebinding / CSRF dari situs lain).
 export function assertLocalRequest(req) {
   const host = (req.headers.host ?? '').replace(/:\d+$/, '');
-  if (!LOCAL_HOSTS.has(host)) throw forbidden('hanya boleh diakses dari localhost');
+  if (!LOCAL_HOSTS.has(host)) throw forbidden('Only localhost may access this server', { code: 'LOCAL_ONLY' });
   const origin = req.headers.origin;
   if (!origin) return;
   let hostname;
   try {
     hostname = new URL(origin).hostname;
   } catch {
-    throw forbidden('origin tidak valid');
+    throw forbidden('Invalid origin', { code: 'ORIGIN_INVALID' });
   }
-  if (!LOCAL_HOSTS.has(hostname)) throw forbidden('origin tidak diizinkan');
+  if (!LOCAL_HOSTS.has(hostname)) throw forbidden('Origin not allowed', { code: 'ORIGIN_FORBIDDEN' });
 }
 
 export function isLocalRequest(req) {
@@ -31,12 +31,12 @@ export async function readJsonBody(req, limit = MAX_BODY) {
   let data = '';
   for await (const chunk of req) {
     data += chunk;
-    if (data.length > limit) throw badRequest('body terlalu besar');
+    if (data.length > limit) throw badRequest('Request body is too large', { code: 'BODY_TOO_LARGE' });
   }
   if (!data) return {};
   try {
     return JSON.parse(data);
   } catch {
-    throw badRequest('body bukan JSON yang valid');
+    throw badRequest('Request body is not valid JSON', { code: 'BODY_INVALID_JSON' });
   }
 }

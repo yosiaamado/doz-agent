@@ -3,6 +3,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { toolsFor, runTool } from './tools.js';
 import { describeTool, touchedFile } from './activity.js';
+import { CodedError } from '../lib/errors.js';
 
 const ALIASES = { opus: 'claude-opus-5', sonnet: 'claude-sonnet-5', haiku: 'claude-haiku-4-5' };
 const DEFAULT_MODEL = 'claude-opus-5';
@@ -65,10 +66,11 @@ async function agentLoop({ system, prompt, tools, settings, workdir, signal, onA
   let lastText = '';
   let turns = 0;
   let warning;
+  let warningCode;
   onActivity?.({ kind: 'init', text: `model ${model} (API)`, model });
 
   while (true) {
-    if (turns >= maxTurns) { warning = 'berhenti di max_turns, hasil bisa belum lengkap'; break; }
+    if (turns >= maxTurns) { warning = 'stopped at max_turns, the result may be incomplete'; warningCode = 'MAX_TURNS_REACHED'; break; }
     turns++;
     const response = await getClient().messages.create({
       ...requestParams(model, settings),
@@ -91,7 +93,7 @@ async function agentLoop({ system, prompt, tools, settings, workdir, signal, onA
     if (response.stop_reason === 'refusal') throw new Error('model menolak permintaan (refusal)');
     if (response.stop_reason === 'pause_turn') { messages.push({ role: 'assistant', content: response.content }); continue; }
     if (response.stop_reason !== 'tool_use') {
-      if (response.stop_reason === 'max_tokens') warning = 'output terpotong di max_tokens';
+      if (response.stop_reason === 'max_tokens') { warning = 'output truncated at max_tokens'; warningCode = 'MAX_TOKENS_REACHED'; }
       break;
     }
 
@@ -101,7 +103,7 @@ async function agentLoop({ system, prompt, tools, settings, workdir, signal, onA
     const results = await Promise.all(calls.map(async (call) => {
       onActivity?.({ kind: 'tool', tool: call.name, text: describeTool(call.name, call.input), file: touchedFile(call.name, call.input, workdir) });
       if (!tools.some((t) => t.name === call.name)) {
-        return { type: 'tool_result', tool_use_id: call.id, content: `tool ${call.name} tidak diizinkan`, is_error: true };
+        return { type: 'tool_result', tool_use_id: call.id, content: `tool ${call.name} is not allowed`, is_error: true };
       }
       try {
         return { type: 'tool_result', tool_use_id: call.id, content: await runTool(call.name, call.input, workdir, toolContext) };
@@ -113,7 +115,7 @@ async function agentLoop({ system, prompt, tools, settings, workdir, signal, onA
     messages.push({ role: 'user', content: results });
   }
 
-  return { output: lastText, usage, cost: estimateCost(model, usage), turns, warning };
+  return { output: lastText, usage, cost: estimateCost(model, usage), turns, warning, warningCode };
 }
 
 function describeRequest({ agent, settings }) {
@@ -136,7 +138,7 @@ export function createApiRunner({ listSkills = () => [] } = {}) {
     name: 'api',
     describe: describeRequest,
     run({ node, agent, settings, prompt, workdir, signal, onActivity, onUsage }) {
-      if (node.type === 'skill') throw new Error('node skill hanya bisa dijalankan dengan runner claude-cli');
+      if (node.type === 'skill') throw new CodedError('skill nodes can only run with the claude-cli runner', 'SKILL_NEEDS_CLAUDE_CLI');
       const tools = toolsFor(agent?.tools, settings.permission);
       return agentLoop({
         system: systemPrompt(agent, tools, workdir), prompt, tools, settings, workdir, signal, onActivity, onUsage,
@@ -144,7 +146,7 @@ export function createApiRunner({ listSkills = () => [] } = {}) {
       });
     },
     judge({ prompt, settings, workdir, signal }) {
-      return agentLoop({ system: 'Kamu penilai yang ringkas.', prompt, tools: [], settings: { ...settings, max_turns: 1 }, workdir, signal });
+      return agentLoop({ system: 'You are a concise judge.', prompt, tools: [], settings: { ...settings, max_turns: 1 }, workdir, signal });
     },
   };
 }

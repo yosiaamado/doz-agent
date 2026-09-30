@@ -26,7 +26,7 @@ function decodeXml(text) {
 export function docxToText(buffer) {
   const files = unzipSync(new Uint8Array(buffer), { filter: (f) => f.name === 'word/document.xml' });
   const xml = files['word/document.xml'];
-  if (!xml) throw new Error('bukan file docx yang valid');
+  if (!xml) throw new Error('not a valid docx file');
   const text = strFromU8(xml)
     .replace(/<w:tab\/>/g, '\t')
     .replace(/<w:br\/>|<\/w:p>/g, '\n')
@@ -40,19 +40,19 @@ export function extractText(name, buffer) {
   if (TEXT_EXT.has(ext)) return { kind: 'text', text: buffer.toString('utf8') };
   if (ext === '.pdf') return { kind: 'pdf', text: null };
   if (['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext)) return { kind: 'image', text: null };
-  throw badRequest(`Tipe file ${ext || '(tanpa ekstensi)'} belum didukung. Pakai md, txt, docx, pdf, gambar, atau file kode.`);
+  throw badRequest(`File type ${ext || '(no extension)'} is not supported yet. Use md, txt, docx, pdf, images, or code files.`, { code: 'ATTACHMENT_TYPE_UNSUPPORTED', params: { ext: ext || '' } });
 }
 
 export function createAttachmentService(config) {
   const dirOf = (id) => {
-    if (!ID_RE.test(id)) throw badRequest('id lampiran tidak valid');
+    if (!ID_RE.test(id)) throw badRequest('Invalid attachment id', { code: 'ATTACHMENT_ID_INVALID' });
     return path.join(config.attachmentsDir(), id);
   };
 
   const save = ({ name, contentBase64 }) => {
     const buffer = Buffer.from(String(contentBase64 ?? ''), 'base64');
-    if (!buffer.length) throw badRequest('file kosong');
-    if (buffer.length > MAX_BYTES) throw badRequest('file lebih dari 15 MB');
+    if (!buffer.length) throw badRequest('The file is empty', { code: 'ATTACHMENT_EMPTY' });
+    if (buffer.length > MAX_BYTES) throw badRequest('The file is larger than 15 MB', { code: 'ATTACHMENT_TOO_LARGE', params: { maxMb: 15 } });
     const fileName = safeName(name);
     const { kind, text } = extractText(fileName, buffer);
     const id = crypto.randomBytes(8).toString('hex');
@@ -68,7 +68,7 @@ export function createAttachmentService(config) {
   const load = (id) => {
     const dir = dirOf(id);
     const metaFile = path.join(dir, 'meta.json');
-    if (!fs.existsSync(metaFile)) throw notFound(`lampiran ${id} tidak ada`);
+    if (!fs.existsSync(metaFile)) throw notFound(`Attachment ${id} not found`, { code: 'ATTACHMENT_NOT_FOUND', params: { id } });
     const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
     const textFile = path.join(dir, 'text.txt');
     const text = fs.existsSync(textFile) ? fs.readFileSync(textFile, 'utf8') : null;

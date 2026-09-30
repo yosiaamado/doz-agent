@@ -4,8 +4,10 @@ import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import { usePopover } from './usePopover.js';
 import { useClickOutside } from '../../hooks/useClickOutside.js';
+import { useI18n } from '../../i18n/I18nProvider.jsx';
 
 export default function Combobox({ value, onChange, suggestions, placeholder }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
   const popRef = useRef(null);
@@ -16,7 +18,7 @@ export default function Combobox({ value, onChange, suggestions, placeholder }) 
     <div className="combo" ref={wrapRef}>
       <input value={value ?? ''} placeholder={placeholder} onChange={(e) => onChange(e.target.value || undefined)} onFocus={() => setOpen(true)}
         onKeyDown={(e) => e.key === 'Escape' && setOpen(false)} />
-      <button type="button" className="combo-btn" aria-label="Tampilkan pilihan" onClick={() => setOpen((o) => !o)}><ChevronDown size={14} /></button>
+      <button type="button" className="combo-btn" aria-label={t('common.show-options')} onClick={() => setOpen((o) => !o)}><ChevronDown size={14} /></button>
       {open && style && createPortal(
         <div ref={popRef} className="popover" style={style} role="listbox">
           <button type="button" className="option" onClick={() => pick(undefined)}><span className="option-text"><span className="option-label">{placeholder}</span></span></button>

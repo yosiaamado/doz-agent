@@ -1,8 +1,8 @@
 ---
 name: jalankan-test
-description: Jalankan test suite project. Ubah command sesuai stack (npm test, dotnet test, pytest, dll.)
+description: Run the project's test suite. Change the command to match the stack (npm test, dotnet test, pytest, etc.)
 command: npm test --silent
 timeout_min: 15
 ---
 
-Hasil PASS/FAIL dari exit code. Sambungkan ke Condition untuk loop perbaikan ke engineer kalau test gagal.
+PASS/FAIL comes from the exit code. Wire it into a Condition to loop a fix back to the engineer when tests fail.

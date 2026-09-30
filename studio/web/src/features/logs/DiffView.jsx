@@ -1,6 +1,9 @@
+import { useI18n } from '../../i18n/I18nProvider.jsx';
+
 // Tampilan unified diff dengan nomor baris lama/baru.
 export default function DiffView({ text }) {
-  if (!text?.trim()) return <div className="empty">Tidak ada perbedaan.</div>;
+  const { t } = useI18n();
+  if (!text?.trim()) return <div className="empty">{t('logs.diff.none')}</div>;
   const rows = [];
   let oldNo = 0;
   let newNo = 0;

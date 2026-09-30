@@ -1,9 +1,12 @@
-// Klien API. Server selalu membalas { success, data } atau { success: false, error, details }.
+// Klien API. Server selalu membalas { success, data } atau { success: false, error, code?, params?, details? }.
+// `code` + `params` diterjemahkan UI lewat errorMessage(); `message` (Inggris) adalah fallback.
 export class ApiRequestError extends Error {
-  constructor(message, details = []) {
+  constructor(message, { details = [], code = null, params = {} } = {}) {
     super(message);
     this.name = 'ApiRequestError';
     this.details = details ?? [];
+    this.code = code ?? null;
+    this.params = params ?? {};
   }
 }
 
@@ -16,10 +19,12 @@ async function request(method, url, body) {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiRequestError('Server studio tidak bisa dihubungi. Pastikan `npm start` masih jalan.');
+    throw new ApiRequestError('Cannot reach the studio server. Make sure it is still running.', { code: 'SERVER_UNREACHABLE' });
   }
   const json = await res.json().catch(() => ({ success: false, error: res.statusText }));
-  if (!json.success) throw new ApiRequestError(json.error ?? 'Permintaan gagal', json.details);
+  if (!json.success) {
+    throw new ApiRequestError(json.error ?? 'Request failed', { details: json.details, code: json.code, params: json.params });
+  }
   return json.data;
 }
 
@@ -55,6 +60,11 @@ export const api = {
   setGitIdentity: (name, email) => request('PUT', '/api/setup/git-identity', { name, email }),
   claudeLogin: (useConsole) => request('POST', '/api/setup/claude-login', { console: useConsole }),
   completeSetup: () => request('POST', '/api/setup/complete'),
+  updateStatus: () => request('GET', '/api/update/status'),
+  updateCheck: (endpoint) => request('POST', '/api/update/check', endpoint ? { endpoint } : {}),
+  updateApply: (body) => request('POST', '/api/update/apply', body),
+  updateSettings: () => request('GET', '/api/update/settings'),
+  saveUpdateSettings: (endpoint) => request('PUT', '/api/update/settings', { endpoint }),
   diff: (base, head, file) => request('GET', `/api/diff?${new URLSearchParams({ base, head, ...(file ? { file } : {}) })}`),
 };
 
@@ -77,7 +87,7 @@ export function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
-    reader.onerror = () => reject(new Error(`Gagal membaca ${file.name}`));
+    reader.onerror = () => reject(new ApiRequestError(`Could not read ${file.name}`, { code: 'FILE_READ_FAILED', params: { name: file.name } }));
     reader.readAsDataURL(file);
   });
 }

@@ -8,7 +8,7 @@ export function withTimeout(minutes, signal, fn) {
     if (!minutes) return;
     timer = setTimeout(() => {
       ctrl.abort();
-      reject(new Error(`timeout ${minutes} menit`));
+      reject(new Error(`timed out after ${minutes} minutes`));
     }, minutes * 60_000);
   });
   return Promise.race([fn(ctrl.signal), timeout]).finally(() => {

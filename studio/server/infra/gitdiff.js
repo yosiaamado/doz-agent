@@ -5,12 +5,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { childEnv } from '../lib/secretEnv.js';
 
 const SHA_RE = /^[0-9a-f]{40,64}$/;
 
 function git(cwd, args, env = {}) {
   return new Promise((resolve, reject) => {
-    execFile('git', args, { cwd, env: { ...process.env, ...env }, maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile('git', args, { cwd, env: childEnv(env), maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err) reject(new Error(stderr.trim() || err.message));
       else resolve(stdout);
     });
@@ -61,7 +62,7 @@ export async function changes(cwd, base, head) {
 }
 
 export async function fileDiff(cwd, base, head, file) {
-  if (!SHA_RE.test(base) || !SHA_RE.test(head)) throw Object.assign(new Error('snapshot tidak valid'), { status: 400 });
+  if (!SHA_RE.test(base) || !SHA_RE.test(head)) throw Object.assign(new Error('invalid snapshot'), { status: 400 });
   const args = ['diff', '-M', base, head];
   if (file) args.push('--', file);
   return git(cwd, args);

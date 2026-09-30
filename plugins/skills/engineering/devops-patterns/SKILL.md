@@ -1,78 +1,78 @@
 ---
 name: devops-patterns
-description: Aturan dan best practice DevOps/SRE profesional. Mencakup Docker, CI/CD GitHub Actions, supply chain security (SHA pinning, SBOM, scanning), deployment & rollback, config/secret, Nginx, Kubernetes, Terraform/IaC, observability, SLO & error budget, incident response, dan backup/DR. Pakai saat membuat atau mengubah Dockerfile, pipeline CI/CD, konfigurasi deploy, infrastruktur, monitoring, atau saat debugging build/deploy.
+description: Professional DevOps/SRE rules and best practices. Covers Docker, GitHub Actions CI/CD, supply chain security (SHA pinning, SBOM, scanning), deployment & rollback, config/secrets, Nginx, Kubernetes, Terraform/IaC, observability, SLOs & error budgets, incident response, and backup/DR. Use when creating or changing a Dockerfile, a CI/CD pipeline, deploy configuration, infrastructure, monitoring, or when debugging a build/deploy.
 ---
 
 # DevOps Patterns
 
-Isinya **keputusan default** untuk hal yang belum diatur project, bukan tutorial. Setup yang sudah ada di project **selalu menang**. Jangan menambahkan tool atau pola dari sini ke project yang belum memakainya, kecuali diminta.
+This is a set of **default decisions** for things the project hasn't settled, not a tutorial. The project's existing setup **always wins**. Don't add a tool or pattern from here to a project that doesn't already use it, unless asked.
 
-## 0. Keselamatan
+## 0. Safety
 
-- Perintah yang menyentuh environment bersama/production atau bersifat destruktif (`terraform apply/destroy`, `kubectl apply/delete` ke remote, deploy, drop DB, `prune`, perubahan IAM/DNS/firewall) **hanya dijalankan setelah user konfirmasi.** Jalankan `plan`, `diff`, atau `--dry-run` dulu dan jelaskan dampaknya.
-- Secret tidak pernah masuk git, image, log, atau output CI.
-- Semua perubahan infrastruktur lewat kode (IaC) yang di-review, bukan klik manual di console.
+- Commands that touch a shared/production environment or are destructive (`terraform apply/destroy`, `kubectl apply/delete` against a remote, deploys, dropping a DB, `prune`, IAM/DNS/firewall changes) **are run only after the user confirms.** Run `plan`, `diff`, or `--dry-run` first and explain the impact.
+- Secrets never reach git, images, logs, or CI output.
+- Every infrastructure change goes through reviewed code (IaC), not manual clicks in a console.
 
-## 1. Artefak
+## 1. Artifacts
 
-Build once, deploy many: satu image bertag git SHA dipromosikan dev → staging → prod. Yang berbeda hanya config (env). Least privilege untuk token CI, IAM role, container, dan akses DB.
+Build once, deploy many: a single image tagged with the git SHA is promoted dev → staging → prod. Only the config (env) differs. Least privilege for CI tokens, IAM roles, containers, and DB access.
 
 ## 2. Docker
 
-- Base image dipin (production: sampai digest `@sha256:...`), minimal (alpine/distroless/chiseled), tidak pernah `latest`, dan diperbarui lewat Dependabot/Renovate.
-- Multi-stage build, user non-root, `.dockerignore` (`.git`, `node_modules`, `bin/`, `obj/`, `.env*`, output test), layer diurutkan dari yang jarang berubah ke yang sering berubah.
-- Satu proses per container, log ke stdout/stderr, SIGTERM ditangani, `HEALTHCHECK` ke `/health/live`.
-- Tidak ada secret di `ARG`/`ENV`/layer image; build yang butuh secret memakai BuildKit `--mount=type=secret`.
-- Image di-scan (Trivy/Grype) di CI; build gagal kalau ada Critical/High yang sudah ada perbaikannya.
+- The base image is pinned (production: down to the digest `@sha256:...`), minimal (alpine/distroless/chiseled), never `latest`, and updated via Dependabot/Renovate.
+- Multi-stage build, non-root user, a `.dockerignore` (`.git`, `node_modules`, `bin/`, `obj/`, `.env*`, test output), layers ordered from rarely-changing to frequently-changing.
+- One process per container, logs to stdout/stderr, SIGTERM handled, `HEALTHCHECK` pointing at `/health/live`.
+- No secrets in `ARG`/`ENV`/image layers; a build needing a secret uses BuildKit `--mount=type=secret`.
+- Images are scanned (Trivy/Grype) in CI; the build fails on any Critical/High that already has a fix available.
 
-## 3. docker-compose (dev lokal)
+## 3. docker-compose (local dev)
 
-Service DB/cache memakai volume bernama dan `healthcheck`, dengan `depends_on: condition: service_healthy`. Env dari `.env` (masuk `.gitignore`), plus `.env.example` lengkap tanpa nilai rahasia. Satu command (`docker compose up`) yang tertulis di README.
+DB/cache services use named volumes and a `healthcheck`, with `depends_on: condition: service_healthy`. Env from `.env` (in `.gitignore`), plus a complete `.env.example` with no secret values. One command (`docker compose up`), documented in the README.
 
 ## 4. CI/CD (GitHub Actions)
 
 ```
-PR:   install (cache) → lint/format → type-check → unit test → build → integration test → scan (SAST, dependency, secret, image)
-main: semua di atas → build & push image (tag SHA) → deploy staging → smoke test → approval → deploy prod → verifikasi
+PR:   install (cache) → lint/format → type-check → unit tests → build → integration tests → scan (SAST, dependency, secret, image)
+main: all of the above → build & push image (SHA tag) → deploy staging → smoke tests → approval → deploy prod → verify
 ```
 
-- Target PR < 10 menit: cache dependency dan job paralel. Branch protection di `main` (wajib PR, review, CI hijau).
-- `permissions:` minimal di level workflow (`contents: read`), dinaikkan per job hanya kalau perlu.
-- Action pihak ketiga dipin ke **full commit SHA** dengan komentar versi (`uses: actions/checkout@<sha> # v4.2.2`), di-update lewat Dependabot.
-- Auth ke cloud pakai OIDC (`id-token: write`), bukan access key statis. Secret per GitHub Environment, dengan required reviewer untuk production.
-- **Jangan pakai `pull_request_target`** yang men-checkout kode PR: secret bisa bocor ke PR dari fork. Pakai `concurrency` supaya deploy ke environment yang sama tidak bertabrakan.
-- Lockfile di-commit dan install mode frozen (`npm ci`, `dotnet restore --locked-mode`). Artefak rilis punya SBOM (Syft/CycloneDX) dan attestation (`actions/attest-build-provenance`). Secret scanning + push protection aktif.
+- Target PR time < 10 minutes: cache dependencies and parallelise jobs. Branch protection on `main` (PR required, review, CI green).
+- Minimal `permissions:` at the workflow level (`contents: read`), raised per job only where needed.
+- Third-party actions pinned to a **full commit SHA** with the version in a comment (`uses: actions/checkout@<sha> # v4.2.2`), updated via Dependabot.
+- Cloud auth via OIDC (`id-token: write`), not static access keys. Secrets per GitHub Environment, with required reviewers for production.
+- **Don't use `pull_request_target`** with a checkout of the PR's code: secrets can leak to a fork PR. Use `concurrency` so deploys to the same environment don't collide.
+- The lockfile is committed and installs are frozen (`npm ci`, `dotnet restore --locked-mode`). Release artifacts carry an SBOM (Syft/CycloneDX) and an attestation (`actions/attest-build-provenance`). Secret scanning + push protection enabled.
 
-## 5. Deploy & rilis
+## 5. Deploy & release
 
-- Rolling update dengan readiness probe; canary atau blue-green untuk perubahan berisiko. Feature flag memisahkan deploy dari rilis ke user.
-- Migration DB dijalankan sebagai langkah terkontrol sebelum deploy, dan backward-compatible dengan versi aplikasi yang sedang berjalan (expand → contract).
-- Rollback = deploy ulang image SHA sebelumnya; langkahnya terdokumentasi dan pernah diuji.
-- Setelah deploy: smoke test otomatis, lalu pantau error rate dan latency ±15–30 menit; rollback kalau melewati ambang batas. Graceful shutdown: berhenti menerima request, selesaikan yang sedang berjalan.
+- Rolling updates with a readiness probe; canary or blue-green for risky changes. Feature flags separate deploying from releasing to users.
+- DB migrations run as a controlled step before the deploy, and are backward-compatible with the app version currently running (expand → contract).
+- Rollback = redeploying the previous image SHA; the steps are documented and have been tested.
+- After a deploy: automated smoke tests, then watch error rate and latency for ~15–30 minutes; roll back if it crosses the threshold. Graceful shutdown: stop accepting requests, finish the in-flight ones.
 
-## 6. Config & secret
+## 6. Config & secrets
 
-Config lewat env, divalidasi saat startup (gagal cepat kalau ada yang hilang). Secret di secret manager atau CI environment secret, dan dirotasi berkala. Dev, staging, dan prod terpisah total (credential, database, akses). Secret bocor ke git → **rotasi dulu**, baru bersihkan history.
+Config comes from the environment, validated at startup (fail fast if something's missing). Secrets live in a secret manager or CI environment secrets, and are rotated on a schedule. Dev, staging, and prod are completely separate (credentials, database, access). A secret leaked into git → **rotate first**, then clean up the history.
 
 ## 7. Nginx / reverse proxy
 
-HTTPS (TLS 1.2+, sertifikat otomatis, HTTP di-redirect) · header `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Content-Security-Policy`/`frame-ancestors` · `client_max_body_size`, timeout, `limit_req`, gzip/brotli, dan cache panjang untuk aset yang namanya ber-hash · `X-Forwarded-For`/`X-Forwarded-Proto` diteruskan, dan aplikasi hanya memercayai proxy yang dikenal · `nginx -t` sebelum reload.
+HTTPS (TLS 1.2+, automatic certificates, HTTP redirected) · the `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and `Content-Security-Policy`/`frame-ancestors` headers · `client_max_body_size`, timeouts, `limit_req`, gzip/brotli, and long cache lifetimes for hash-named assets · `X-Forwarded-For`/`X-Forwarded-Proto` passed through, and the app trusting only known proxies · `nginx -t` before a reload.
 
 ## 8. Kubernetes
 
-`resources.requests`/`limits`, `readinessProbe`, `livenessProbe` (plus `startupProbe` untuk aplikasi yang lambat start) · `securityContext`: `runAsNonRoot: true`, `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false`, drop semua capability · config lewat ConfigMap, secret lewat External Secrets/Sealed Secrets (bukan Secret mentah di git) · service penting: minimal 2 replika, PodDisruptionBudget, HPA untuk beban naik-turun, NetworkPolicy default-deny · Helm/Kustomize, idealnya GitOps (Argo CD/Flux); `kubectl diff` sebelum apply.
+`resources.requests`/`limits`, `readinessProbe`, `livenessProbe` (plus a `startupProbe` for slow-starting apps) · `securityContext`: `runAsNonRoot: true`, `readOnlyRootFilesystem: true`, `allowPrivilegeEscalation: false`, drop all capabilities · config via ConfigMaps, secrets via External Secrets/Sealed Secrets (not raw Secrets in git) · important services: at least 2 replicas, a PodDisruptionBudget, an HPA for variable load, a default-deny NetworkPolicy · Helm/Kustomize, ideally GitOps (Argo CD/Flux); `kubectl diff` before apply.
 
 ## 9. Terraform / IaC
 
-State di remote backend dengan locking dan enkripsi, tidak pernah di-commit · versi Terraform dan provider dipin, `.terraform.lock.hcl` di-commit · modul yang bisa dipakai ulang, folder/workspace per environment, tanpa nilai hardcode · alur: `fmt -check` → `validate` → `tflint`/`checkov` → `plan` (di-review di PR) → `apply` dari CI setelah approve · semua resource diberi tag (`env`, `service`, `owner`, `cost-center`) · `plan` terjadwal untuk mendeteksi drift.
+State in a remote backend with locking and encryption, never committed · Terraform and provider versions pinned, `.terraform.lock.hcl` committed · reusable modules, a folder/workspace per environment, no hardcoded values · the flow: `fmt -check` → `validate` → `tflint`/`checkov` → `plan` (reviewed in the PR) → `apply` from CI after approval · every resource tagged (`env`, `service`, `owner`, `cost-center`) · a scheduled `plan` to detect drift.
 
-## 10. Observability, alert & insiden
+## 10. Observability, alerts & incidents
 
-- Log terstruktur, metric, dan trace lewat OpenTelemetry; log & trace terpusat dengan retensi jelas dan PII di-mask. Metric RED per service, USE per resource. Dashboard per service dan uptime check eksternal ke endpoint health.
-- Alert berdasarkan gejala yang dirasakan user dan burn rate SLO, bukan setiap CPU spike. Setiap alert bisa ditindaklanjuti dan punya runbook; alert yang sering berbunyi tanpa tindakan dihapus atau diperbaiki. Error budget habis → prioritaskan reliability dibanding fitur baru.
-- Insiden: pulihkan dulu (rollback, matikan feature flag, scale), baru investigasi. Postmortem blameless untuk SEV1–SEV2; detailnya di skill `engineering-workflow`.
+- Structured logs, metrics, and traces via OpenTelemetry; logs & traces centralised with a clear retention policy and PII masked. RED metrics per service, USE per resource. A dashboard per service and an external uptime check against the health endpoint.
+- Alerts based on user-visible symptoms and SLO burn rate, not on every CPU spike. Every alert is actionable and has a runbook; an alert that fires often without anyone acting is deleted or fixed. Error budget exhausted → prioritise reliability over new features.
+- Incidents: recover first (roll back, kill the feature flag, scale), investigate after. Blameless postmortems for SEV1–SEV2; the details are in the `engineering-workflow` skill.
 
-## 11. Backup, DR & biaya
+## 11. Backup, DR & cost
 
-- Setiap sistem punya RPO dan RTO. Backup otomatis, terenkripsi, di lokasi/akun lain (3-2-1) dengan retensi jelas, plus point-in-time recovery untuk DB penting. **Restore diuji berkala**; backup yang tidak pernah diuji restore dianggap tidak ada.
-- Right-size resource dari metric pemakaian nyata, non-production di-scale down di luar jam kerja, dan budget alert dipasang di akun cloud.
+- Every system has an RPO and an RTO. Backups are automated, encrypted, in a different location/account (3-2-1) with a clear retention policy, plus point-in-time recovery for important DBs. **Restores are tested regularly**; a backup whose restore has never been tested counts as no backup at all.
+- Right-size resources from real usage metrics, scale non-production down outside working hours, and set budget alerts on the cloud account.

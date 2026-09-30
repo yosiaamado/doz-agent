@@ -11,9 +11,9 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'doz-setup-'));
 const config = createConfig({ argv: ['node', 'x', '--workdir', tmp], env: {}, localFile: path.join(tmp, 'local.json') });
 
 test('pesan error tes dibuat bisa ditindaklanjuti', () => {
-  assert.match(friendlyError({ status: 401 }).message, /API key ditolak/);
-  assert.match(friendlyError({ status: 429 }).message, /rate limit/);
-  assert.match(friendlyError(new Error('fetch failed')).message, /koneksi/);
+  assert.equal(friendlyError({ status: 401 }).code, 'API_KEY_REJECTED');
+  assert.equal(friendlyError({ status: 429 }).code, 'API_RATE_LIMITED');
+  assert.equal(friendlyError(new Error('fetch failed')).code, 'API_UNREACHABLE');
   const own = new ApiError(400, 'x');
   assert.equal(friendlyError(own), own);
 });
@@ -44,12 +44,12 @@ test('tes memakai runner yang di-inject dan hasilnya dicatat', async () => {
   const res = await setup.test('claude-cli');
   assert.equal(res.status, 'ok');
   process.env.ANTHROPIC_API_KEY = 'sk-ant-x';
-  await assert.rejects(setup.test('api'), /API key ditolak/);
+  await assert.rejects(setup.test('api'), /API key rejected/);
   delete process.env.ANTHROPIC_API_KEY;
   assert.equal(config.setupState()['claude-cli'].ok, true);
   assert.equal(config.setupState().api.ok, false);
   assert.ok(setup.complete().completedAt);
-  await assert.rejects(setup.test('lain'), /tes tidak dikenal/);
+  await assert.rejects(setup.test('lain'), /Unknown test/);
 });
 
 test('pemeriksaan lengkap mengembalikan semua item', async () => {

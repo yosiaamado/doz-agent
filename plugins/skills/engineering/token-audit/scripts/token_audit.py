@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
-"""Token & failure audit untuk satu workflow Claude Code (misalnya /ship-feature).
+"""Token & failure audit for a single Claude Code workflow (e.g. /ship-feature).
 
-Membaca transcript JSONL Claude Code, menghitung token per agent dari angka
-`usage` API (persis), mencari pola boros (perkiraan ukuran hasil tool =
-karakter / 4), membaca kegagalan dari format laporan agent (Status, Keputusan,
-temuan CR-n/QA-BUG-n/SEC-n, test/build yang gagal), lalu memberi saran
-perbaikan per agent. Temuan dicatat ke findings.csv untuk mendeteksi pola
-kegagalan yang berulang lintas workflow.
+Reads a Claude Code JSONL transcript, counts tokens per agent from the API
+`usage` figures (exact), looks for wasteful patterns (tool-result size is
+estimated as characters / 4), reads failures from the agent report format
+(Status, Decision, CR-n/QA-BUG-n/SEC-n findings, failing tests/builds), then
+suggests fixes per agent. Findings are logged to findings.csv to detect failure
+patterns that recur across workflows.
 
-Pemakaian:
-  token_audit.py                      # workflow terakhir (default: ship-feature) di session terbaru
-  token_audit.py --workflow NAMA      # workflow terakhir dengan skill NAMA
-  token_audit.py --all                # seluruh session
+Usage:
+  token_audit.py                      # the last workflow (default: ship-feature) in the newest session
+  token_audit.py --workflow NAME      # the last workflow started by skill NAME
+  token_audit.py --all                # the whole session
   token_audit.py --since 2026-09-23T10:00:00Z
-  token_audit.py --transcript PATH    # transcript tertentu
-  token_audit.py --no-log             # jangan tulis ke log tren
-  token_audit.py --compare            # bandingkan model engineer dari semua workflow yang tercatat
+  token_audit.py --transcript PATH    # a specific transcript
+  token_audit.py --no-log             # don't write to the trend log
+  token_audit.py --compare            # compare engineer models across every recorded workflow
 """
 import argparse
 import csv
@@ -27,10 +27,10 @@ import sys
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
-# Harga list API per 1 juta token: (input, output, cache read).
-# Cache write = 1.25x input (TTL 5 menit) atau 2x input (TTL 1 jam).
-# Perbarui kalau harga berubah. Langganan Pro/Max tidak ditagih per token,
-# jadi angka $ di laporan hanya pembanding antar agent.
+# API list prices per 1 million tokens: (input, output, cache read).
+# Cache write = 1.25x input (5-minute TTL) or 2x input (1-hour TTL).
+# Update when prices change. Pro/Max subscriptions are not billed per token,
+# so the $ figures in the report only serve to compare agents.
 PRICES = {
     "claude-fable-5-1": (10.0, 50.0, 0.25),
     "claude-fable-5": (10.0, 50.0, 1.0),
@@ -50,16 +50,16 @@ EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 AGENT_TOOLS = {"Agent", "Task"}
 READ_ONLY_AGENTS = {"code-reviewer", "qa-tester", "security-tester", "system-analyst", "product-owner"}
 
-# Ambang pola boros
-BIG_READ = 3000        # token, satu Read tanpa offset/limit
-BIG_BASH = 1500        # token, satu output Bash
-BIG_SKILL = 3000       # token, satu skill yang dimuat
-LONG_REPORT = 700      # token, laporan akhir subagent (~500 kata)
-NARRATION = 400        # token, total teks di antara tool call
+# Thresholds for wasteful patterns
+BIG_READ = 3000        # tokens, one Read without offset/limit
+BIG_BASH = 1500        # tokens, one Bash output
+BIG_SKILL = 3000       # tokens, one loaded skill
+LONG_REPORT = 700      # tokens, a subagent final report (~500 words)
+NARRATION = 400        # tokens, total text between tool calls
 SEARCH_BEFORE_EDIT = 12
 SEARCH_READ_ONLY = 20
-CACHE_MISS = 30000     # token cache write pada turn lanjutan
-MAIN_CONTEXT = 150000  # token konteks thread utama di akhir workflow
+CACHE_MISS = 30000     # cache-write tokens on a later turn
+MAIN_CONTEXT = 150000  # main-thread context tokens at the end of the workflow
 
 
 def tok(x):
@@ -125,25 +125,25 @@ def find_transcript():
     if not cands:
         cands = glob.glob(os.path.join(projects, "*", "*.jsonl"))
     if not cands:
-        sys.exit(f"Transcript tidak ditemukan di {projects}. Pakai --transcript PATH.")
+        sys.exit(f"No transcript found in {projects}. Use --transcript PATH.")
     return max(cands, key=os.path.getmtime)
 
 
 class Stream:
-    """Satu thread (main atau satu panggilan subagent) beserta statistiknya."""
+    """One thread (main, or a single subagent call) along with its statistics."""
 
     def __init__(self, name, entries):
         self.name = name
         self.model = None
-        self.usage = {}        # message.id -> usage (terakhir menang)
-        self.order = []        # urutan message.id
+        self.usage = {}        # message.id -> usage (the last one wins)
+        self.order = []        # order of message.id
         self.ts = {}           # message.id -> timestamp
         self.events = []       # (turn_idx, kind, data)
         self.final_text = ""
-        self.user_msgs = []    # (turn_idx berikutnya, teks) untuk pesan user biasa, bukan tool_result
+        self.user_msgs = []    # (next turn_idx, text) for ordinary user messages, not tool_result
         self._build(entries)
-        self.runs = [(0, len(self.order))]  # (turn awal, turn akhir) per run; >1 kalau agent dilanjutkan
-        self.resumes = []      # pesan SendMessage yang melanjutkan agent ini
+        self.runs = [(0, len(self.order))]  # (start turn, end turn) per run; >1 when the agent is continued
+        self.resumes = []      # the SendMessage prompts that continued this agent
 
     def _build(self, entries):
         tool_uses = {}
@@ -218,7 +218,7 @@ class Stream:
         return t
 
     def split_runs(self, prompts):
-        """Pecah stream per run: run pertama + satu run per pesan SendMessage yang melanjutkan agent ini."""
+        """Split the stream per run: the first run + one run per SendMessage that continued this agent."""
         self.resumes = list(prompts)
         starts, pos = [0], 0
         for p in prompts:
@@ -226,13 +226,13 @@ class Stream:
             hit = next(((i, turn) for i, (turn, txt) in enumerate(self.user_msgs)
                         if i >= pos and turn > starts[-1] and head and head in txt), None)
             if not hit:
-                return  # pesan lanjutan tidak ketemu di transcript: tetap dihitung satu run
+                return  # the continuation message was not found in the transcript: still counted as one run
             pos = hit[0] + 1
             starts.append(hit[1])
         self.runs = list(zip(starts, starts[1:] + [len(self.order)]))
 
     def text_in(self, start, end):
-        """Teks assistant terakhir di rentang turn [start, end), yaitu laporan akhir satu run."""
+        """The last assistant text within the turn range [start, end), i.e. one run's final report."""
         return next((d[0] for turn, kind, d in reversed(self.events) if kind == "text" and start <= turn < end), "")
 
     def cost(self, start=0, end=None):
@@ -253,7 +253,7 @@ class Stream:
                 + (u.get("cache_creation_input_tokens", 0) or 0) * pin * 1.5) / 1e6
 
     def carry_usd(self, size, turn):
-        """Perkiraan biaya satu blok konteks: ditulis sekali ke cache lalu dibaca tiap turn berikutnya."""
+        """Estimated cost of one context block: written to cache once, then read on every later turn."""
         p = price_for(self.model) or PRICES["claude-sonnet-5"]
         pin, _, pread = p
         remaining = max(self.turns - 1 - turn, 0)
@@ -269,10 +269,10 @@ class Stream:
 def slice_workflow(entries, workflow, since, use_all):
     main = [e for e in entries if not e.get("isSidechain")]
     if use_all:
-        return main, "seluruh session"
+        return main, "the whole session"
     if since:
         s = parse_ts(since)
-        return [e for e in main if (parse_ts(e.get("timestamp", "")) or s) >= s], f"sejak {since}"
+        return [e for e in main if (parse_ts(e.get("timestamp", "")) or s) >= s], f"since {since}"
     start = None
     for i, e in enumerate(main):
         msg = e.get("message") or {}
@@ -286,12 +286,12 @@ def slice_workflow(entries, workflow, since, use_all):
             if "<command-name>" in txt and workflow in txt:
                 start = i
     if start is None:
-        return main, f"seluruh session (workflow `{workflow}` tidak ditemukan)"
+        return main, f"the whole session (workflow `{workflow}` not found)"
     return main[start:], f"workflow `{workflow}`"
 
 
 def find_subagent_entries(transcript, all_entries, call):
-    """Cari transcript subagent: file subagents/, lalu sidechain inline."""
+    """Find the subagent transcript: a subagents/ file, then an inline sidechain."""
     agent_id = call.get("agent_id")
     prompt = (call.get("prompt") or "").strip()
     base = os.path.splitext(transcript)[0]
@@ -317,7 +317,7 @@ TURN_LIMIT = re.compile(r"\d+[- ]turn limit|\bturn limit\b|\bmax_?turns\b", re.I
 
 
 def notifications_in(obj):
-    """Isi setiap <task-notification> di satu entri transcript (user message atau attachment)."""
+    """The contents of every <task-notification> in one transcript entry (user message or attachment)."""
     if isinstance(obj, str):
         return NOTIFICATION.findall(obj) if "<task-notification>" in obj else []
     if isinstance(obj, dict):
@@ -328,10 +328,10 @@ def notifications_in(obj):
 
 
 def collect_calls(main_entries):
-    """Panggilan Agent plus run lanjutan lewat SendMessage, urut waktu.
+    """Agent calls plus runs continued via SendMessage, in chronological order.
 
-    Agent background hanya mengembalikan "Async agent launched" di tool_result. Laporannya
-    datang belakangan lewat <task-notification>, begitu juga laporan run lanjutan.
+    A background agent only returns "Async agent launched" in its tool_result. Its report
+    arrives later via <task-notification>, as does a continued run's report.
     """
     calls, by_id, by_agent, by_name, seen = [], {}, {}, {}, set()
     for e in main_entries:
@@ -379,7 +379,7 @@ def collect_calls(main_entries):
             c = next((c for c in calls if c["agent_id"] == tid.group(1) and c["report"] is None), None)
             if c:
                 c["report"] = res.group(1).strip() if res else ""
-                # Notifikasi "stopped at its N-turn limit": run ini mentok maxTurns, bukan laporan final.
+                # A "stopped at its N-turn limit" notification: this run hit maxTurns, it is not a final report.
                 c["limit_hit"] = bool(TURN_LIMIT.search(note.replace(res.group(0), "") if res else note))
     return calls
 
@@ -436,42 +436,42 @@ def analyse(stream, agent_type, is_main):
                         reread_usd[path] += stream.carry_usd(size, turn)[0]
                 if full and size >= BIG_READ:
                     usd, rem = stream.carry_usd(size, turn)
-                    add("Read utuh file besar", usd, f"`{os.path.basename(path)}` ~{size/1000:.1f}k tok, terbawa {rem} turn",
-                        "Grep simbolnya dulu, lalu Read dengan offset/limit. Kalau file ini selalu dibutuhkan, tulis path + bagian pentingnya di Peta file/memory.")
+                    add("Whole large file read", usd, f"`{os.path.basename(path)}` ~{size/1000:.1f}k tok, carried {rem} turns",
+                        "Grep for the symbol first, then Read with offset/limit. If this file is always needed, put its path + the important part in the file map/memory.")
             elif name == "Bash" and size >= BIG_BASH:
                 usd, rem = stream.carry_usd(size, turn)
                 cmd = re.sub(r"\s+", " ", str(inp.get("command", "")))[:60]
-                add("Output command besar", usd, f"`{cmd}` ~{size/1000:.1f}k tok, terbawa {rem} turn",
-                    "Filter output: mode quiet, `| tail -n 40`, `--stat`, atau filter test per file/nama.")
+                add("Large command output", usd, f"`{cmd}` ~{size/1000:.1f}k tok, carried {rem} turns",
+                    "Filter the output: quiet mode, `| tail -n 40`, `--stat`, or filter tests by file/name.")
             elif name in AGENT_TOOLS and is_main and size >= LONG_REPORT:
                 usd, rem = stream.carry_usd(size, turn)
-                add("Laporan subagent panjang", usd, f"laporan ~{size} tok masuk ke thread utama, terbawa {rem} turn",
-                    "Agent tidak mengikuti batas/format laporan. Perketat bagian Laporan di file agent-nya.")
+                add("Long subagent report", usd, f"a ~{size} tok report entered the main thread, carried {rem} turns",
+                    "The agent did not follow the report limit/format. Tighten the Report section in its agent file.")
         elif kind == "skill":
             name, size = data
             if size >= BIG_SKILL:
                 usd, rem = stream.carry_usd(size, turn)
-                add("Skill besar dimuat", usd, f"`{name}` ~{size/1000:.1f}k tok, terbawa {rem} turn",
-                    "Pecah skill: isi inti tetap di SKILL.md, detail ke references/ yang dibaca hanya kalau perlu.")
+                add("Large skill loaded", usd, f"`{name}` ~{size/1000:.1f}k tok, carried {rem} turns",
+                    "Split the skill: keep the core in SKILL.md, move the detail into references/ read only when needed.")
 
     for path, n in reads.items():
         if n >= 2:
-            add("File dibaca ulang", reread_usd[path], f"`{os.path.basename(path)}` dibaca utuh {n}x",
-                "Isi file sudah ada di konteks. Kalau dibaca ulang setelah edit, cukup baca bagian yang diubah.")
+            add("File re-read", reread_usd[path], f"`{os.path.basename(path)}` read in full {n}x",
+                "The file contents are already in context. If re-reading after an edit, read only the changed part.")
 
     limit = SEARCH_READ_ONLY if agent_type in READ_ONLY_AGENTS or is_main else SEARCH_BEFORE_EDIT
     count = searches_total if agent_type in READ_ONLY_AGENTS or is_main else searches_before_edit
     if count >= limit:
         read_only = agent_type in READ_ONLY_AGENTS or is_main
-        where = "total" if read_only else "sebelum edit pertama"
+        where = "total" if read_only else "before the first edit"
         turns_used = search_turns if read_only else search_turns_before_edit
-        add("Eksplorasi panjang", sum(stream.turn_usd(t) for t in turns_used), f"{count} pencarian {where}",
-            "Peta file di spec kurang lengkap, atau memory belum punya area ini. Lengkapi Peta file (path + pola acuan).")
+        add("Long exploration", sum(stream.turn_usd(t) for t in turns_used), f"{count} searches {where}",
+            "The spec's file map is incomplete, or memory does not cover this area yet. Complete the file map (paths + reference patterns).")
 
     if narration >= NARRATION:
         p = price_for(stream.model) or PRICES["claude-sonnet-5"]
-        add("Narasi di antara tool call", narration * p[1] / 1e6, f"~{narration} tok teks output di sela tool call",
-            "Aturan `Gaya output` belum diikuti. Pastikan bagian itu ada di file agent-nya.")
+        add("Narration between tool calls", narration * p[1] / 1e6, f"~{narration} tok of output text between tool calls",
+            "The `Output style` rule is not being followed. Make sure that section is present in its agent file.")
 
     prev_ts = None
     misses = []
@@ -487,30 +487,30 @@ def analyse(stream, agent_type, is_main):
         p = price_for(stream.model) or PRICES["claude-sonnet-5"]
         w_total = sum(w for _, w, _ in misses)
         long_gaps = sum(1 for _, _, g in misses if g is not None and g >= 5)
-        where = ", ".join(f"turn {t}" + (f" (jeda {g} mnt)" if g is not None and g >= 5 else "") for t, _, g in misses[:4])
-        add("Cache miss", w_total * p[0] * 1.5 / 1e6, f"{len(misses)}x, ~{w_total/1000:.0f}k tok ditulis ulang: {where}",
-            "Cache kedaluwarsa karena jeda lebih lama dari TTL" if long_gaps == len(misses) else
-            "Sebagian tanpa jeda panjang: prompt awal berubah (misalnya compaction, file CLAUDE.md/memory diubah di tengah jalan) atau jeda melewati TTL. Hindari jeda panjang di tengah workflow.")
+        where = ", ".join(f"turn {t}" + (f" ({g} min gap)" if g is not None and g >= 5 else "") for t, _, g in misses[:4])
+        add("Cache miss", w_total * p[0] * 1.5 / 1e6, f"{len(misses)}x, ~{w_total/1000:.0f}k tok rewritten: {where}",
+            "The cache expired because the gap was longer than the TTL" if long_gaps == len(misses) else
+            "Some had no long gap: the initial prompt changed (e.g. compaction, or CLAUDE.md/memory edited mid-run), or a gap exceeded the TTL. Avoid long pauses in the middle of a workflow.")
 
     if not is_main:
         mt = max_turns_of(agent_type)
-        # maxTurns berlaku per run. Kalau run lanjutan tidak bisa dipisah, jangan menebak.
+        # maxTurns applies per run. If continued runs cannot be split apart, do not guess.
         turns = max(b - a for a, b in stream.runs)
         if mt and len(stream.runs) == 1 + len(stream.resumes) and turns >= 0.8 * mt:
-            add("Hampir kehabisan turn", 0.0, f"{turns}/{mt} turn",
-                "Scope terlalu luas untuk satu panggilan. Pecah pekerjaannya atau perjelas brief.")
+            add("Nearly out of turns", 0.0, f"{turns}/{mt} turns",
+                "The scope is too broad for one call. Split the work up or make the brief clearer.")
         w1h = stream.totals()["cache_write_1h"]
         times = [stream.ts[m] for m in stream.order if stream.ts.get(m)]
         longest = max(((b - a).total_seconds() / 60 for a, b in zip(times, times[1:])), default=0)
         if w1h and longest < 5:
             p = price_for(stream.model) or PRICES["claude-sonnet-5"]
-            add("TTL cache 1 jam tidak terpakai", w1h * p[0] * (2.0 - 1.25) / 1e6,
-                f"~{w1h/1000:.0f}k tok ditulis dengan TTL 1 jam, jeda terpanjang antar-request {longest:.1f} mnt",
-                "Tanpa jeda ≥5 menit, cache 5 menit tidak pernah kedaluwarsa, jadi TTL 1 jam cuma menaikkan biaya "
-                "write dari 1,25× ke 2× harga input. Hapus `experimental.cacheTtl` dari file agent ini.")
+            add("1-hour cache TTL unused", w1h * p[0] * (2.0 - 1.25) / 1e6,
+                f"~{w1h/1000:.0f}k tok written with a 1-hour TTL, longest gap between requests {longest:.1f} min",
+                "With no gap of ≥5 minutes, the 5-minute cache never expires, so a 1-hour TTL only raises the write "
+                "cost from 1.25x to 2x the input price. Remove `experimental.cacheTtl` from this agent file.")
     elif stream.last_context() >= MAIN_CONTEXT:
-        add("Konteks thread utama besar", 0.0, f"~{stream.last_context()/1000:.0f}k tok di akhir workflow",
-            "Mulai session baru per fitur; jangan teruskan laporan agent utuh ke agent lain.")
+        add("Large main-thread context", 0.0, f"~{stream.last_context()/1000:.0f}k tok at the end of the workflow",
+            "Start a new session per feature; don't forward whole agent reports to other agents.")
     return gaps
 
 
@@ -523,7 +523,7 @@ def fmt_usd(x):
 
 
 # ---------------------------------------------------------------------------
-# Kegagalan & temuan: dibaca dari format laporan agent (Status/Keputusan/ID temuan)
+# Failures & findings: read from the agent report format (Status/Decision/finding IDs)
 
 ENGINEERS = {"backend-engineer", "frontend-engineer", "devops-engineer"}
 VERIFIERS = {"code-reviewer", "qa-tester", "security-tester"}
@@ -532,61 +532,62 @@ DEVOPS_PATH = re.compile(r"(Dockerfile|\.ya?ml$|\.github/|\.tf$|compose|helm/|k8
 BUILD_CMD = re.compile(r"\b(test|tests|build|lint|tsc|pytest|jest|vitest|playwright|dotnet|mvn|gradle|cargo|go (test|build|vet)|npm|pnpm|yarn|make|eslint|ruff|mypy)\b")
 FINDING = re.compile(r"^\s*[-*]?\s*`?(?P<id>(?:CR|QA-BUG|SEC)-\d+)`?\s+`?(?P<path>[^\s`]+?)`?:?\s+(?P<rest>.+)$")
 STATUS = re.compile(r"^\W*Status:\s*\**\s*(done|partial|blocked|needs-decision|too-big)", re.I | re.M)
-VERDICT = re.compile(r"^\W*(Keputusan|Rekomendasi):\s*(.+)$", re.I | re.M)
+VERDICT = re.compile(r"^\W*(Decision|Recommendation|Keputusan|Rekomendasi):\s*(.+)$", re.I | re.M)
 NEXT_SLICE = re.compile(r"\bslice\b", re.I)
-MAXTURNS = "maxturns"  # status semu: run berhenti di maxTurns tanpa laporan
+FIX_MODE = re.compile(r"\b(fix mode|mode perbaikan)\b", re.I)
+MAXTURNS = "maxturns"  # pseudo-status: the run stopped at maxTurns with no report
 
-# (kategori, kata kunci, saran). Urutan menentukan: kecocokan pertama menang.
-# Kata kunci dicocokkan di awal kata ("lock" tidak cocok dengan "blocking", "race" tidak cocok dengan "trace").
-# Tuple = semua grup harus cocok (minimal satu kata per grup).
-# Saran selalu berupa aturan proses umum untuk agent, bukan perbaikan error project tertentu.
+# (category, keywords, suggestion). Order matters: the first match wins.
+# Keywords are matched at a word boundary ("lock" won't match "blocking", "race" won't match "trace").
+# A tuple = every group must match (at least one word per group).
+# A suggestion is always a general process rule for the agent, never a fix for one project's error.
 CATEGORIES = [
-    ("authz-agregat", [(["permission", "authoriz", "otorisasi", "izin", "role", "akses"],
+    ("aggregate-authz", [(["permission", "authoriz", "otorisasi", "izin", "role", "akses"],
                         ["tree", "agregat", "aggregat", "dashboard", "search", "pencarian", "export", "proxy", "leak", "bocor"])],
-     "Endpoint yang menampilkan/mengagregasi resource lain (tree, dashboard, search, export, proxy) wajib memakai permission read resource aslinya, dengan test role tanpa izin resource itu."),
+     "Endpoints that display or aggregate other resources (tree, dashboard, search, export, proxy) must enforce read permission on the underlying resource, with a test for a role lacking permission on it."),
     ("state-update", ["setstate", "usestate", "usereducer", "state map", "stale state", "stale closure",
                       (["spread", "merge", "menimpa", "timpa", "overwrite"], ["state", "prev"])],
-     "Self-review frontend: update state berbentuk map/list di-merge dari nilai sebelumnya (`{...prev, [key]: v}`), dicek dengan 2 key aktif sekaligus."),
+     "Frontend self-review: state shaped as a map/list is updated by merging the previous value (`{...prev, [key]: v}`), checked with 2 keys active at once."),
     ("css-cascade", ["inline style", "specificity", "spesifisitas", "hover", "cascade", "!important"],
-     "Self-review frontend: mekanisme style/varian baru dicek di nilai dasar + hover/focus/disabled + varian bawaan; inline style mengalahkan class."),
-    ("loop/data korup", ["infinite", "loop", "rekursi", "recursion", "siklus", "cycle", "korup", "corrupt", "orphan"],
-     "Jadikan wajib di self-review: setiap loop/rekursi atas data tersimpan punya batas atau visited set, plus satu test dengan data korup (siklus/orphan)."),
-    ("test lama", ["test lama", "existing test", "test yang ada", "test yang sudah ada", "pasti gagal", "failing test", "snapshot", "regresi", "regression"],
-     "Sebelum edit, grep test yang memakai simbol yang akan diubah; setelah edit, suite penuh wajib hijau sebelum melapor."),
+     "Frontend self-review: a new style/variant mechanism is checked against the base value + hover/focus/disabled + the built-in variants; inline styles beat classes."),
+    ("loop/corrupt-data", ["infinite", "loop", "rekursi", "recursion", "siklus", "cycle", "korup", "corrupt", "orphan"],
+     "Make it mandatory in self-review: every loop/recursion over stored data has a limit or a visited set, plus one test with corrupt data (cycle/orphan)."),
+    ("existing-tests", ["test lama", "existing test", "test yang ada", "test yang sudah ada", "pasti gagal", "failing test", "snapshot", "regresi", "regression"],
+     "Before editing, grep for tests using the symbol about to change; after editing, the full suite must be green before reporting."),
     ("null/no-op", ["null", "no-op", "noop", "diam-diam", "silent", "tidak berfungsi", "tidak berefek", "undefined", "dikosongkan", "reset"],
-     "Untuk setiap field yang bisa diubah, wajib ada test varian 'mengosongkan' (null / hapus / reset) sebelum implementasi dianggap selesai."),
+     "For every editable field, a 'clearing' variant test (null / remove / reset) is required before the implementation counts as done."),
     ("authorization/IDOR", ["idor", "authoriz", "otorisasi", "milik user lain", "role", "permission", "401", "403"],
-     "Setiap endpoint baru wajib punya test akses resource milik user lain (IDOR) dan role salah, bukan hanya 401."),
+     "Every new endpoint needs a test for accessing another user's resource (IDOR) and for the wrong role, not just 401."),
     ("security", ["injection", "xss", "csrf", "secret", "ssrf", "token", "password", "hash"],
-     "Area sensitif harus selalu memicu security-tester di ship-feature; tambahkan aturan pencegahannya ke skill pattern stack terkait."),
-    ("transaksi/concurrency", ["race", "concurren", "transaksi", "transaction", "atomic", "idempoten", "deadlock", "lock"],
-     "Sebelum edit pertama, engineer wajib sudah menentukan batas transaksi dan idempotency untuk setiap operasi tulis multi-langkah."),
-    ("validasi", ["validasi", "validation", "sanitiz", "sanitasi", "input"],
-     "Validasi di boundary wajib diturunkan dari kontrak per field, dengan satu test negatif per aturan."),
-    ("kontrak", ["kontrak", "contract", "spec", "status code", "response", "field", "tipe", "type mismatch"],
-     "Engineer wajib membandingkan response nyata dengan contoh di kontrak (path, field, status, error) sebelum melapor."),
-    ("state UI", ["loading", "empty", "error state", "disabled", "double submit", "state ui", "retry"],
-     "Laporan frontend wajib menyebut bukti tiap state UI (loading/empty/error/disabled), bukan hanya daftar yang 'ditangani'."),
-    ("aksesibilitas", ["aksesibilitas", "a11y", "aria", "keyboard", "fokus", "focus", "label", "kontras"],
-     "Self-review frontend wajib mengecek label, urutan fokus, dan navigasi keyboard untuk setiap komponen interaktif baru."),
-    ("performa", ["n+1", "index", "performa", "performance", "lambat", "slow", "query dalam loop"],
-     "Self-review backend wajib mengecek query/I-O di dalam loop dan index untuk kolom filter baru."),
+     "A sensitive area must always trigger security-tester in ship-feature; add the preventive rule to the relevant stack's pattern skill."),
+    ("transaction/concurrency", ["race", "concurren", "transaksi", "transaction", "atomic", "idempoten", "deadlock", "lock"],
+     "Before the first edit, the engineer must have settled the transaction boundary and idempotency for every multi-step write."),
+    ("validation", ["validasi", "validation", "sanitiz", "sanitasi", "input"],
+     "Boundary validation must be derived from the contract field by field, with one negative test per rule."),
+    ("contract", ["kontrak", "contract", "spec", "status code", "response", "field", "tipe", "type mismatch"],
+     "The engineer must compare the actual response against the contract examples (path, fields, status, errors) before reporting."),
+    ("ui-state", ["loading", "empty", "error state", "disabled", "double submit", "state ui", "retry"],
+     "A frontend report must give evidence for each UI state (loading/empty/error/disabled), not just a list of what was 'handled'."),
+    ("accessibility", ["aksesibilitas", "a11y", "aria", "keyboard", "fokus", "focus", "label", "kontras"],
+     "Frontend self-review must check labels, focus order, and keyboard navigation for every new interactive component."),
+    ("performance", ["n+1", "index", "performa", "performance", "lambat", "slow", "query dalam loop"],
+     "Backend self-review must check for queries/I-O inside loops and for indexes on new filter columns."),
 ]
 CAT_SARAN = {c: s for c, _, s in CATEGORIES}
-CAT_SARAN["lain"] = "Belum terkategori: baca teks temuannya di findings.csv. Kalau polanya muncul di beberapa project, jadikan aturan umum di checklist self-review."
+CAT_SARAN["other"] = "Uncategorised: read the finding text in findings.csv. If the pattern shows up across several projects, turn it into a general self-review checklist rule."
 
-# Penyebab test/build gagal. agent=True berarti kesalahan kode agent; False berarti lingkungan project.
+# Causes of a failing test/build. agent=True means the agent's code is at fault; False means the project environment.
 BUILD_CAUSES = [
-    ("lingkungan", False, re.compile(r"(ECONNREFUSED|connection refused|could not connect|command not found|is not recognized|"
+    ("environment", False, re.compile(r"(ECONNREFUSED|connection refused|could not connect|command not found|is not recognized|"
                                      r"permission denied|timed? ?out|no space left|network|docker|ENOENT|address already in use)", re.I),
-     "Bukan kesalahan kode agent. Pastikan perintah & prasyarat test (DB, service) tertulis di CLAUDE.md project."),
-    ("kompilasi/tipe", True, re.compile(r"(error (CS|TS)\d+|SyntaxError|TypeError|cannot find symbol|undefined (reference|method|variable)|"
+     "Not the agent's code. Make sure the test commands & prerequisites (DB, services) are written in the project's CLAUDE.md."),
+    ("compilation/type", True, re.compile(r"(error (CS|TS)\d+|SyntaxError|TypeError|cannot find symbol|undefined (reference|method|variable)|"
                                         r"is not defined|has no attribute|ImportError|ModuleNotFoundError|Cannot find module|compil)", re.I),
-     "Agent menulis banyak kode sebelum mengecek kompilasi. Aturan umum: jalankan build/type-check setelah tiap file selesai, sebelum test."),
-    ("test gagal", True, re.compile(r"(Assert|Expected|AssertionError|FAIL|Failed|✕|×|not ok)", re.I),
-     "Agent baru menjalankan test di akhir. Aturan umum: tulis/jalankan test untuk AC yang sedang dikerjakan sebelum lanjut ke AC berikutnya."),
+     "The agent wrote a lot of code before checking that it compiles. General rule: run build/type-check after each file is finished, before the tests."),
+    ("failing-test", True, re.compile(r"(Assert|Expected|AssertionError|FAIL|Failed|✕|×|not ok)", re.I),
+     "The agent only ran tests at the end. General rule: write/run the test for the AC being worked on before moving to the next one."),
     ("lint", True, re.compile(r"(lint|eslint|ruff|prettier|stylecop|warning as error)", re.I),
-     "Jalankan formatter/lint untuk file yang diubah sebelum build penuh, atau pasang hook format otomatis di project."),
+     "Run the formatter/lint on the changed files before a full build, or add an automatic formatting hook to the project."),
 ]
 
 
@@ -596,7 +597,7 @@ def build_cause(text):
         for l in lines:
             if rx.search(l):
                 return cause, fault, l[:90]
-    return "lain", True, (lines[0][:90] if lines else "(output kosong)")
+    return "other", True, (lines[0][:90] if lines else "(empty output)")
 
 
 def _has(t, word):
@@ -614,7 +615,7 @@ def categorize(text):
     for cat, keys, _ in CATEGORIES:
         if any(_match(t, k) for k in keys):
             return cat
-    return "lain"
+    return "other"
 
 
 def owner_of(path, rest):
@@ -650,13 +651,13 @@ def parse_findings(report, source_agent, call_no):
 
 
 def near_limit(c, agent):
-    """Run tanpa baris Status/keputusan yang jumlah turn-nya sudah di batas maxTurns."""
+    """A run with no Status/decision line whose turn count is already at the maxTurns limit."""
     mt = max_turns_of(agent)
     return bool(mt and (c.get("run_turns") or 0) >= mt - 1)
 
 
 def analyse_failures(call_infos):
-    """call_infos: list of (call dict, Stream|None) dalam urutan panggilan."""
+    """call_infos: list of (call dict, Stream|None) in call order."""
     f = {"status": defaultdict(list), "verdict": defaultdict(list), "findings": [], "returned": Counter(),
          "build_fail": {}, "reappeared": [], "limit": Counter()}
     seen_calls = Counter()
@@ -671,20 +672,20 @@ def analyse_failures(call_infos):
             hit = hit or (not m and near_limit(c, agent))
             prev = f["status"][agent][-1][0] if f["status"][agent] else None
             prompt = (c.get("prompt") or "").lower()
-            # Dipanggil lagi setelah `done` tanpa Mode perbaikan dan bukan slice berikutnya = laporan dikembalikan.
-            # Setelah maxTurns/partial/needs-decision/blocked/too-big = lanjutan pekerjaan, bukan kegagalan.
+            # Re-invoked after `done` without Fix mode and not the next slice = the report was sent back.
+            # After maxTurns/partial/needs-decision/blocked/too-big = continuing the work, not a failure.
             if n > 1 and prev == MAXTURNS:
-                label = "lanjutan-maxTurns"
-            elif "mode perbaikan" in prompt:
-                label = "perbaikan"
+                label = "continued-maxTurns"
+            elif FIX_MODE.search(prompt):
+                label = "fix"
             elif n > 1 and prev == "done":
-                label = "slice berikutnya" if NEXT_SLICE.search(prompt) else "dikembalikan"
+                label = "next slice" if NEXT_SLICE.search(prompt) else "returned"
             elif n > 1:
-                label = "lanjutan"
+                label = "continued"
             else:
                 label = ""
             f["status"][agent].append((MAXTURNS if hit else (m.group(1).lower() if m else None), label))
-            if label == "dikembalikan":
+            if label == "returned":
                 f["returned"][agent] += 1
         if agent in VERIFIERS:
             m = VERDICT.search("\n".join(report.strip().splitlines()[:3]))
@@ -718,11 +719,11 @@ def render_failures(f):
     for agent, sts in f["status"].items():
         parts = []
         for st, label in sts:
-            st = "⚠ berhenti di maxTurns" if st == MAXTURNS else st
-            parts.append((st or "⚠ tanpa baris Status") + (f" ({label})" if label else ""))
+            st = "⚠ stopped at maxTurns" if st == MAXTURNS else st
+            parts.append((st or "⚠ no Status line") + (f" ({label})" if label else ""))
         lines.append(f"- **{agent}**: " + " → ".join(parts))
     for agent, vs in f["verdict"].items():
-        parts = [f"{'⚠ berhenti di maxTurns' if v == MAXTURNS else v or '⚠ tanpa keputusan'} ({nb} blocking, {nn} lain)"
+        parts = [f"{'⚠ stopped at maxTurns' if v == MAXTURNS else v or '⚠ no decision'} ({nb} blocking, {nn} other)"
                  for v, nb, nn in vs]
         lines.append(f"- **{agent}**: " + " → ".join(parts))
     blocking = [x for x in f["findings"] if x["blocking"]]
@@ -731,18 +732,18 @@ def render_failures(f):
         for x in blocking:
             per[x["owner"]][x["category"]] += 1
         for owner, cats in per.items():
-            lines.append(f"- Blocking untuk **{owner}**: " + " · ".join(f"{c} {n}" for c, n in cats.most_common()))
+            lines.append(f"- Blocking for **{owner}**: " + " · ".join(f"{c} {n}" for c, n in cats.most_common()))
     for agent, (causes, last_err) in f["build_fail"].items():
-        lines.append(f"- **{agent}**: test/build gagal {len(causes)}x di dalam agent, " + ("⚠ berakhir merah" if last_err else "akhirnya hijau"))
+        lines.append(f"- **{agent}**: test/build failed {len(causes)}x inside the agent, " + ("⚠ ended red" if last_err else "green in the end"))
         for cause, _, ev in list(dict.fromkeys(causes))[:2]:
             lines.append(f"  ↳ {cause}: `{ev}`")
         repeated = [ev for ev, n in Counter(ev for _, _, ev in causes).items() if n >= 2]
         if repeated:
-            lines.append(f"  ↳ error yang sama muncul {max(Counter(ev for _, _, ev in causes).values())}x")
+            lines.append(f"  ↳ the same error appeared {max(Counter(ev for _, _, ev in causes).values())}x")
     for agent, n in f["returned"].items():
-        lines.append(f"- **{agent}**: dipanggil ulang {n}x tanpa \"Mode perbaikan\" (laporan dikembalikan orkestrator)")
+        lines.append(f"- **{agent}**: re-invoked {n}x without \"Fix mode\" (report sent back by the orchestrator)")
     for x in f["reappeared"]:
-        lines.append(f"- ⚠ Temuan muncul lagi setelah perbaikan: {x['id']} `{x['path']}` ({x['category']})")
+        lines.append(f"- ⚠ Finding reappeared after the fix: {x['id']} `{x['path']}` ({x['category']})")
     return lines
 
 
@@ -750,37 +751,37 @@ def failure_saran(f):
     out = []
     for agent, sts in f["status"].items():
         if any(st is None for st, _ in sts):
-            out.append((agent, "Tanpa baris Status", "Agent berhenti tanpa laporan berformat (mungkin mentok maxTurns). Cek bagian Laporan dan budget turn-nya."))
+            out.append((agent, "No Status line", "The agent stopped without a formatted report (it may have hit maxTurns). Check its Report section and turn budget."))
         if any(st in ("blocked", "needs-decision") for st, _ in sts):
-            out.append((agent, "Blocked/needs-decision", "Keputusan yang ditanyakan engineer seharusnya sudah ada di spec. Tambahkan ke Keputusan & asumsi di brief berikutnya."))
+            out.append((agent, "Blocked/needs-decision", "The decision the engineer asked about should already have been in the spec. Add it to Decisions & assumptions in the next brief."))
         if any(st == "too-big" for st, _ in sts):
-            out.append((agent, "Too-big", "Pecah pekerjaan lebih kecil di tahap sizing ship-feature."))
+            out.append((agent, "Too-big", "Split the work smaller at ship-feature's sizing stage."))
     for agent in f["limit"]:
-        out.append((agent, "Berhenti di maxTurns", "Run berhenti di maxTurns tanpa laporan final. Scope per panggilan terlalu besar (pecah per slice) atau checkpoint turn di file agent tidak diikuti."))
+        out.append((agent, "Stopped at maxTurns", "The run stopped at maxTurns with no final report. The scope per call is too large (split it per slice), or the turn checkpoint in the agent file was not followed."))
     for agent in f["returned"]:
-        out.append((agent, "Laporan dikembalikan", "Laporan belum memenuhi syarat (misalnya Peta AC → test hilang). Pastikan template Laporan di file agent diikuti."))
+        out.append((agent, "Report sent back", "The report did not meet the requirements (e.g. the AC → test map was missing). Make sure the Report template in the agent file is followed."))
     for agent, (causes, last_err) in f["build_fail"].items():
         if last_err and causes[-1][1]:
-            out.append((agent, "Test/build berakhir merah", "Agent melapor dengan test/build merah. Gate Verifikasi di file agent belum dipatuhi."))
+            out.append((agent, "Test/build ended red", "The agent reported with a red test/build. The Verification gate in the agent file was not honoured."))
         per_cause = Counter(c for c, _, _ in causes)
         for cause, fault, _ in dict.fromkeys(causes):
-            saran = next(t for c, _, _, t in BUILD_CAUSES if c == cause) if cause != "lain" else None
-            # Gagal sekali di tengah iterasi itu wajar; saran hanya kalau berulang, berakhir merah, atau masalah lingkungan.
+            saran = next(t for c, _, _, t in BUILD_CAUSES if c == cause) if cause != "other" else None
+            # One failure mid-iteration is normal; only suggest when it recurs, ends red, or is environmental.
             if saran and (per_cause[cause] >= 2 or (last_err and causes[-1][0] == cause) or not fault):
                 target = agent if fault else "project"
-                out.append((target, f"Test/build gagal: {cause}", saran))
+                out.append((target, f"Test/build failed: {cause}", saran))
         counts = Counter(ev for _, _, ev in causes)
         if counts and max(counts.values()) >= 2:
-            out.append((agent, "Error sama berulang", "Agent mencoba ulang tanpa diagnosa. Aturan umum: error yang sama 2x → berhenti, pakai analytical-thinking, baru ubah kode."))
+            out.append((agent, "Same error recurring", "The agent retried without diagnosing. General rule: the same error twice → stop, use analytical-thinking, then change the code."))
     if f["reappeared"]:
         owners = {x["owner"] for x in f["reappeared"]}
         for o in owners:
-            out.append((o, "Temuan muncul lagi", "Perbaikan tidak menyentuh akar masalah. Di Mode perbaikan, minta regression test yang mereproduksi temuan sebelum fix."))
+            out.append((o, "Finding reappeared", "The fix did not address the root cause. In Fix mode, require a regression test that reproduces the finding before the fix."))
     return out
 
 
 def log_findings(log_dir, run_key, f, scope, project):
-    """Catat temuan ke findings.csv dan kembalikan pola berulang lintas workflow."""
+    """Log findings to findings.csv and return the patterns recurring across workflows."""
     path = os.path.join(log_dir, "findings.csv")
     history = []
     logged = False
@@ -828,7 +829,7 @@ def log_findings(log_dir, run_key, f, scope, project):
 
 
 # ---------------------------------------------------------------------------
-# Ringkasan per workflow: dasar perbandingan model engineer (biaya per fitur, bukan per token)
+# Per-workflow summary: the basis for comparing engineer models (cost per feature, not per token)
 
 RUN_FIELDS = ["date", "run", "project", "scope", "engineer_model", "usd", "fix_rounds", "reverify", "blocking", "returned"]
 
@@ -836,7 +837,7 @@ RUN_FIELDS = ["date", "run", "project", "scope", "engineer_model", "usd", "fix_r
 def run_summary(table, f, total_usd):
     models = sorted({model for name, model, *_ in table if name in ENGINEERS and model not in (None, "?")})
     return {"engineer_model": "+".join(models) or "-", "usd": f"{total_usd:.4f}",
-            "fix_rounds": sum(1 for sts in f["status"].values() for _, label in sts if label == "perbaikan"),
+            "fix_rounds": sum(1 for sts in f["status"].values() for _, label in sts if label == "fix"),
             "reverify": sum(max(len(vs) - 1, 0) for vs in f["verdict"].values()),
             "blocking": sum(1 for x in f["findings"] if x["blocking"]),
             "returned": sum(f["returned"].values())}
@@ -868,7 +869,7 @@ def compare_runs(log_dir):
         with open(path, encoding="utf-8") as fh:
             rows = [r for r in csv.DictReader(fh) if r.get("engineer_model") not in (None, "", "-")]
     if not rows:
-        return f"Belum ada workflow yang memakai engineer di {path}. Jalankan ship-feature beberapa kali dulu."
+        return f"No workflow in {path} has used an engineer yet. Run ship-feature a few times first."
     groups = defaultdict(list)
     for r in rows:
         groups[r["engineer_model"]].append(r)
@@ -876,20 +877,20 @@ def compare_runs(log_dir):
     def avg(rs, key):
         return sum(float(r.get(key) or 0) for r in rs) / len(rs)
 
-    out = ["## Perbandingan model engineer (rata-rata per workflow)", "",
-           "| Model engineer | Workflow | ≈ $ | Putaran perbaikan | Verifikasi ulang | Temuan blocking | Laporan dikembalikan |",
+    out = ["## Engineer model comparison (average per workflow)", "",
+           "| Engineer model | Workflows | ≈ $ | Fix rounds | Re-verifications | Blocking findings | Reports sent back |",
            "|---|---|---|---|---|---|---|"]
     for model, rs in sorted(groups.items(), key=lambda g: avg(g[1], "usd")):
         out.append(f"| {model} | {len(rs)} | {fmt_usd(avg(rs, 'usd'))} | {avg(rs, 'fix_rounds'):.1f} | "
                    f"{avg(rs, 'reverify'):.1f} | {avg(rs, 'blocking'):.1f} | {avg(rs, 'returned'):.1f} |")
     few = sorted(m for m, rs in groups.items() if len(rs) < 3)
     if few:
-        out += ["", f"Belum cukup data untuk {', '.join(few)}: tunggu minimal 3 workflow per model, dengan ukuran fitur yang sebanding."]
+        out += ["", f"Not enough data for {', '.join(few)}: wait for at least 3 workflows per model, with comparable feature sizes."]
     return "\n".join(out)
 
 
 def utf8_output():
-    """Console Windows default-nya cp1252, yang tidak bisa mencetak karakter seperti ≈ dan →."""
+    """The Windows console defaults to cp1252, which cannot print characters such as ≈ and →."""
     for s in (sys.stdout, sys.stderr):
         try:
             s.reconfigure(encoding="utf-8")
@@ -916,7 +917,7 @@ def main():
     entries = load_jsonl(transcript)
     scoped, scope = slice_workflow(entries, a.workflow, a.since, a.all)
     if not scoped:
-        sys.exit("Tidak ada entri dalam scope.")
+        sys.exit("No entries in scope.")
 
     main_stream = Stream("main", scoped)
     rows = [("main", main_stream, 1)]
@@ -925,12 +926,12 @@ def main():
     grouped = defaultdict(list)
     missing = []
     call_infos = []
-    by_root = {}  # id panggilan asal -> [stream, run lanjutan]
+    by_root = {}  # originating call id -> [stream, continued runs]
     for c in collect_calls(scoped):
         root = c.get("resume_of")
         if root:
-            # Token run lanjutan sudah ada di transcript panggilan asal. Pesan ke agent yang masih
-            # jalan, atau run yang belum selesai (tanpa notifikasi), tidak dihitung sebagai run.
+            # A continued run's tokens are already in the originating call's transcript. A message to an
+            # agent still running, or an unfinished run (no notification), does not count as a run.
             if c["report"] is not None:
                 call_infos.append((c, None))
                 by_root.setdefault(root["id"], [None, []])[1].append(c)
@@ -939,7 +940,7 @@ def main():
         stream = Stream(c["type"], ents) if ents else None
         by_root.setdefault(c["id"], [None, []])[0] = stream
         if stream:
-            c["run_turns"] = stream.turns  # diperbarui di bawah kalau agent dilanjutkan
+            c["run_turns"] = stream.turns  # updated below if the agent is continued
         call_infos.append((c, stream))
         if stream:
             grouped[c["type"]].append(stream)
@@ -949,7 +950,7 @@ def main():
         if stream and resumed:
             stream.split_runs([r["prompt"] for r in resumed])
             split = len(stream.runs) == 1 + len(resumed)
-            # Turn per run hanya bisa dipercaya kalau run lanjutan berhasil dipisah.
+            # Turns per run can only be trusted if the continued runs were split successfully.
             resumed[0]["resume_of"]["run_turns"] = stream.runs[0][1] - stream.runs[0][0] if split else None
             for k, r in enumerate(resumed, 1):
                 if split:
@@ -960,31 +961,31 @@ def main():
     for agent, n in fails["limit"].items():
         g = next((g for g in gaps if g["agent"] == agent and g["rule"] == "Hampir kehabisan turn"), None)
         if g:
-            g["detail"] += f", berhenti di maxTurns {n}x"
+            g["detail"] += f", stopped at maxTurns {n}x"
         else:
-            gaps.append({"agent": agent, "rule": "Hampir kehabisan turn", "usd": 0.0, "detail": f"berhenti di maxTurns {n}x",
-                         "saran": "Scope terlalu luas untuk satu panggilan. Pecah per slice dan pastikan checkpoint turn di file agent diikuti."})
+            gaps.append({"agent": agent, "rule": "Nearly out of turns", "usd": 0.0, "detail": f"stopped at maxTurns {n}x",
+                         "saran": "The scope is too broad for one call. Split it per slice and make sure the turn checkpoint in the agent file is followed."})
     for agent_type, streams in grouped.items():
         for s in streams:
             gaps += analyse(s, agent_type, False)
-        # Panggilan baru ke agent yang sama, ditambah run lanjutan yang berupa perbaikan atau verifikasi
-        # ulang. Lanjutan setelah needs-decision/blocked/too-big adalah sisa pekerjaan, bukan pengulangan.
+        # New calls to the same agent, plus continued runs that are a fix or a re-verification.
+        # A continuation after needs-decision/blocked/too-big is remaining work, not a repeat.
         resumed = sum(len(s.resumes) for s in streams)
         repeats, usd = len(streams) - 1, sum(s.cost() or 0 for s in streams[1:])
         for s in streams:
             split = len(s.runs) == 1 + len(s.resumes)
             for k, prompt in enumerate(s.resumes, 1):
-                if agent_type in VERIFIERS or "mode perbaikan" in (prompt or "").lower():
+                if agent_type in VERIFIERS or FIX_MODE.search(prompt or ""):
                     repeats += 1
                     usd += (s.cost(*s.runs[k]) or 0) if split else 0
         if repeats:
-            via = f", {resumed} dilanjutkan lewat SendMessage" if resumed else ""
-            gaps.append({"agent": agent_type, "rule": "Dipanggil berulang", "usd": usd,
-                         "detail": f"{len(streams) + resumed} panggilan{via} (putaran perbaikan/verifikasi ulang)",
-                         "saran": "Lihat temuan yang memicu putaran ulang. Kalau polanya berulang, tambahkan ke checklist self-review engineer."})
+            via = f", {resumed} continued via SendMessage" if resumed else ""
+            gaps.append({"agent": agent_type, "rule": "Invoked repeatedly", "usd": usd,
+                         "detail": f"{len(streams) + resumed} calls{via} (fix/re-verification rounds)",
+                         "saran": "Look at the findings that triggered the extra rounds. If the pattern recurs, add it to the engineer's self-review checklist."})
         rows.append((agent_type, streams, len(streams) + resumed))
 
-    # Tabel per agent
+    # Per-agent table
     table = []
     grand = Counter()
     grand_usd = 0.0
@@ -1011,12 +1012,12 @@ def main():
 
     start = next((parse_ts(e.get("timestamp", "")) for e in scoped if e.get("timestamp")), None)
     end = next((parse_ts(e.get("timestamp", "")) for e in reversed(scoped) if e.get("timestamp")), None)
-    dur = f", {int((end - start).total_seconds() // 60)} mnt" if start and end else ""
+    dur = f", {int((end - start).total_seconds() // 60)} min" if start and end else ""
 
     out = [f"## Token audit: {scope}{dur}",
-           f"Total ≈ {fmt_usd(grand_usd)} (harga list API; langganan Pro/Max tidak ditagih per token, pakai sebagai pembanding)",
+           f"Total ≈ {fmt_usd(grand_usd)} (API list prices; Pro/Max subscriptions are not billed per token, use this for comparison only)",
            "",
-           "| Agent | Model | Panggilan | Turn | Output | Cache read | Cache write | Input | ≈ $ | % |",
+           "| Agent | Model | Calls | Turns | Output | Cache read | Cache write | Input | ≈ $ | % |",
            "|---|---|---|---|---|---|---|---|---|---|"]
     for name, model, calls, turns, t, usd in sorted(table, key=lambda r: -(r[5] or 0)):
         pct = f"{(usd or 0) / grand_usd * 100:.0f}%" if grand_usd and usd is not None else "–"
@@ -1025,26 +1026,26 @@ def main():
     out.append(f"| **Total** | | | | {fmt_k(grand['output'])} | {fmt_k(grand['cache_read'])} | {fmt_k(grand['cache_write'])} | "
                f"{fmt_k(grand['input'])} | {fmt_usd(grand_usd)} | |")
     if missing:
-        out.append("\n\\* Transcript subagent tidak ditemukan; angka dari ringkasan hasil Agent, tanpa analisis gap.")
+        out.append("\n\\* Subagent transcript not found; figures come from the Agent result summary, with no gap analysis.")
 
-    # Gap terbesar
+    # Biggest gaps
     gaps.sort(key=lambda g: -g["usd"])
     costed = [g for g in gaps if g["usd"] >= 0.005][:a.top]
     signals = [g for g in gaps if g["usd"] < 0.005]
     if gaps:
         if costed:
-            out += ["", "### Gap terbesar (urut perkiraan dampak)"]
+            out += ["", "### Biggest gaps (ordered by estimated impact)"]
             for i, g in enumerate(costed, 1):
                 out.append(f"{i}. **{g['agent']}**: {g['rule']}: {g['detail']} · ≈ ${g['usd']:.2f}")
         if signals:
-            out += ["", "Sinyal lain: " + " · ".join(f"**{g['agent']}** {g['rule'].lower()} ({g['detail']})" for g in signals[:4])]
+            out += ["", "Other signals: " + " · ".join(f"**{g['agent']}** {g['rule'].lower()} ({g['detail']})" for g in signals[:4])]
         gaps = costed + signals
     else:
-        out += ["", "Tidak ada pola boros yang melewati ambang."]
+        out += ["", "No wasteful pattern crossed the threshold."]
 
     fail_lines = render_failures(fails)
     if fail_lines:
-        out += ["", "### Kegagalan & temuan"] + fail_lines
+        out += ["", "### Failures & findings"] + fail_lines
 
     sid = os.path.splitext(os.path.basename(transcript))[0]
     run_key = f"{sid}|{start.isoformat() if start else ''}"
@@ -1052,19 +1053,19 @@ def main():
     project = next((os.path.basename(e["cwd"]) for e in scoped if e.get("cwd")), "?")
     pola = [] if a.no_log else log_findings(log_dir, run_key, fails, scope, project)
     if pola:
-        out += ["", "### Pola kegagalan berulang"]
+        out += ["", "### Recurring failure patterns"]
         for owner, cat, n, total, nproj, ev in pola:
-            lintas = f", {nproj} project" if nproj > 1 else ""
-            out.append(f"- **{owner}** · {cat}: blocking di {n} dari {total} workflow terakhir{lintas}")
+            lintas = f", {nproj} projects" if nproj > 1 else ""
+            out.append(f"- **{owner}** · {cat}: blocking in {n} of the last {total} workflows{lintas}")
             for proj, fid, fname, text in ev:
                 out.append(f"  ↳ {proj} {fid} {fname}: {text[:70]}")
 
     def target_of(agent):
         if agent == "project":
-            return "CLAUDE.md project (bukan agent)"
-        return "thread utama / skill workflow" if agent == "main" else f"`plugins/agents/{agent}.md`"
+            return "the project's CLAUDE.md (not an agent)"
+        return "main thread / workflow skill" if agent == "main" else f"`plugins/agents/{agent}.md`"
 
-    saran = [(owner, f"Pola berulang: {cat}", CAT_SARAN.get(cat, CAT_SARAN["lain"])) for owner, cat, *_ in pola]
+    saran = [(owner, f"Recurring pattern: {cat}", CAT_SARAN.get(cat, CAT_SARAN["other"])) for owner, cat, *_ in pola]
     saran += failure_saran(fails)
     seen = set()
     for g in gaps:
@@ -1074,11 +1075,11 @@ def main():
             saran.append((g["agent"], g["rule"], g["saran"]))
     saran = list(dict.fromkeys(saran))
     if saran:
-        out += ["", "### Saran perbaikan (kegagalan dulu, lalu token)"]
+        out += ["", "### Suggested fixes (failures first, then tokens)"]
         for agent, rule, text in saran:
             out.append(f"- {target_of(agent)} · **{rule}**: {text}")
 
-    # Log tren
+    # Trend log
     if not a.no_log:
         log = os.path.join(log_dir, "token-audit.csv")
         prev = defaultdict(list)
@@ -1099,12 +1100,12 @@ def main():
             if usd is not None and len(hist) >= 2:
                 avg = sum(hist) / len(hist)
                 if avg > 0:
-                    trend.append(f"{name} {fmt_usd(usd)} ({(usd - avg) / avg * 100:+.0f}% vs rata-rata {len(hist)} run)")
+                    trend.append(f"{name} {fmt_usd(usd)} ({(usd - avg) / avg * 100:+.0f}% vs the average of {len(hist)} runs)")
         if trend:
-            out += ["", "Tren: " + " · ".join(trend)]
+            out += ["", "Trend: " + " · ".join(trend)]
         try:
             if logged:
-                raise OSError("sudah tercatat")
+                raise OSError("already logged")
             os.makedirs(log_dir, exist_ok=True)
             new = not os.path.exists(log)
             with open(log, "a", newline="", encoding="utf-8") as f:

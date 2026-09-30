@@ -1,21 +1,21 @@
 # .NET / C# Backend Rules
 
-Aturan ini **menimpa** aturan dasar di `SKILL.md` untuk project .NET (ASP.NET Core + EF Core). Kalau project yang sudah ada punya pola berbeda, ikuti project-nya.
+These rules **override** the base rules in `SKILL.md` for .NET projects (ASP.NET Core + EF Core). If an existing project follows a different pattern, follow the project.
 
-## 1. Alur layer
+## 1. Layer flow
 
 ```
-Controller  →  IXxxService (interface)  →  XxxService (implementasi)  →  AppDbContext
+Controller  →  IXxxService (interface)  →  XxxService (implementation)  →  AppDbContext
 ```
 
-- **Controller** hanya urusan HTTP: menerima request DTO, memanggil interface service, dan mengembalikan `ActionResult`. Tidak ada business logic, dan tidak boleh menyentuh `AppDbContext`.
-- **Controller bergantung pada interface**, tidak pernah pada class service secara langsung.
-- **Service** berisi business logic dan memakai `AppDbContext` langsung. **Tidak ada layer repository**, karena `DbContext` sudah berperan sebagai unit of work dan repository.
-- Service mengembalikan DTO, bukan entity, supaya entity tidak bocor ke response API.
+- **The controller** handles HTTP only: it accepts the request DTO, calls the service interface, and returns an `ActionResult`. No business logic, and it must never touch `AppDbContext`.
+- **The controller depends on the interface**, never on the service class directly.
+- **The service** holds the business logic and uses `AppDbContext` directly. **There is no repository layer**, because `DbContext` already acts as both unit of work and repository.
+- Services return DTOs, not entities, so entities never leak into the API response.
 
-## 2. Struktur solution
+## 2. Solution structure
 
-Setiap layer adalah project terpisah. `<App>` diganti nama aplikasinya.
+Each layer is a separate project. Replace `<App>` with the application's name.
 
 ```
 <App>.sln
@@ -26,16 +26,16 @@ src/
 │   ├── Middlewares/
 │   │   ├── ExceptionHandlingMiddleware.cs
 │   │   └── RequestLoggingMiddleware.cs
-│   ├── Extensions/                 # registrasi DI, auth, swagger, dll.
+│   ├── Extensions/                 # DI, auth, swagger registration, etc.
 │   │   └── ServiceCollectionExtensions.cs
-│   ├── Filters/                    # action filter (opsional)
+│   ├── Filters/                    # action filters (optional)
 │   ├── appsettings.json
 │   └── Program.cs
 │
-├── <App>.Core/                     # business logic & akses data
+├── <App>.Core/                     # business logic & data access
 │   ├── Data/
 │   │   ├── AppDbContext.cs
-│   │   ├── Configurations/         # IEntityTypeConfiguration<T> per entity
+│   │   ├── Configurations/         # one IEntityTypeConfiguration<T> per entity
 │   │   │   └── OrderConfiguration.cs
 │   │   └── Migrations/
 │   ├── Interfaces/
@@ -45,10 +45,10 @@ src/
 │   ├── Validators/                 # FluentValidation
 │   │   └── CreateOrderRequestValidator.cs
 │   ├── Mappings/                   # entity <-> DTO
-│   ├── Exceptions/                 # NotFoundException, BusinessException, dll.
-│   └── DependencyInjection.cs      # AddCore(): registrasi AppDbContext & service
+│   ├── Exceptions/                 # NotFoundException, BusinessException, etc.
+│   └── DependencyInjection.cs      # AddCore(): registers AppDbContext & services
 │
-└── <App>.Model/                    # entity & kontrak (tanpa logic)
+└── <App>.Model/                    # entities & contracts (no logic)
     ├── Entities/
     │   ├── BaseEntity.cs
     │   └── Order.cs
@@ -58,25 +58,25 @@ src/
     │       └── OrderResponse.cs
     └── Enums/
 tests/
-├── <App>.Core.Tests/               # unit test service
-└── <App>.Api.Tests/                # integration test (WebApplicationFactory)
+├── <App>.Core.Tests/               # service unit tests
+└── <App>.Api.Tests/                # integration tests (WebApplicationFactory)
 ```
 
-### Project reference (satu arah)
+### Project references (one direction)
 
 ```
 <App>.Api  →  <App>.Core  →  <App>.Model
 ```
 
-- `.Api` me-reference `.Core` (dan `.Model` untuk DTO).
-- `.Core` me-reference `.Model`, dan memegang package EF Core (provider DB, `Microsoft.EntityFrameworkCore.Design`).
-- `.Model` tidak me-reference project lain dan **tidak** bergantung pada EF Core. Isinya POCO murni.
-- **Tidak boleh ada reference terbalik** (misalnya `.Model` → `.Core`).
+- `.Api` references `.Core` (and `.Model` for the DTOs).
+- `.Core` references `.Model`, and holds the EF Core packages (the DB provider, `Microsoft.EntityFrameworkCore.Design`).
+- `.Model` references no other project and does **not** depend on EF Core. It contains pure POCOs.
+- **No reverse references** (e.g. `.Model` → `.Core`).
 
-### Setup solution (file di root)
+### Solution setup (root files)
 
-- **Target framework:** versi LTS terbaru (.NET 10), kecuali project sudah memakai versi lain.
-- **`Directory.Build.props`** berisi setting yang dipakai semua project:
+- **Target framework:** the latest LTS version (.NET 10), unless the project already uses another.
+- **`Directory.Build.props`** holds the settings shared by every project:
   ```xml
   <Project>
     <PropertyGroup>
@@ -89,11 +89,11 @@ tests/
     </PropertyGroup>
   </Project>
   ```
-- **`Directory.Packages.props`** mengaktifkan Central Package Management (`<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>`), supaya versi NuGet diatur di satu tempat.
-- **`.editorconfig`** berisi aturan gaya dan penamaan. Format dicek di CI dengan `dotnet format --verify-no-changes`.
-- **`global.json`** mengunci versi SDK supaya build sama di semua mesin dan CI.
+- **`Directory.Packages.props`** enables Central Package Management (`<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>`), so NuGet versions are managed in one place.
+- **`.editorconfig`** holds the style and naming rules. Formatting is checked in CI with `dotnet format --verify-no-changes`.
+- **`global.json`** pins the SDK version so builds are identical on every machine and in CI.
 
-## 3. Contoh kode
+## 3. Code examples
 
 ### Entity (`.Model/Entities`)
 
@@ -139,9 +139,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 }
 ```
 
-### Konfigurasi entity (`.Core/Data/Configurations`)
+### Entity configuration (`.Core/Data/Configurations`)
 
-Konfigurasi pakai Fluent API, bukan data annotation di entity.
+Configure with the Fluent API, not with data annotations on the entity.
 
 ```csharp
 public class OrderConfiguration : IEntityTypeConfiguration<Order>
@@ -186,7 +186,7 @@ public class OrderService(AppDbContext db, ILogger<OrderService> logger) : IOrde
         var order = await db.Orders
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id, ct)
-            ?? throw new NotFoundException($"Order {id} tidak ditemukan");
+            ?? throw new NotFoundException($"Order {id} not found");
 
         return order.ToResponse();
     }
@@ -195,9 +195,9 @@ public class OrderService(AppDbContext db, ILogger<OrderService> logger) : IOrde
     {
         var order = new Order { /* ... */ };
         db.Orders.Add(order);
-        await db.SaveChangesAsync(ct);   // satu SaveChanges sudah atomic; transaksi manual: lihat §4
+        await db.SaveChangesAsync(ct);   // a single SaveChanges is already atomic; manual transactions: see §4
 
-        logger.LogInformation("Order {OrderId} dibuat", order.Id);
+        logger.LogInformation("Order {OrderId} created", order.Id);
         return order.ToResponse();
     }
 }
@@ -224,14 +224,14 @@ public class OrdersController(IOrderService orderService) : ControllerBase
 }
 ```
 
-### Registrasi DI
+### DI registration
 
 ```csharp
 // <App>.Core/DependencyInjection.cs
 public static IServiceCollection AddCore(this IServiceCollection services, IConfiguration config)
 {
     services.AddDbContext<AppDbContext>(opt =>
-        opt.UseSqlServer(config.GetConnectionString("Default")));   // atau UseNpgsql
+        opt.UseSqlServer(config.GetConnectionString("Default")));   // or UseNpgsql
 
     services.AddScoped<IOrderService, OrderService>();
     services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
@@ -241,14 +241,14 @@ public static IServiceCollection AddCore(this IServiceCollection services, IConf
 // <App>.Api/Program.cs
 builder.Services.AddCore(builder.Configuration);
 builder.Services.AddControllers();
-builder.Services.AddProblemDetails();                 // format error RFC 9457
-builder.Services.AddOpenApi();                        // dokumentasi kontrak API
+builder.Services.AddProblemDetails();                 // RFC 9457 error format
+builder.Services.AddOpenApi();                        // API contract documentation
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
-builder.Services.AddRateLimiter(/* policy untuk login/OTP & endpoint mahal */);
-// OpenTelemetry: tracing + metric ASP.NET Core, HttpClient, EF Core
+builder.Services.AddRateLimiter(/* policies for login/OTP & expensive endpoints */);
+// OpenTelemetry: tracing + metrics for ASP.NET Core, HttpClient, EF Core
 
 var app = builder.Build();
-app.UseMiddleware<ExceptionHandlingMiddleware>();     // paling awal di pipeline
+app.UseMiddleware<ExceptionHandlingMiddleware>();     // first in the pipeline
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -259,9 +259,9 @@ app.MapHealthChecks("/health/ready");
 app.Run();
 ```
 
-### Middleware error (`.Api/Middlewares`)
+### Error middleware (`.Api/Middlewares`)
 
-Satu tempat untuk memetakan exception ke HTTP status dengan response `ProblemDetails` (RFC 9457, `application/problem+json`). Response selalu menyertakan `traceId` (`Activity.Current?.Id ?? HttpContext.TraceIdentifier`) dan `code` error yang stabil. Error validasi menyertakan `errors` per field.
+A single place that maps exceptions to HTTP statuses with a `ProblemDetails` response (RFC 9457, `application/problem+json`). The response always includes a `traceId` (`Activity.Current?.Id ?? HttpContext.TraceIdentifier`) and a stable error `code`. Validation errors include `errors` per field.
 
 | Exception | Status |
 |---|---|
@@ -271,59 +271,59 @@ Satu tempat untuk memetakan exception ke HTTP status dengan response `ProblemDet
 | `NotFoundException` | 404 |
 | `ConflictException` | 409 |
 | `BusinessException` | 422 |
-| lainnya | 500 (pesan generik, detail hanya masuk log) |
+| anything else | 500 (generic message, details go to the log only) |
 
-Controller dan service **tidak** memakai try/catch hanya untuk mengubah exception jadi response.
+Controllers and services do **not** use try/catch merely to turn an exception into a response.
 
-## 4. Aturan coding C#
+## 4. C# coding rules
 
-- **Async sampai ujung:** method I/O pakai `async`/`await` dengan suffix `Async`, dan meneruskan `CancellationToken`. Jangan pakai `.Result` atau `.Wait()`.
-- **Lifetime DI:** service dan `DbContext` = `Scoped`. Jangan inject service scoped ke singleton.
-- **Query EF:**
-  - `AsNoTracking()` untuk query baca.
-  - Pakai `Select` langsung ke DTO kalau tidak butuh entity utuh.
-  - Hindari N+1: pakai `Include` atau proyeksi, dan jangan query di dalam loop.
-  - Pagination pakai `Skip`/`Take` dengan `OrderBy` yang jelas.
-  - Jangan panggil `ToList()` sebelum filter.
-- **Migration** dibuat dengan
-  `dotnet ef migrations add <Nama> -p src/<App>.Core -s src/<App>.Api -o Data/Migrations`.
-  Jangan edit migration yang sudah di-apply.
-- **Validasi** pakai FluentValidation di `.Core/Validators`, dan dijalankan otomatis sebelum masuk service.
-- **Mapping** pakai extension method manual (`ToResponse()`) di `.Core/Mappings`, kecuali project sudah memakai AutoMapper/Mapster.
-- **Config** memakai Options pattern (`IOptions<T>`) dengan `ValidateOnStart()`. Secret diambil dari User Secrets (dev) atau env/secret manager (prod), tidak pernah dari `appsettings.json`.
-- **Nullable reference types** diaktifkan (`<Nullable>enable</Nullable>`), dan warning nullable diperlakukan serius.
-- **Penamaan:**
-  - PascalCase untuk class, method, dan property.
-  - `_camelCase` untuk private field.
-  - Interface diawali `I`.
-  - DTO berakhiran `Request`/`Response`.
-  - Satu class per file, dengan namespace mengikuti folder (file-scoped namespace).
-- **Logging** memakai `ILogger<T>` dengan structured template (`"Order {OrderId}"`), bukan string interpolation.
-- **Uang** memakai `decimal` dengan `HasPrecision(18, 2)`.
-- **Waktu** disimpan dalam UTC. Inject `TimeProvider` (jangan memanggil `DateTime.UtcNow` langsung di service) supaya waktu bisa di-mock di test.
-- **Concurrency:** entity yang bisa diubah bersamaan diberi token versi (`[Timestamp] byte[] RowVersion` / `IsRowVersion()`), dan `DbUpdateConcurrencyException` dipetakan ke 409.
-- **Transaksi manual** hanya untuk beberapa `SaveChangesAsync`/raw SQL yang harus atomic. Kalau `EnableRetryOnFailure` aktif, `BeginTransactionAsync` langsung akan melempar `InvalidOperationException`; bungkus dengan `db.Database.CreateExecutionStrategy().ExecuteAsync(async () => { /* BeginTransactionAsync … CommitAsync */ })`. Isi lambda harus aman diulang dari awal.
-- **Pagination:** `page` ≥ 1 dan `pageSize` 1–100 divalidasi (400 kalau di luar batas), supaya client tidak bisa meminta seluruh tabel. Batas atas `page` juga divalidasi supaya `(page - 1) * pageSize` untuk `Skip` tidak overflow `int`.
-- **HttpClient** ke layanan eksternal lewat `IHttpClientFactory` (typed client) dengan timeout dan resilience handler (`AddStandardResilienceHandler()`). Jangan `new HttpClient()` per request.
-- **Versioning API** pakai `Asp.Versioning.Mvc` kalau butuh lebih dari satu versi aktif. Route tetap `/api/v{version}/...`.
-- **Authorization** memakai policy (`[Authorize(Policy = "...")]`), dan pengecekan kepemilikan resource dilakukan di service (filter berdasarkan `userId`/`tenantId` di query), bukan hanya di controller.
-- **Secret lokal** pakai `dotnet user-secrets`. `appsettings.json` hanya berisi nilai non-rahasia.
+- **Async all the way:** I/O methods use `async`/`await` with an `Async` suffix, and pass the `CancellationToken` through. Don't use `.Result` or `.Wait()`.
+- **DI lifetimes:** services and `DbContext` = `Scoped`. Don't inject a scoped service into a singleton.
+- **EF queries:**
+  - `AsNoTracking()` for read queries.
+  - `Select` straight into the DTO when you don't need the whole entity.
+  - Avoid N+1: use `Include` or a projection, and never query inside a loop.
+  - Pagination uses `Skip`/`Take` with an explicit `OrderBy`.
+  - Don't call `ToList()` before filtering.
+- **Migrations** are created with
+  `dotnet ef migrations add <Name> -p src/<App>.Core -s src/<App>.Api -o Data/Migrations`.
+  Don't edit a migration that has already been applied.
+- **Validation** uses FluentValidation in `.Core/Validators`, run automatically before reaching the service.
+- **Mapping** uses hand-written extension methods (`ToResponse()`) in `.Core/Mappings`, unless the project already uses AutoMapper/Mapster.
+- **Config** uses the Options pattern (`IOptions<T>`) with `ValidateOnStart()`. Secrets come from User Secrets (dev) or env/a secret manager (prod), never from `appsettings.json`.
+- **Nullable reference types** are enabled (`<Nullable>enable</Nullable>`), and nullable warnings are taken seriously.
+- **Naming:**
+  - PascalCase for classes, methods, and properties.
+  - `_camelCase` for private fields.
+  - Interfaces are prefixed with `I`.
+  - DTOs are suffixed `Request`/`Response`.
+  - One class per file, with the namespace following the folder (file-scoped namespace).
+- **Logging** uses `ILogger<T>` with a structured template (`"Order {OrderId}"`), not string interpolation.
+- **Money** uses `decimal` with `HasPrecision(18, 2)`.
+- **Time** is stored in UTC. Inject `TimeProvider` (don't call `DateTime.UtcNow` directly in a service) so time can be mocked in tests.
+- **Concurrency:** entities that can be modified concurrently get a version token (`[Timestamp] byte[] RowVersion` / `IsRowVersion()`), and `DbUpdateConcurrencyException` is mapped to 409.
+- **Manual transactions** only for several `SaveChangesAsync` calls/raw SQL that must be atomic. With `EnableRetryOnFailure` enabled, calling `BeginTransactionAsync` directly throws `InvalidOperationException`; wrap it in `db.Database.CreateExecutionStrategy().ExecuteAsync(async () => { /* BeginTransactionAsync … CommitAsync */ })`. The lambda's body must be safe to replay from the start.
+- **Pagination:** `page` ≥ 1 and `pageSize` 1–100 are validated (400 when out of bounds), so a client can't request the whole table. The upper bound on `page` is validated too, so `(page - 1) * pageSize` for `Skip` doesn't overflow an `int`.
+- **HttpClient** to external services goes through `IHttpClientFactory` (a typed client) with a timeout and a resilience handler (`AddStandardResilienceHandler()`). Never `new HttpClient()` per request.
+- **API versioning** uses `Asp.Versioning.Mvc` when more than one version has to be live. The route stays `/api/v{version}/...`.
+- **Authorization** uses policies (`[Authorize(Policy = "...")]`), and the resource-ownership check happens in the service (filtering by `userId`/`tenantId` in the query), not only in the controller.
+- **Local secrets** use `dotnet user-secrets`. `appsettings.json` holds only non-secret values.
 
 ## 5. Testing
 
-- **`<App>.Core.Tests`:** unit test service dengan xUnit dan `AppDbContext` memakai SQLite in-memory (lebih mirip DB asli dibanding provider InMemory).
-- **`<App>.Api.Tests`:** integration test dengan `WebApplicationFactory<Program>` dan Testcontainers untuk DB asli.
-- Nama test: `MethodName_Kondisi_HasilYangDiharapkan`.
-- Assertion memakai assert bawaan xUnit atau Shouldly. Mock memakai NSubstitute/Moq, hanya untuk dependency eksternal (HTTP client, email, `TimeProvider`).
-- CI menjalankan `dotnet build -warnaserror`, `dotnet format --verify-no-changes`, `dotnet test`, dan `dotnet list package --vulnerable --include-transitive`.
+- **`<App>.Core.Tests`:** service unit tests with xUnit and an `AppDbContext` backed by in-memory SQLite (closer to a real DB than the InMemory provider).
+- **`<App>.Api.Tests`:** integration tests with `WebApplicationFactory<Program>` and Testcontainers for a real DB.
+- Test names: `MethodName_Condition_ExpectedResult`.
+- Assertions use xUnit's built-in asserts or Shouldly. Mocking uses NSubstitute/Moq, only for external dependencies (HTTP clients, email, `TimeProvider`).
+- CI runs `dotnet build -warnaserror`, `dotnet format --verify-no-changes`, `dotnet test`, and `dotnet list package --vulnerable --include-transitive`.
 
-## 6. Checklist fitur baru
+## 6. New feature checklist
 
-1. Entity di `.Model/Entities`
-2. Konfigurasi entity di `.Core/Data/Configurations`, `DbSet` di `AppDbContext`, lalu buat migration
-3. DTO request/response di `.Model/Dtos/<Fitur>`
-4. Interface di `.Core/Interfaces`
-5. Service di `.Core/Services`, lalu daftarkan di `AddCore()`
-6. Validator di `.Core/Validators` dan mapping di `.Core/Mappings`
-7. Controller di `.Api/Controllers`
-8. Test di `tests/`
+1. The entity in `.Model/Entities`
+2. The entity configuration in `.Core/Data/Configurations`, the `DbSet` in `AppDbContext`, then create the migration
+3. Request/response DTOs in `.Model/Dtos/<Feature>`
+4. The interface in `.Core/Interfaces`
+5. The service in `.Core/Services`, then register it in `AddCore()`
+6. The validator in `.Core/Validators` and the mapping in `.Core/Mappings`
+7. The controller in `.Api/Controllers`
+8. Tests in `tests/`

@@ -2,8 +2,10 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useI18n } from '../../i18n/I18nProvider.jsx';
 
 export default function Modal({ title, subtitle, icon, iconTone, size = 'md', onClose, footer, children, headerExtra }) {
+  const { t } = useI18n();
   const ref = useRef(null);
   useEffect(() => {
     const previous = document.activeElement;
@@ -30,7 +32,7 @@ export default function Modal({ title, subtitle, icon, iconTone, size = 'md', on
             {subtitle && <div className="modal-sub">{subtitle}</div>}
           </div>
           {headerExtra}
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Tutup"><X size={18} /></button>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t('common.close')}><X size={18} /></button>
         </div>
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}

@@ -1,16 +1,16 @@
 ---
 name: audit-keamanan
-description: Audit keamanan read-only (STRIDE + OWASP), lalu kamu memilih apakah temuan diperbaiki; kalau ya, engineer memperbaiki dan security mengecek ulang.
+description: A read-only security audit (STRIDE + OWASP), then you decide whether the findings get fixed; if so, an engineer fixes them and security re-checks.
 defaults: { runner: claude-cli, inputs: previous }
 budget_usd: 10
 nodes:
-  - { id: start, type: start, label: Lingkup audit, input: Audit seluruh endpoint dan autentikasi. }
-  - { id: audit, type: agent, agent: security-tester, label: Audit keamanan, permission: read-only, verdict: true, instructions: PASS hanya kalau tidak ada temuan Critical/High. }
-  - { id: aman, type: condition, label: Aman?, source: audit }
-  - { id: putuskan, type: approval, label: Perbaiki temuan?, message: Ada temuan Critical/High. Setujui untuk meminta engineer memperbaiki. }
-  - { id: perbaiki, type: agent, agent: backend-engineer, label: Perbaiki temuan, instructions: Perbaiki temuan Critical/High dari audit. Sertakan test untuk tiap perbaikan. }
-  - { id: cek-ulang, type: agent, agent: security-tester, label: Cek ulang, permission: read-only, inputs: all }
-  - { id: laporan, type: output, label: Laporan audit }
+  - { id: start, type: start, label: Audit scope, input: Audit every endpoint and the authentication. }
+  - { id: audit, type: agent, agent: security-tester, label: Security audit, permission: read-only, verdict: true, instructions: PASS only if there are no Critical/High findings. }
+  - { id: aman, type: condition, label: Clean?, source: audit }
+  - { id: putuskan, type: approval, label: Fix the findings?, message: There are Critical/High findings. Approve to ask an engineer to fix them. }
+  - { id: perbaiki, type: agent, agent: backend-engineer, label: Fix the findings, instructions: Fix the Critical/High findings from the audit. Include a test for each fix. }
+  - { id: cek-ulang, type: agent, agent: security-tester, label: Re-check, permission: read-only, inputs: all }
+  - { id: laporan, type: output, label: Audit report }
 edges:
   - { from: start, to: audit }
   - { from: audit, to: aman }
@@ -30,4 +30,4 @@ layout:
   laporan: [ 1520, 160 ]
 ---
 
-Audit tidak boleh mengubah file. Perbaikan hanya setelah kamu menyetujui.
+The audit must not modify any file. Fixes happen only after you approve.

@@ -5,3 +5,7 @@ studio/web/dist/
 studio/.local.json
 .doz-studio/
 studio/.usage.json
+
+# artefak build & rilis
+dist-electron/
+claude-workflow-agent-gui-*.zip

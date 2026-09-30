@@ -116,7 +116,7 @@ export function createComponentRepository(config) {
 
   const list = (kind) => {
     const lister = listers[kind];
-    if (!lister) throw badRequest(`jenis tidak dikenal: ${kind}`);
+    if (!lister) throw badRequest(`Unknown kind: ${kind}`, { code: 'KIND_UNKNOWN', params: { kind: String(kind).slice(0, 50) } });
     return lister();
   };
 
@@ -132,7 +132,7 @@ export function createComponentRepository(config) {
 
   const read = (kind, name) => {
     const item = find(kind, name);
-    if (!item) throw notFound(`${kind} "${name}" tidak ditemukan`);
+    if (!item) throw notFound(`${kind} "${name}" not found`, { code: 'COMPONENT_NOT_FOUND', params: { kind, name: String(name).slice(0, 100) } });
     const text = fs.readFileSync(item.path, 'utf8');
     const parts = splitFile(text);
     return { ...item, text, meta: parts.meta, body: parts.body, strict: parts.strict, usedBy: usedBy(kind, name) };
@@ -141,32 +141,32 @@ export function createComponentRepository(config) {
   // Update file yang sudah ada: `text` (mode raw) atau `meta` + `body` (mode form).
   const update = (kind, name, { text, meta, body }) => {
     const item = find(kind, name);
-    if (!item) throw notFound(`${kind} "${name}" tidak ditemukan`);
+    if (!item) throw notFound(`${kind} "${name}" not found`, { code: 'COMPONENT_NOT_FOUND', params: { kind, name: String(name).slice(0, 100) } });
     let next;
     try {
       next = text ?? composeFile(fs.readFileSync(item.path, 'utf8'), meta, body);
     } catch (err) {
       throw badRequest(err.message);
     }
-    if (!splitFile(next).raw) throw badRequest('File harus diawali frontmatter (---)');
+    if (!splitFile(next).raw) throw badRequest('The file must start with frontmatter (---)', { code: 'FRONTMATTER_REQUIRED' });
     fs.writeFileSync(item.path, next);
     return read(kind, name);
   };
 
   const targetFile = (kind, dir, name, area) => {
     if (kind !== 'skills') return path.join(dir, `${name}.md`);
-    if (area && !NAME_RE.test(area)) throw badRequest('nama bidang tidak valid');
+    if (area && !NAME_RE.test(area)) throw badRequest('Invalid area name', { code: 'NAME_INVALID' });
     return path.join(dir, area ?? '', name, 'SKILL.md');
   };
 
   // Membuat file baru di salah satu folder sumber yang terdaftar.
   const create = (kind, { name, dir, area, meta, body }) => {
-    if (!NAME_RE.test(name ?? '')) throw badRequest('nama hanya boleh huruf, angka, - dan _');
+    if (!NAME_RE.test(name ?? '')) throw badRequest('The name may only contain letters, digits, - and _', { code: 'NAME_INVALID' });
     const allowed = config.allowedDirs(kind);
     const target = dir ? path.resolve(dir) : allowed[0];
-    if (!allowed.includes(target)) throw badRequest('folder tujuan harus salah satu folder sumber');
+    if (!allowed.includes(target)) throw badRequest('The target folder must be one of the source folders', { code: 'TARGET_NOT_SOURCE' });
     const file = targetFile(kind, target, name, area);
-    if (fs.existsSync(file)) throw conflict(`sudah ada: ${show(file)}`);
+    if (fs.existsSync(file)) throw conflict(`Already exists: ${show(file)}`, { code: 'ALREADY_EXISTS', params: { path: show(file) } });
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, composeFile('', { name, ...meta }, body ?? ''));
     const isPluginSkill = kind === 'skills' && (target === config.pluginDir || isInside(config.pluginDir, target));

@@ -2,18 +2,20 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { AlertTriangle, PencilLine } from 'lucide-react';
 import Modal from './Modal.jsx';
+import { useI18n } from '../../i18n/I18nProvider.jsx';
 
 const DialogContext = createContext(null);
 
-function ConfirmDialog({ title, message, confirmLabel = 'Lanjut', cancelLabel = 'Batal', tone = 'default', onDone }) {
+function ConfirmDialog({ title, message, confirmLabel, cancelLabel, tone = 'default', onDone }) {
+  const { t } = useI18n();
   return (
     <Modal
       size="sm" title={title} icon={<AlertTriangle size={18} />} iconTone={tone === 'danger' ? 'danger' : ''} onClose={() => onDone(false)}
       footer={(
         <>
           <span className="spacer" />
-          <button type="button" className="btn" onClick={() => onDone(false)}>{cancelLabel}</button>
-          <button type="button" className={`btn ${tone === 'danger' ? 'btn-danger' : 'btn-primary'}`} autoFocus onClick={() => onDone(true)}>{confirmLabel}</button>
+          <button type="button" className="btn" onClick={() => onDone(false)}>{cancelLabel ?? t('common.cancel')}</button>
+          <button type="button" className={`btn ${tone === 'danger' ? 'btn-danger' : 'btn-primary'}`} autoFocus onClick={() => onDone(true)}>{confirmLabel ?? t('dialogs.confirm.continue')}</button>
         </>
       )}
     >
@@ -22,7 +24,8 @@ function ConfirmDialog({ title, message, confirmLabel = 'Lanjut', cancelLabel = 
   );
 }
 
-function PromptDialog({ title, message, label, defaultValue = '', placeholder, multiline, validate, confirmLabel = 'Simpan', onDone }) {
+function PromptDialog({ title, message, label, defaultValue = '', placeholder, multiline, validate, confirmLabel, onDone }) {
+  const { t } = useI18n();
   const [value, setValue] = useState(defaultValue);
   const error = validate?.(value) ?? null;
   const submit = () => { if (!error) onDone(value); };
@@ -33,8 +36,8 @@ function PromptDialog({ title, message, label, defaultValue = '', placeholder, m
       footer={(
         <>
           <span className="spacer" />
-          <button type="button" className="btn" onClick={() => onDone(null)}>Batal</button>
-          <button type="button" className="btn btn-primary" disabled={Boolean(error)} onClick={submit}>{confirmLabel}</button>
+          <button type="button" className="btn" onClick={() => onDone(null)}>{t('common.cancel')}</button>
+          <button type="button" className="btn btn-primary" disabled={Boolean(error)} onClick={submit}>{confirmLabel ?? t('common.save')}</button>
         </>
       )}
     >

@@ -1,11 +1,14 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { api } from './lib/api.js';
+import { errorMessage, errorWithDetails } from './lib/errorMessage.js';
+import { useI18n } from './i18n/I18nProvider.jsx';
 import { readStorage, writeStorage } from './lib/storage.js';
 import { useTheme } from './hooks/useTheme.js';
 import { useLibrary } from './hooks/useLibrary.js';
 import { useRuns } from './hooks/useRuns.js';
 import { useWorkflowEditor } from './hooks/useWorkflowEditor.js';
+import { useUpdate } from './hooks/useUpdate.js';
 import { useToast } from './components/ui/Toast.jsx';
 import { useDialog } from './components/ui/Dialogs.jsx';
 import { StudioContext } from './state/studioContext.js';
@@ -22,16 +25,19 @@ const RunDialog = lazy(() => import('./features/dialogs/RunDialog.jsx'));
 const NewWorkflowDialog = lazy(() => import('./features/dialogs/NewWorkflowDialog.jsx'));
 const GitDialog = lazy(() => import('./features/dialogs/GitDialog.jsx'));
 const SetupWizard = lazy(() => import('./features/setup/SetupWizard.jsx'));
+const UpdateDialog = lazy(() => import('./features/update/UpdateDialog.jsx'));
 
 const LAST_KEY = 'doz-studio:last-workflow';
 const snap = (v) => Math.round(v / GRID) * GRID;
 
 export default function App() {
+  const { t } = useI18n();
   const theme = useTheme();
   const notify = useToast();
   const dialog = useDialog();
   const { fitView, screenToFlowPosition } = useReactFlow();
   const lib = useLibrary();
+  const update = useUpdate();
   const editor = useWorkflowEditor({ agentNames: useMemo(() => Object.keys(lib.agentsByName), [lib.agentsByName]), notify });
   const [status, setStatus] = useState(null);
   const [selection, setSelection] = useState(null);
@@ -58,8 +64,8 @@ export default function App() {
     setLogsOpen(true);
     const { meta, dirty, workflows } = stateRef.current;
     if (ev.workflow !== meta?.name && !dirty && workflows.some((w) => w.name === ev.workflow)) openWorkflow(ev.workflow);
-    if (ev.source === 'claude-code') notify(`Run dari Claude Code: ${ev.workflow}`);
-  }, [openWorkflow, notify]);
+    if (ev.source === 'claude-code') notify(t('app.run-from-claude-code', { workflow: ev.workflow }));
+  }, [openWorkflow, notify, t]);
   const runsState = useRuns({ onRunStarted: followRun });
   const { run } = runsState;
 
@@ -76,16 +82,16 @@ export default function App() {
       const last = readStorage(LAST_KEY);
       const first = wfs.find((w) => w.name === last) ?? wfs[0];
       if (first) await openWorkflow(first.name);
-      else await editor.createFrom('workflow-baru', null);
+      else await editor.createFrom('new-workflow', null);
       runsState.refresh();
-    })().catch((err) => notify(`Gagal memuat: ${err.message}`, 'error'));
+    })().catch((err) => notify(t('app.load-failed', { message: errorMessage(t, err) }), 'error'));
     // Hanya saat pertama kali dibuka.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const confirmDiscard = useCallback(async () => !editor.dirty || dialog.confirm({
-    title: 'Buang Perubahan?', message: 'Workflow ini punya perubahan yang belum disimpan.', confirmLabel: 'Buang', tone: 'danger',
-  }), [editor.dirty, dialog]);
+    title: t('dialogs.discard.title'), message: t('dialogs.discard.workflow'), confirmLabel: t('dialogs.discard.confirm'), tone: 'danger',
+  }), [editor.dirty, dialog, t]);
 
   const selectRun = useCallback(async (id) => {
     const state = await runsState.select(id);
@@ -97,7 +103,7 @@ export default function App() {
   const save = useCallback(async () => {
     let name = editor.meta.name;
     if (!lib.workflows.some((w) => w.name === name)) {
-      name = await dialog.prompt({ title: 'Simpan Workflow', label: 'Nama File', defaultValue: name, validate: (v) => (/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(v) ? null : 'Hanya huruf, angka, - dan _') });
+      name = await dialog.prompt({ title: t('app.save-workflow.title'), label: t('dialogs.new-workflow.field.name'), defaultValue: name, validate: (v) => (/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(v) ? null : t('dialogs.new-workflow.name-invalid')) });
       if (!name) return;
     }
     try {
@@ -105,11 +111,11 @@ export default function App() {
       await lib.reloadWorkflows();
       refreshGit();
       writeStorage(LAST_KEY, name);
-      notify(`Tersimpan ke ${res.file}`, 'success');
+      notify(t('app.saved-to', { file: res.file }), 'success');
     } catch (err) {
-      notify(err.message, 'error');
+      notify(errorMessage(t, err), 'error');
     }
-  }, [editor, lib, dialog, notify]);
+  }, [editor, lib, dialog, notify, t]);
 
   // Jumlah file berubah di repo doz-agent (badge tombol GitHub).
   const refreshGit = useCallback(() => api.gitStatus('repo').then((s) => setGitChanges(s.files?.length ?? 0)).catch(() => {}), []);
@@ -144,17 +150,17 @@ export default function App() {
       runsState.refresh();
       await selectRun(id);
     } catch (err) {
-      notify([err.message, ...err.details].join(': '), 'error');
+      notify(errorWithDetails(t, err), 'error');
     }
   };
 
   const onApprove = useCallback(async (nodeId, approved) => {
     const note = approved ? '' : await dialog.prompt({
-      title: 'Tolak Langkah Ini', label: 'Alasan (opsional, ikut ke langkah berikutnya)', multiline: true, confirmLabel: 'Tolak',
+      title: t('app.reject.title'), label: t('app.reject.label'), multiline: true, confirmLabel: t('canvas.reject'),
     });
     if (note === null) return;
-    api.approve(runsState.runId(), nodeId, approved, note).catch((err) => notify(err.message, 'error'));
-  }, [dialog, runsState, notify]);
+    api.approve(runsState.runId(), nodeId, approved, note).catch((err) => notify(errorMessage(t, err), 'error'));
+  }, [dialog, runsState, notify, t]);
 
   const onEditComponent = useCallback((kind, name) => setModal({ kind: 'component', type: kind, name }), []);
   const nodeTypesById = useMemo(() => Object.fromEntries(editor.nodes.map((n) => [n.id, n.data.node.type])), [editor.nodes]);
@@ -163,7 +169,7 @@ export default function App() {
     [lib.agentsByName, editor.meta, run, onApprove, onEditComponent, nodeTypesById],
   );
 
-  if (!editor.meta) return <div className="loading">Memuat Doz Studio…</div>;
+  if (!editor.meta) return <div className="loading">{t('app.loading')}</div>;
 
   const selected = selection?.kind === 'node' && editor.nodesById[selection.id]
     ? { kind: 'node', node: editor.nodesById[selection.id] }
@@ -183,6 +189,7 @@ export default function App() {
           onWorkflowSettings={() => { setSelection(null); setRightOpen(true); }}
           gitChanges={gitChanges} onGit={() => setModal({ kind: 'git' })}
           setupPending={setupPending} onSetup={() => setSetupOpen(true)}
+          updateAvailable={update.available} onUpdate={() => setModal({ kind: 'update' })}
         />
         <div className="workspace">
           <Sidebar
@@ -201,7 +208,7 @@ export default function App() {
               run={run} nodesById={editor.nodesById} git={status?.git}
               selectedNode={selection?.kind === 'node' && run.nodes[selection.id] ? selection.id : null}
               onSelectNode={(id) => { setSelection({ kind: 'node', id }); editor.selectOnly(id); }}
-              onStop={() => api.stopRun(run.id).catch((err) => notify(err.message, 'error'))}
+              onStop={() => api.stopRun(run.id).catch((err) => notify(errorMessage(t, err), 'error'))}
               open={logsOpen} setOpen={setLogsOpen}
             />
           </div>
@@ -221,6 +228,7 @@ export default function App() {
             <SetupWizard workdir={status?.workdir} onClose={() => setSetupOpen(false)} onPickWorkdir={() => setModal({ kind: 'workdir' })}
               onDone={async () => { setSetupPending(false); setStatus(await api.status()); }} />
           )}
+          {modal?.kind === 'update' && <UpdateDialog update={update} onClose={closeModal} />}
           {modal?.kind === 'git' && (
             <GitDialog onClose={() => { closeModal(); refreshGit(); }}
               onSynced={async (target) => { if (target === 'repo') { await lib.reload(); refreshGit(); } }} />
@@ -231,18 +239,18 @@ export default function App() {
           )}
           {modal?.kind === 'component' && (
             <ComponentEditor kind={modal.type} name={modal.name} sources={lib.sources} onClose={closeModal}
-              onSaved={async (item) => { closeModal(); await lib.reload(); refreshGit(); notify(`Tersimpan: ${item.file}`, 'success'); }} />
+              onSaved={async (item) => { closeModal(); await lib.reload(); refreshGit(); notify(t('app.saved-item', { file: item.file }), 'success'); }} />
           )}
           {modal?.kind === 'sources' && lib.sources && (
             <SourcesDialog sources={lib.sources} onClose={closeModal}
               onSave={async (draft) => {
-                try { await api.saveSources(draft); await lib.reload(); closeModal(); notify('Folder sumber diperbarui', 'success'); } catch (err) { notify(err.message, 'error'); }
+                try { await api.saveSources(draft); await lib.reload(); closeModal(); notify(t('app.sources-updated'), 'success'); } catch (err) { notify(errorMessage(t, err), 'error'); }
               }} />
           )}
           {modal?.kind === 'workdir' && (
-            <FolderPicker title="Pilih Folder Project" initialPath={status?.workdir} confirmLabel="Pakai Folder Ini" onClose={closeModal}
+            <FolderPicker title={t('app.workdir.title')} initialPath={status?.workdir} confirmLabel={t('app.workdir.confirm')} onClose={closeModal}
               onPick={async (listing) => {
-                try { setStatus(await api.setWorkdir(listing.path)); await lib.reload(); runsState.refresh(); closeModal(); notify(`Folder project: ${listing.display}`, 'success'); } catch (err) { notify(err.message, 'error'); }
+                try { setStatus(await api.setWorkdir(listing.path)); await lib.reload(); runsState.refresh(); closeModal(); notify(t('app.workdir.set', { path: listing.display }), 'success'); } catch (err) { notify(errorMessage(t, err), 'error'); }
               }} />
           )}
         </Suspense>

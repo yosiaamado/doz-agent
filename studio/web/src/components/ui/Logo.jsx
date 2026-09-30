@@ -24,10 +24,12 @@ export const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64
 <rect x="28.4" y="30.4" width="1.8" height="3.6" rx=".9" fill="#f2f5ff"/><rect x="32.8" y="30.4" width="1.8" height="3.6" rx=".9" fill="#f2f5ff"/>
 </svg>`;
 
+export const BRAND = 'Doz Studio';
+
 export default function Logo({ size = 28 }) {
   return (
     <span
-      className="logo" role="img" aria-label="Doz Studio" style={{ width: size, height: size, display: 'inline-block', flex: 'none' }}
+      className="logo" role="img" aria-label={BRAND} style={{ width: size, height: size, display: 'inline-block', flex: 'none' }}
       // SVG statis milik aplikasi sendiri (bukan input user), aman di-inline.
       dangerouslySetInnerHTML={{ __html: LOGO_SVG }}
     />

@@ -3,46 +3,46 @@ name: "rab-kontraktor-advisor"
 description: "Use when discussing feature, priority, or data-model/UX decisions for the Indonesian small-contractor RAB generator product, or when AHSP/HSPK/SNI vs BOQ/AACE construction-costing standards are relevant."
 ---
 
-# RAB Generator — Konteks Produk & Panduan Konsultasi
+# RAB Generator — Product Context & Consulting Guide
 
-## Peran kamu (Claude)
+## Your role (Claude)
 
-User adalah solo technical founder yang membangun tool RAB (Rencana Anggaran Biaya) digital untuk kontraktor kecil di Indonesia. Fitur pertama yang dibangun: generator RAB versi MVP, di mana harga satuan material/upah diisi manual oleh kontraktor sendiri per proyek (belum auto-update dari sistem).
+The user is a solo technical founder building a digital RAB (*Rencana Anggaran Biaya*, the Indonesian construction cost estimate/budget document) tool for small contractors in Indonesia. The first thing being built: an MVP RAB generator, where the contractor enters material/labour unit prices by hand per project (no automatic updates from the system yet).
 
-Kalau user tanya soal fitur, prioritas, atau keputusan teknis berikutnya untuk produk ini:
+When the user asks about features, priorities, or the next technical decision for this product:
 
-- Jawab dengan mempertimbangkan riset & rekomendasi di skill ini dan di `references/` (standar Indonesia AHSP/HSPK/SNI, standar internasional BOQ/AACE, praktik software modern seperti Buildxact/JobTread).
-- Proaktif ingetin kalau ada standar atau praktik yang relevan tapi belum disebut user — itu justru nilai utama skill ini.
-- Ingat keputusan MVP yang sudah diambil: harga satuan manual per proyek, belum auto-price. Jangan usulkan fitur yang mengasumsikan integrasi harga otomatis/live pricing kecuali user eksplisit mau bahas fase 2+.
-- Beberapa klaim di riset ini masih berstatus "asumsi belum divalidasi ke kontraktor asli" (lihat bagian Asumsi di [references/rekomendasi.md](references/rekomendasi.md)) — kalau dipakai buat argumen, tandai sebagai asumsi, jangan diperlakukan sebagai fakta pasti sampai user konfirmasi sudah validasi.
-- Riset ini dari web search per akhir September 2026 (Permen PUPR No. 8/2023, dst) — kalau user tanya sesuatu yang mungkin sudah berubah (regulasi baru, kompetitor baru), sebaiknya cari lagi, jangan asumsikan riset ini masih 100% akurat selamanya.
+- Answer while weighing the research & recommendations in this skill and in `references/` (the Indonesian AHSP/HSPK/SNI standards, the international BOQ/AACE standards, and modern software practice such as Buildxact/JobTread).
+- Proactively flag a relevant standard or practice the user hasn't mentioned — that's the main value this skill adds.
+- Remember the MVP decisions already made: manual unit prices per project, no auto-pricing yet. Don't propose features that assume automatic price integration/live pricing unless the user explicitly wants to discuss phase 2+.
+- Some claims in this research are still marked "an assumption not yet validated with real contractors" (see the Assumptions section in [references/rekomendasi.md](references/rekomendasi.md)) — when using one as an argument, label it as an assumption; don't treat it as settled fact until the user confirms it has been validated.
+- This research comes from web searches as of late September 2026 (Permen PUPR No. 8/2023, etc.) — if the user asks about something that may have changed (new regulation, new competitor), search again rather than assuming this research stays 100% accurate forever.
 
 ---
 
-Riset ini mengonfirmasi bahwa keputusan MVP "harga satuan diisi manual per proyek" sudah sejalan dengan realita: baik regulasi Indonesia maupun praktik riil kontraktor kecil sama-sama memisahkan "kebutuhan teknis pekerjaan" dari "harga pasar lokal" — dua hal yang memang wajar dipisah, bukan disederhanakan.
+The research confirms that the MVP decision of "unit prices entered manually per project" already matches reality: both Indonesian regulation and how small contractors actually work separate "the technical requirements of the work" from "local market prices" — two things that genuinely belong apart, not something to collapse together.
 
-**Temuan kunci:**
+**Key findings:**
 
-- AHSP ([Permen PUPR No. 8/2023](https://peraturan.bpk.go.id/Details/262345/permen-pupr-no-8-tahun-2023)) mengatur koefisien bahan/upah/alat per satuan pekerjaan — bukan harga rupiahnya.
-- HSPK (Perbup/Perwal per daerah, terbit tahunan) yang mengisi harga rupiah, berbeda tiap daerah karena harga material & UMK/UMR lokal berbeda — dan untuk proyek swasta kecil, ini biasanya cuma referensi kasar, bukan acuan wajib.
-- Seri SNI "tata cara perhitungan harga satuan pekerjaan" (2835–7395:2008) jadi basis teknis AHSP per kategori (tanah, pondasi, beton, dinding, dst) — tapi tidak ada SNI baku soal cara mengukur volume dari gambar; itu tetap keahlian manual kontraktor.
-- Praktik riil: mayoritas kontraktor kecil masih pakai Excel manual (volume × harga satuan, rekap per kategori pakai SUMIFS); sudah ada kompetitor lokal ([RAB Otomatis](https://rabotomatis.com/)) yang embed database AHSP + harga bulanan.
-- Internasional (BOQ/RICS NRM) strukturnya nyaris identik (quantity × rate) tapi lebih formal: measurement rules eksplisit, quantity surveyor sebagai profesi, provisional sum untuk item yang belum pasti.
-- AACE punya sistem klasifikasi kematangan estimasi (Class 1–5) yang tidak ada padanan eksplisit di Indonesia — layak diadopsi versi sederhana.
-- Software modern (Buildxact, JobTread) menunjukkan pola 4-lapis data (cost items → assemblies/cost groups → project templates → schedule) — assembly itu sendiri pada dasarnya "versi internasional dari AHSP".
+- AHSP (*Analisa Harga Satuan Pekerjaan*, the official unit-price analysis standard — [Permen PUPR No. 8/2023](https://peraturan.bpk.go.id/Details/262345/permen-pupr-no-8-tahun-2023)) governs the material/labour/equipment coefficients per unit of work — not the rupiah prices.
+- HSPK (*Harga Satuan Pokok Kegiatan*, published per region as a Perbup/Perwal — a regent's or mayor's regulation — and reissued annually) is what supplies the rupiah prices; it differs per region because local material prices and the local minimum wage (UMK/UMR) differ — and for small private projects it's usually a rough reference, not a binding one.
+- The SNI (*Standar Nasional Indonesia*, the national standards) series on "procedures for calculating unit prices of work" (2835–7395:2008) forms the technical basis of AHSP per category (earthwork, foundations, concrete, walls, etc.) — but there is no standard SNI for how to measure quantities from drawings; that remains the contractor's manual expertise.
+- Actual practice: most small contractors still use manual Excel (quantity × unit price, with per-category subtotals via SUMIFS); a local competitor already exists ([RAB Otomatis](https://rabotomatis.com/)) that embeds an AHSP database + monthly prices.
+- Internationally (BOQ/RICS NRM), the structure is nearly identical (quantity × rate) but more formal: explicit measurement rules, quantity surveyor as a profession, and provisional sums for items that aren't settled.
+- AACE has an estimate-maturity classification system (Class 1–5) with no explicit Indonesian equivalent — worth adopting in a simplified form.
+- Modern software (Buildxact, JobTread) shows a 4-layer data pattern (cost items → assemblies/cost groups → project templates → schedule) — an assembly is essentially "the international version of AHSP".
 
-**Rekomendasi utama** (detail di [references/rekomendasi.md](references/rekomendasi.md)):
+**Main recommendations** (details in [references/rekomendasi.md](references/rekomendasi.md)):
 
-1. Pisahkan "katalog item pekerjaan" (reusable) dari "harga per proyek" (manual) sejak desain skema data awal, supaya siap ditambah auto-price nanti tanpa migrasi besar.
-2. UX: tiru pola tabel Excel yang sudah dikenal, auto-kalkulasi live, dan tawarkan simpan item ke katalog pribadi.
-3. Validasi ke kontraktor asli sebelum lanjut build — terutama soal overhead/profit riil, device yang dipakai, dan format ekspor (10 poin lengkap di bagian Asumsi, [references/rekomendasi.md](references/rekomendasi.md)).
+1. Separate the "work item catalogue" (reusable) from "prices per project" (manual) from the very first data schema design, so auto-pricing can be added later without a big migration.
+2. UX: mirror the Excel table pattern people already know, calculate live, and offer to save an item into a personal catalogue.
+3. Validate with real contractors before building further — especially the real overhead/profit figures, the devices they use, and the export format (10 full points in the Assumptions section of [references/rekomendasi.md](references/rekomendasi.md)).
 
-## Referensi (baca sesuai kebutuhan)
+## References (read as needed)
 
-Detail riset beserta sumbernya ada di `references/`. Baca hanya file yang relevan dengan pertanyaannya:
+The detailed research and its sources live in `references/`. Read only the file relevant to the question:
 
-| File | Isi | Baca kalau |
+| File | Contents | Read it when |
 |---|---|---|
-| [references/rekomendasi.md](references/rekomendasi.md) | Perbandingan Indonesia vs internasional, rekomendasi struktur data (entitas, formula RAB, kategori, koefisien fase 2+), UX minim friksi, dan asumsi yang perlu divalidasi | Keputusan fitur, prioritas, data model, atau UX |
-| [references/standar-indonesia.md](references/standar-indonesia.md) | AHSP, HSPK, seri SNI, dan praktik riil kontraktor kecil | Pertanyaan soal standar/regulasi Indonesia atau cara kontraktor bekerja sekarang |
-| [references/standar-internasional.md](references/standar-internasional.md) | BOQ/NRM, klasifikasi AACE, dan pola data software estimasi modern | Membandingkan dengan praktik internasional atau mencari pola yang bisa diadopsi |
+| [references/rekomendasi.md](references/rekomendasi.md) | Indonesia vs international comparison, data structure recommendations (entities, the RAB formula, categories, coefficients in phase 2+), low-friction UX, and the assumptions that need validating | Deciding features, priorities, the data model, or UX |
+| [references/standar-indonesia.md](references/standar-indonesia.md) | AHSP, HSPK, the SNI series, and how small contractors actually work | Questions about Indonesian standards/regulation or how contractors work today |
+| [references/standar-internasional.md](references/standar-internasional.md) | BOQ/NRM, the AACE classification, and the data patterns of modern estimating software | Comparing against international practice or looking for a pattern worth adopting |

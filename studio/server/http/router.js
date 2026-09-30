@@ -33,6 +33,6 @@ export class Router {
       const params = Object.fromEntries(route.keys.map((k, i) => [k, decodeURIComponent(match[i + 1])]));
       return { handler: route.handler, params };
     }
-    throw notFound(`tidak ada endpoint ${method} ${pathname}`);
+    throw notFound(`No endpoint ${method} ${pathname}`);
   }
 }

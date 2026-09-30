@@ -2,7 +2,7 @@
 import { z } from 'zod';
 
 const shortText = z.string().max(500);
-const sha = z.string().regex(/^[0-9a-f]{40,64}$/, 'snapshot tidak valid');
+const sha = z.string().regex(/^[0-9a-f]{40,64}$/, 'invalid snapshot');
 
 export const workdirBody = z.object({ path: z.string().min(1).max(4096) });
 
@@ -37,7 +37,7 @@ export const startRunBody = z.object({
   name: z.string().max(64).optional(),
   input: z.string().max(200_000).default(''),
   attachments: z.array(z.string().regex(/^[a-f0-9]{16}$/)).max(20).default([]),
-}).refine((b) => b.workflow || b.name, 'isi workflow atau name');
+}).refine((b) => b.workflow || b.name, 'provide workflow or name');
 
 export const approveBody = z.object({ node: z.string().min(1), approved: z.boolean(), note: z.string().max(5000).default('') });
 
@@ -57,13 +57,79 @@ export const commitBody = z.object({
 export const setupTest = z.enum(['claude-cli', 'api', 'github']);
 
 export const apiKeyBody = z.object({
-  key: z.string().trim().min(20, 'API key terlalu pendek').max(300).regex(/^sk-ant-/, 'API key Anthropic diawali sk-ant-'),
+  key: z.string().trim().min(20, 'API key is too short').max(300).regex(/^sk-ant-/, 'Anthropic API keys start with sk-ant-'),
   remember: z.boolean().default(false),
 });
 
 export const gitIdentityBody = z.object({
   name: z.string().trim().min(1).max(200),
-  email: z.string().trim().email('email tidak valid').max(320),
+  email: z.string().trim().email('invalid email').max(320),
 });
 
 export const claudeLoginBody = z.object({ console: z.boolean().default(false) });
+
+// slot S5 (terisi): skema update ada di blok "Update sekali klik" di bawah
+
+// --- Update sekali klik (S5) ---
+export const UPDATE_TARGETS = Object.freeze(['plugins', 'web']);
+export const MAX_UPDATE_FILE_BYTES = 20 * 1024 * 1024;
+export const MAX_UPDATE_TOTAL_BYTES = 80 * 1024 * 1024;
+export const MAX_UPDATE_FILES = 2000;
+const MAX_NOTES_CHARS = 20_000;
+const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+
+// Nama device Windows (CON, NUL, COM1, ...) dengan atau tanpa ekstensi; ditolak di semua OS supaya manifest portabel.
+// Di Windows, membuat file bernama NUL lewat Node menghasilkan entri yang sulit dihapus dari Explorer.
+const WINDOWS_DEVICE = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³])$/i;
+
+// Path relatif POSIX yang aman ditulis di bawah folder tujuan. Cek ini hanya lapis pertama;
+// updateService mengecek ulang hasil path.resolve + symlink saat menulis.
+export function isSafeRelativePath(p) {
+  if (typeof p !== 'string' || !p || p.length > 500) return false;
+  if (p.includes('\\') || p.includes('\0') || p.includes(':') || p.startsWith('/')) return false;
+  return p.split('/').every((seg) => seg && seg !== '.' && seg !== '..' && !/[. ]$/.test(seg) && !WINDOWS_DEVICE.test(seg.split('.')[0]));
+}
+
+const semver = z.string().max(64).regex(SEMVER, 'version must be semver x.y.z');
+const updatePath = z.string().max(500).refine(isSafeRelativePath, 'UNSAFE_PATH');
+const updateTarget = z.enum(UPDATE_TARGETS);
+// Target `plugins` memakai path yang diawali `plugins/` (relatif ke root repo); prefix itu dibuang saat ditulis ke pluginDir.
+const targetPrefixOk = (e) => e.target !== 'plugins' || e.path.startsWith('plugins/');
+
+const manifestFile = z.object({
+  path: updatePath,
+  target: updateTarget,
+  url: z.string().min(1).max(2048),
+  size: z.number().int().positive().max(MAX_UPDATE_FILE_BYTES),
+  sha256: z.string().regex(/^[0-9a-f]{64}$/, 'sha256 must be 64 lowercase hex characters'),
+}).refine(targetPrefixOk, { message: 'UNSAFE_PATH', path: ['path'] });
+
+const manifestRemoved = z.object({ path: updatePath, target: updateTarget }).refine(targetPrefixOk, { message: 'UNSAFE_PATH', path: ['path'] });
+
+const entryKey = (e) => `${e.target}/${e.path.toLowerCase()}`;
+
+export const updateManifest = z.object({
+  schema: z.literal(1),
+  contentVersion: semver,
+  releasedAt: z.string().max(64),
+  // Wajib: manifest tanpa field ini ditolak (tidak diam-diam dianggap cocok dengan semua binary).
+  minAppVersion: semver,
+  notes: z.object({ en: z.string().max(MAX_NOTES_CHARS), id: z.string().max(MAX_NOTES_CHARS).optional() }),
+  baseUrl: z.string().max(2048).url().refine((u) => u.startsWith('https:') || u.startsWith('http:'), 'baseUrl must use https').refine((u) => u.endsWith('/'), 'baseUrl must end with /'),
+  files: z.array(manifestFile).min(1).max(MAX_UPDATE_FILES),
+  removed: z.array(manifestRemoved).max(MAX_UPDATE_FILES).optional(),
+  signature: z.object({ alg: z.literal('ed25519'), keyId: z.string().min(1).max(64), value: z.string().min(1).max(200) }),
+}).superRefine((m, ctx) => {
+  const seen = new Set();
+  for (const [i, f] of m.files.entries()) {
+    if (seen.has(entryKey(f))) ctx.addIssue({ code: 'custom', message: 'duplicate path', path: ['files', i, 'path'] });
+    seen.add(entryKey(f));
+  }
+  for (const [i, r] of (m.removed ?? []).entries()) {
+    if (seen.has(entryKey(r))) ctx.addIssue({ code: 'custom', message: 'path is in both files and removed', path: ['removed', i, 'path'] });
+  }
+});
+
+export const updateCheckBody = z.object({ endpoint: z.string().max(2048).optional() });
+export const updateApplyBody = z.object({ contentVersion: semver, overwriteLocalEdits: z.boolean().default(false) });
+export const updateSettingsBody = z.object({ endpoint: z.string().trim().min(1).max(2048).nullable() });

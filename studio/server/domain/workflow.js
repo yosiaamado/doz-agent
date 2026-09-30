@@ -27,7 +27,7 @@ const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
 
 export function parseWorkflow(text, fallbackName = 'workflow') {
   const m = FRONTMATTER.exec(text);
-  if (!m) throw new Error('File workflow harus diawali frontmatter YAML (---)');
+  if (!m) throw new Error('The workflow file must start with YAML frontmatter (---)');
   const meta = YAML.parse(m[1]) ?? {};
   return normalize({ ...meta, notes: m[2].trim() }, fallbackName);
 }
@@ -95,28 +95,28 @@ export function validateWorkflow(wf, agentNames = null) {
   const errors = [];
   const ids = new Set();
   for (const n of wf.nodes) {
-    if (!n.id) errors.push('Ada node tanpa id');
-    else if (ids.has(n.id)) errors.push(`id node dobel: ${n.id}`);
+    if (!n.id) errors.push('A node has no id');
+    else if (ids.has(n.id)) errors.push(`duplicate node id: ${n.id}`);
     ids.add(n.id);
-    if (!NODE_TYPES.includes(n.type)) errors.push(`${n.id}: type tidak dikenal "${n.type}"`);
-    if (n.type === 'agent' && !n.agent) errors.push(`${n.id}: node agent wajib punya "agent"`);
+    if (!NODE_TYPES.includes(n.type)) errors.push(`${n.id}: unknown type "${n.type}"`);
+    if (n.type === 'agent' && !n.agent) errors.push(`${n.id}: an agent node needs "agent"`);
     if (n.type === 'agent' && agentNames && n.agent && !agentNames.includes(n.agent)) {
-      errors.push(`${n.id}: agent "${n.agent}" tidak ada di plugins/agents`);
+      errors.push(`${n.id}: agent "${n.agent}" is not in plugins/agents`);
     }
-    if (n.type === 'skill' && !n.skill) errors.push(`${n.id}: node skill wajib punya "skill"`);
-    if (n.type === 'action' && !n.command && !n.action) errors.push(`${n.id}: node action wajib punya "command" atau "action"`);
-    if (n.type === 'condition' && !n.check && !n.source) errors.push(`${n.id}: condition butuh "check" atau "source"`);
+    if (n.type === 'skill' && !n.skill) errors.push(`${n.id}: a skill node needs "skill"`);
+    if (n.type === 'action' && !n.command && !n.action) errors.push(`${n.id}: an action node needs "command" or "action"`);
+    if (n.type === 'condition' && !n.check && !n.source) errors.push(`${n.id}: a condition needs "check" or "source"`);
   }
-  if (!wf.nodes.some((n) => n.type === 'start')) errors.push('Workflow butuh satu node start');
+  if (!wf.nodes.some((n) => n.type === 'start')) errors.push('The workflow needs a start node');
   const byId = Object.fromEntries(wf.nodes.map((n) => [n.id, n]));
   for (const e of wf.edges) {
-    if (!ids.has(e.from) || !ids.has(e.to)) { errors.push(`edge ${e.from} → ${e.to}: node tidak ada`); continue; }
+    if (!ids.has(e.from) || !ids.has(e.to)) { errors.push(`edge ${e.from} → ${e.to}: node does not exist`); continue; }
     const src = byId[e.from];
     const branching = src.type === 'condition' || src.type === 'approval';
-    if (branching && e.when === undefined) errors.push(`edge ${e.from} → ${e.to}: keluar dari ${src.type} wajib punya when: true/false`);
-    if (e.loop && !branching) errors.push(`edge ${e.from} → ${e.to}: loop hanya boleh keluar dari condition/approval`);
+    if (branching && e.when === undefined) errors.push(`edge ${e.from} → ${e.to}: leaving ${src.type} needs when: true/false`);
+    if (e.loop && !branching) errors.push(`edge ${e.from} → ${e.to}: loop is only allowed leaving condition/approval`);
   }
-  if (hasCycle(wf)) errors.push('Ada siklus tanpa loop. Tandai edge balik dengan "loop: <maks>"');
+  if (hasCycle(wf)) errors.push('There is a cycle without a loop. Mark the back edge with "loop: <max>"');
   return errors;
 }
 

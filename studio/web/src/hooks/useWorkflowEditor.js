@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { addEdge, useEdgesState, useNodesState } from '@xyflow/react';
 import { api } from '../lib/api.js';
+import { useI18n } from '../i18n/I18nProvider.jsx';
 import { BRANCHING, emptyWorkflow, fromFlow, toFlow, uniqueId, validate } from '../lib/model.js';
 
 function splitMeta(wf) {
@@ -30,12 +31,13 @@ export function newNode(spec, ids) {
   if (spec.type === 'agent') node.agent = spec.agent;
   if (spec.type === 'skill') node.skill = spec.skill;
   if (spec.type === 'action' && spec.action) node.action = spec.action;
-  if (spec.type === 'condition') node.check = 'Apakah langkah sebelumnya lolos?';
+  if (spec.type === 'condition') node.check = 'Did the previous step pass?'; // isi file workflow, bukan copy UI
   return { ...node, id: uniqueId(spec.agent ?? spec.skill?.split(':').pop() ?? spec.action ?? spec.type, ids) };
 }
 
 // State editor: meta workflow + node/garis React Flow + status belum disimpan.
 export function useWorkflowEditor({ agentNames, notify }) {
+  const { t } = useI18n();
   const [meta, setMetaState] = useState(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -80,14 +82,14 @@ export function useWorkflowEditor({ agentNames, notify }) {
     const branching = BRANCHING.has(source?.type);
     const loop = reaches(edges, conn.target, conn.source);
     if (loop && !branching) {
-      notify('Garis ini membuat siklus. Loop hanya boleh keluar dari Condition/Approval.', 'error');
+      notify(t('editor.cycle-error'), 'error');
       return;
     }
     const data = { ...(branching ? { when: conn.sourceHandle !== 'false' } : {}), ...(loop ? { loop: 2 } : {}) };
-    if (loop) notify('Garis balik dijadikan loop (maks 2x). Ubah di panel kanan.');
+    if (loop) notify(t('editor.loop-created'));
     setEdges((eds) => addEdge({ ...conn, id: `e${Date.now()}`, type: 'status', data }, eds));
     setDirty(true);
-  }, [nodes, edges, setEdges, notify]);
+  }, [nodes, edges, setEdges, notify, t]);
 
   const addNode = useCallback((spec, position) => {
     const node = newNode(spec, new Set(nodes.map((n) => n.id)));
@@ -133,9 +135,9 @@ export function useWorkflowEditor({ agentNames, notify }) {
 
   const errors = useMemo(() => {
     if (!meta) return [];
-    const client = validate(fromFlow(meta, nodes, edges), agentNames);
+    const client = validate(fromFlow(meta, nodes, edges), agentNames, t);
     return [...new Set([...client, ...(dirty ? [] : serverErrors)])];
-  }, [meta, nodes, edges, agentNames, dirty, serverErrors]);
+  }, [meta, nodes, edges, agentNames, dirty, serverErrors, t]);
 
   const nodesById = useMemo(() => Object.fromEntries(nodes.map((n) => [n.id, n.data.node])), [nodes]);
 

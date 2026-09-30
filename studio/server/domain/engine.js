@@ -7,9 +7,12 @@
 // - Edge dengan `loop: N` mengulang node tujuan + semua node di bawahnya, maksimal N kali.
 import { BRANCHING_TYPES, WORK_TYPES, ancestors, chosenEdges, downstream, incoming, readyNodes } from './graph.js';
 import { EXECUTORS } from './executors.js';
+import { CodedError, codeOf } from '../lib/errors.js';
 
 const RESET_FIELDS = {
-  endedAt: undefined, error: undefined, warning: undefined, usage: undefined, cost: undefined,
+  endedAt: undefined, error: undefined, warning: undefined,
+  // Kode memakai null (bukan undefined): JSON membuang undefined, sehingga UI tidak akan pernah menghapus kode lama.
+  errorCode: null, errorParams: null, warningCode: null, activityCode: null, usage: undefined, cost: undefined,
   changes: undefined, diff: undefined, touched: undefined,
 };
 
@@ -41,7 +44,9 @@ export class WorkflowRun {
 
   // ---- state (selalu diganti objek baru, tidak dimutasi) ----
 
-  setNode(id, patch) {
+  setNode(id, rawPatch) {
+    // activityCode ikut dibersihkan saat activity diganti, supaya kode lama tidak menempel di UI.
+    const patch = 'activity' in rawPatch && !('activityCode' in rawPatch) ? { ...rawPatch, activityCode: null } : rawPatch;
     this.state = { ...this.state, [id]: { ...this.state[id], ...patch } };
     this.emit({ type: 'node', node: id, ...patch });
   }
@@ -50,7 +55,7 @@ export class WorkflowRun {
     this.cost += amount ?? 0;
     this.emit({ type: 'cost', total: this.cost });
     if (this.wf.budget_usd && this.cost > this.wf.budget_usd) {
-      this.fail(`Budget workflow $${this.wf.budget_usd} terlampaui ($${this.cost.toFixed(2)})`);
+      this.fail(`Workflow budget $${this.wf.budget_usd} exceeded ($${this.cost.toFixed(2)})`, 'BUDGET_EXCEEDED', { budget: this.wf.budget_usd, cost: Number(this.cost.toFixed(2)) });
     }
   }
 
@@ -97,19 +102,21 @@ export class WorkflowRun {
     try {
       await this.loop();
     } catch (err) {
-      this.fail(err.message);
+      this.fail(err.message, codeOf(err).code, codeOf(err).params);
     }
     if (this.status === 'running') {
       const failed = Object.values(this.state).some((s) => s.status === 'failed');
       this.status = this.stopped ? 'stopped' : failed ? 'failed' : 'done';
     }
-    this.emit({ type: 'run_end', status: this.status, cost: this.cost, error: this.error ?? undefined });
+    this.emit({ type: 'run_end', status: this.status, cost: this.cost, error: this.error ?? undefined, errorCode: this.errorCode, errorParams: this.errorParams });
     return this.status;
   }
 
-  fail(message) {
+  fail(message, code, params) {
     this.status = 'failed';
     this.error = message;
+    this.errorCode = code;
+    this.errorParams = params;
     this.stopped = true;
   }
 
@@ -117,12 +124,12 @@ export class WorkflowRun {
     this.stopped = true;
     this.status = 'stopped';
     for (const { abort } of this.running.values()) abort.abort();
-    for (const resolve of this.approvals.values()) resolve({ approved: false, note: 'run dihentikan' });
+    for (const resolve of this.approvals.values()) resolve({ approved: false, note: 'run stopped' });
   }
 
   approve(nodeId, approved, note = '') {
     const resolve = this.approvals.get(nodeId);
-    if (!resolve) throw new Error(`Node ${nodeId} tidak sedang menunggu persetujuan`);
+    if (!resolve) throw new CodedError(`Node ${nodeId} is not waiting for approval`, 'NODE_NOT_WAITING', { node: nodeId });
     resolve({ approved, note });
   }
 
@@ -155,8 +162,8 @@ export class WorkflowRun {
       this.setNode(node.id, { status: 'stopped' });
       return;
     }
-    this.setNode(node.id, { status: 'failed', error: err.message, activity: null });
-    this.fail(`${node.label || node.id} gagal: ${err.message}`);
+    this.setNode(node.id, { status: 'failed', error: err.message, errorCode: codeOf(err).code ?? null, errorParams: codeOf(err).params ?? null, activity: null });
+    this.fail(`${node.label || node.id} failed: ${err.message}`, 'NODE_FAILED', { node: node.label || node.id, reason: err.message });
   }
 
   async trackedChanges(base) {
@@ -193,6 +200,7 @@ export class WorkflowRun {
       usage: result.usage,
       turns: result.turns,
       warning: result.warning,
+      warningCode: result.warningCode,
       exitCode: result.exitCode,
       activity: null,
     });
@@ -212,7 +220,7 @@ export class WorkflowRun {
   triggerLoop(edge, fromId) {
     const key = `${edge.from}->${edge.to}`;
     const count = (this.loopCount[key] ?? 0) + 1;
-    if (count > edge.loop) throw new Error(`Batas loop ${key} (${edge.loop}x) habis dan masih belum lolos`);
+    if (count > edge.loop) throw new CodedError(`Loop limit ${key} (${edge.loop}x) reached and still not passing`, 'LOOP_LIMIT_REACHED', { edge: key, max: edge.loop });
     this.loopCount = { ...this.loopCount, [key]: count };
     const reset = downstream(this.wf, edge.to);
     this.active = new Set([...this.active].filter((i) => !reset.has(this.wf.edges[i].from)));

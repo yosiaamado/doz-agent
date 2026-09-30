@@ -1,113 +1,113 @@
 ---
 name: analytical-thinking
-description: Kerangka berpikir analitis untuk memecah masalah kompleks, debugging sistematis, root cause analysis, estimasi, membandingkan opsi/trade-off, dan mengambil keputusan berbasis bukti (termasuk pre-mortem dan ADR). Pakai saat user minta "analisis", "kenapa ini terjadi", "bandingkan opsi", "mana yang lebih baik", "estimasi", saat bug sulit dilacak, atau saat keputusan teknis punya banyak faktor.
+description: Analytical thinking frameworks for breaking down complex problems, systematic debugging, root cause analysis, estimation, comparing options/trade-offs, and making evidence-based decisions (including pre-mortems and ADRs). Use when the user asks for "analysis", "why is this happening", "compare the options", "which is better", "an estimate", when a bug is hard to track down, or when a technical decision has many factors.
 effort: high
 ---
 
 # Analytical Thinking
 
-Tujuannya: jawaban yang **benar dan bisa dipertanggungjawabkan**, bukan tebakan yang terdengar meyakinkan.
+The goal: an answer that is **correct and defensible**, not a guess that sounds convincing.
 
-## 1. Definisikan masalahnya
+## 1. Define the problem
 
-- Tulis ulang masalah dalam satu kalimat: apa gejalanya, di mana, sejak kapan, seberapa sering, dan siapa yang terdampak?
-- Pisahkan **fakta** (terlihat di log, data, atau kode) dari **asumsi** dan **opini**.
-- Tentukan kriteria "selesai": seperti apa kondisi yang benar, dan bagaimana mengukurnya?
-- Pastikan masalah yang dipecahkan adalah masalah yang tepat. Tanyakan: kenapa ini penting?
+- Restate the problem in one sentence: what's the symptom, where, since when, how often, and who is affected?
+- Separate **facts** (visible in logs, data, or code) from **assumptions** and **opinions**.
+- Set the "done" criteria: what does the correct state look like, and how will it be measured?
+- Make sure the problem you're solving is the right one. Ask: why does this matter?
 
-## 2. Pecah masalahnya (MECE)
+## 2. Break the problem down (MECE)
 
-- Uraikan jadi bagian yang **tidak tumpang tindih dan mencakup semua kemungkinan** (Mutually Exclusive, Collectively Exhaustive).
-- Contoh untuk "API lambat": client → network/DNS → load balancer → app (CPU, memori, GC, lock) → DB (query, lock, koneksi) → layanan eksternal.
-- Pakai **issue tree:** masalah → sub-masalah → pertanyaan yang bisa diuji.
-- **First principles:** kalau terjebak, kembali ke fakta dasar (apa yang pasti benar?) lalu bangun ulang penalarannya dari sana.
+- Decompose it into parts that are **non-overlapping and cover every possibility** (Mutually Exclusive, Collectively Exhaustive).
+- Example for "the API is slow": client → network/DNS → load balancer → app (CPU, memory, GC, locks) → DB (queries, locks, connections) → external services.
+- Use an **issue tree:** problem → sub-problems → testable questions.
+- **First principles:** when stuck, return to the basic facts (what is definitely true?) then rebuild the reasoning from there.
 
-## 3. Hipotesis & verifikasi
+## 3. Hypotheses & verification
 
-- Susun beberapa hipotesis, lalu urutkan berdasarkan **kemungkinan × murahnya untuk dicek**.
-- Untuk setiap hipotesis, tentukan dulu bukti apa yang akan **membenarkan** atau **membantahnya**, baru cari buktinya.
-- **Ubah satu variabel dalam satu waktu.** Catat setiap percobaan beserta hasilnya.
-- **Debugging sistematis:**
-  1. Reproduksi masalahnya secara konsisten.
-  2. Persempit area dengan bisection (`git bisect`, matikan komponen satu per satu, atau binary search di data).
-  3. Bandingkan kondisi yang jalan dengan yang tidak: apa bedanya?
-  4. Cek hal yang baru berubah: deploy, config, dependency, dan data.
-- Jangan menyimpulkan tanpa bukti. "Mungkin karena X" belum sama dengan "karena X".
+- Form several hypotheses, then order them by **likelihood × how cheap they are to check**.
+- For each hypothesis, decide up front what evidence would **confirm** or **refute** it, then go looking.
+- **Change one variable at a time.** Record each attempt along with its result.
+- **Systematic debugging:**
+  1. Reproduce the problem consistently.
+  2. Narrow it down by bisection (`git bisect`, disabling components one at a time, or a binary search through the data).
+  3. Compare a working case against a failing one: what's different?
+  4. Check what changed recently: deploys, config, dependencies, and data.
+- Don't conclude without evidence. "Probably because of X" is not the same as "because of X".
 
 ## 4. Root cause
 
-- **5 Whys:** terus tanya "kenapa" sampai ketemu penyebab yang kalau diperbaiki, masalahnya tidak muncul lagi.
-- Bedakan:
-  - **Pemicu (trigger):** peristiwa yang memulai masalah.
-  - **Root cause:** kelemahan mendasar yang membuat masalah bisa terjadi.
-  - **Faktor pemberat:** hal yang memperparah dampaknya.
-- Untuk masalah yang penyebabnya banyak, pakai **diagram fishbone** dengan kategori: orang, proses, teknologi, data, lingkungan.
-- Tanyakan juga: **kenapa masalah ini tidak terdeteksi lebih awal** (test, monitoring, review)? Itu biasanya perbaikan yang paling berharga.
-- Fokus ke sistem dan proses, bukan menyalahkan orang (blameless).
+- **5 Whys:** keep asking "why" until you reach a cause that, once fixed, stops the problem recurring.
+- Distinguish:
+  - **Trigger:** the event that started the problem.
+  - **Root cause:** the underlying weakness that made the problem possible.
+  - **Aggravating factors:** things that made the impact worse.
+- For problems with many causes, use a **fishbone diagram** with the categories: people, process, technology, data, environment.
+- Also ask: **why wasn't this caught earlier** (tests, monitoring, review)? That's usually the most valuable fix.
+- Focus on the system and the process, not on blaming people (blameless).
 
-## 5. Estimasi
+## 5. Estimation
 
-- **Estimasi Fermi:** pecah angka besar jadi faktor-faktor yang bisa ditebak dengan wajar, lalu kalikan. Tuliskan setiap asumsinya.
-  - Contoh: request/hari = user aktif × sesi per user × request per sesi.
-- Beri **rentang, bukan angka tunggal**: optimis / realistis / pesimis.
-- Untuk estimasi effort, pecah pekerjaan sampai unit terkecil. Tambahkan buffer untuk hal yang belum diketahui (integrasi, testing, review, deploy).
-- Bandingkan dengan data historis kalau ada. Manusia cenderung terlalu optimis.
+- **Fermi estimation:** break a big number into factors you can reasonably guess, then multiply. Write down every assumption.
+  - Example: requests/day = active users × sessions per user × requests per session.
+- Give a **range, not a single number**: optimistic / realistic / pessimistic.
+- For effort estimates, break the work down to the smallest unit. Add buffer for the unknowns (integration, testing, review, deploy).
+- Compare against historical data where available. People are systematically over-optimistic.
 
-## 6. Membandingkan opsi
+## 6. Comparing options
 
-**Klasifikasi keputusan dulu:**
-- **Two-way door** (mudah dibatalkan): putuskan cepat, cukup dengan informasi ±70%.
-- **One-way door** (sulit atau mahal dibatalkan, misalnya skema data, bahasa/framework, vendor lock-in, kontrak API publik): analisis lebih dalam dan tulis sebagai ADR.
+**Classify the decision first:**
+- **Two-way door** (easy to reverse): decide fast, ~70% of the information is enough.
+- **One-way door** (hard or expensive to reverse — e.g. a data schema, a language/framework, vendor lock-in, a public API contract): analyse more deeply and write it up as an ADR.
 
-**Matriks keputusan berbobot:**
+**A weighted decision matrix:**
 
-| Kriteria (bobot) | Opsi A | Opsi B | Opsi C |
+| Criterion (weight) | Option A | Option B | Option C |
 |---|---|---|---|
-| Dampak ke user/bisnis (30%) | | | |
-| Effort / waktu (20%) | | | |
-| Risiko (20%) | | | |
-| Maintainability / kompleksitas (15%) | | | |
-| Biaya total (TCO) (15%) | | | |
+| User/business impact (30%) | | | |
+| Effort / time (20%) | | | |
+| Risk (20%) | | | |
+| Maintainability / complexity (15%) | | | |
+| Total cost (TCO) (15%) | | | |
 
-Beri skor 1–5, kalikan dengan bobot, lalu jumlahkan. Bobotnya disesuaikan dengan konteks.
+Score 1–5, multiply by the weight, then sum. Adjust the weights to fit the context.
 
-- **Selalu sertakan opsi "tidak melakukan apa-apa"** sebagai pembanding.
-- Sebutkan **trade-off** secara eksplisit: apa yang dikorbankan di setiap opsi.
-- **Second-order effect:** apa dampak lanjutannya dalam 3–12 bulan? Siapa lagi yang terdampak?
-- **Pre-mortem:** bayangkan 6 bulan lagi keputusan ini gagal total. Apa penyebab yang paling mungkin? Mitigasi penyebab itu sekarang.
-- **Uji sensitivitas:** apakah keputusannya berubah kalau salah satu asumsi utama meleset 2×?
+- **Always include the "do nothing" option** as a baseline.
+- State the **trade-offs** explicitly: what each option gives up.
+- **Second-order effects:** what are the downstream consequences in 3–12 months? Who else is affected?
+- **Pre-mortem:** imagine this decision has failed completely six months from now. What's the most likely cause? Mitigate that cause now.
+- **Sensitivity test:** does the decision change if one key assumption is off by 2×?
 
-## 7. Kualitas data & bukti
+## 7. Data & evidence quality
 
-- Cek sumber dan kualitas datanya: sampel cukup? periode representatif? ada data yang hilang atau outlier?
-- Pakai **persentil (p50/p95/p99)**, bukan hanya rata-rata, untuk latency dan distribusi yang miring.
-- Bandingkan dengan **baseline** (sebelum vs sesudah, kelompok kontrol).
-- Bedakan tingkat bukti:
-  - Diukur langsung > dari log/metric > dari kode > dari dokumentasi > dari ingatan/asumsi.
+- Check the source and quality of the data: big enough sample? representative period? any missing data or outliers?
+- Use **percentiles (p50/p95/p99)**, not just averages, for latency and skewed distributions.
+- Compare against a **baseline** (before vs after, a control group).
+- Distinguish levels of evidence:
+  - Directly measured > from logs/metrics > from the code > from documentation > from memory/assumption.
 
-## 8. Hindari bias
+## 8. Avoiding bias
 
-| Bias | Penangkal |
+| Bias | Counter |
 |---|---|
-| Confirmation bias | Cari bukti yang **membantah** hipotesis sendiri |
-| Anchoring | Jangan terpaku pada penjelasan atau angka pertama |
-| Korelasi ≠ kausalitas | Cari mekanisme penyebabnya dan uji dengan eksperimen |
-| Survivorship bias | Perhatikan data yang tidak terlihat (user yang sudah churn, request yang timeout) |
-| Sunk cost | Nilai opsi berdasarkan masa depan, bukan apa yang sudah dikeluarkan |
-| Recency / availability | Cek data historis, bukan hanya kejadian terakhir yang paling diingat |
+| Confirmation bias | Look for evidence that **refutes** your own hypothesis |
+| Anchoring | Don't fixate on the first explanation or number |
+| Correlation ≠ causation | Find the causal mechanism and test it with an experiment |
+| Survivorship bias | Account for the data you can't see (users who already churned, requests that timed out) |
+| Sunk cost | Judge options by their future, not by what's already been spent |
+| Recency / availability | Check historical data, not just the most memorable recent event |
 
-Kalau datanya kurang, **katakan begitu** dan sebutkan data apa yang dibutuhkan beserta cara mendapatkannya.
+If the data is insufficient, **say so** and name what data is needed and how to get it.
 
-## 9. Format jawaban
+## 9. Answer format
 
 ```
-**Kesimpulan:** <1-2 kalimat, jawaban langsung>
-**Keyakinan:** <tinggi/sedang/rendah> — <kenapa>
-**Bukti:** <fakta pendukung dengan sumber: file:line / log / angka>
-**Alasan:** <rantai logika singkat>
-**Opsi & trade-off:** <kalau ada pilihan>
-**Rekomendasi:** <tindakan konkret, urut prioritas>
-**Ketidakpastian:** <apa yang belum pasti + cara memastikannya>
+**Conclusion:** <1-2 sentences, the direct answer>
+**Confidence:** <high/medium/low> — <why>
+**Evidence:** <supporting facts with sources: file:line / logs / numbers>
+**Reasoning:** <the short logical chain>
+**Options & trade-offs:** <if there is a choice>
+**Recommendation:** <concrete actions, in priority order>
+**Uncertainty:** <what isn't settled + how to settle it>
 ```
 
-Mulai dengan kesimpulan (bottom line up front). Tingkat keyakinan harus sepadan dengan buktinya. Untuk keputusan one-way door, tawarkan untuk menuliskannya sebagai ADR.
+Lead with the conclusion (bottom line up front). The confidence level must match the evidence. For a one-way door decision, offer to write it up as an ADR.

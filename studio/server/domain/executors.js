@@ -3,6 +3,7 @@ import { resolveSettings } from './workflow.js';
 import { buildNodePrompt, buildJudgePrompt, parseVerdict } from './prompt.js';
 import { withTimeout } from './timeout.js';
 import { runCommand } from '../runners/shell.js';
+import { CodedError } from '../lib/errors.js';
 
 function outputReport(ctx, node) {
   return ctx.upstreamOutputs(node, 'all').map((u) => `## ${u.node.label || u.node.id}\n\n${u.output}`).join('\n\n---\n\n');
@@ -10,7 +11,7 @@ function outputReport(ctx, node) {
 
 function requireRunner(ctx, name) {
   const runner = ctx.runners[name];
-  if (!runner) throw new Error(`Runner "${name}" tidak dikenal`);
+  if (!runner) throw new CodedError(`Unknown runner "${name}"`, 'RUNNER_UNKNOWN', { runner: name });
   return runner;
 }
 
@@ -27,7 +28,7 @@ async function attemptAgent(ctx, node, runner, opts, signal) {
 
 export async function runAgent(ctx, node, signal) {
   const agent = node.type === 'agent' ? ctx.agents[node.agent] : null;
-  if (node.type === 'agent' && !agent) throw new Error(`Agent "${node.agent}" tidak ditemukan`);
+  if (node.type === 'agent' && !agent) throw new CodedError(`Agent "${node.agent}" not found`, 'AGENT_NOT_FOUND', { agent: node.agent });
   const settings = resolveSettings(node, ctx.wf, agent);
   const runner = requireRunner(ctx, settings.runner);
   const prompt = buildNodePrompt({
@@ -47,18 +48,18 @@ export async function runAgent(ctx, node, signal) {
     } catch (err) {
       lastErr = err;
       if (!signal.aborted && attempt < attempts) {
-        ctx.emit({ type: 'activity', node: node.id, kind: 'retry', text: `Gagal, coba lagi (${err.message})` });
+        ctx.emit({ type: 'activity', node: node.id, kind: 'retry', text: `Failed, retrying (${err.message})`, code: 'ACTIVITY_RETRY', params: { reason: err.message } });
       }
     }
   }
-  throw lastErr ?? new Error('dihentikan');
+  throw lastErr ?? new Error('stopped');
 }
 
 export async function runAction(ctx, node, signal) {
   const preset = node.action ? ctx.actions[node.action] : null;
-  if (node.action && !preset) throw new Error(`Action "${node.action}" tidak ditemukan`);
+  if (node.action && !preset) throw new CodedError(`Action "${node.action}" not found`, 'ACTION_NOT_FOUND', { action: node.action });
   const command = node.command || preset?.command;
-  if (!command) throw new Error('Action tanpa perintah');
+  if (!command) throw new CodedError('Action has no command', 'ACTION_NO_COMMAND');
   const timeout = Number(node.timeout_min ?? preset?.timeout_min) || 15;
   ctx.setNode(node.id, { command });
   ctx.emit({ type: 'activity', node: node.id, kind: 'tool', tool: 'Shell', text: `$ ${command}` });
@@ -73,10 +74,10 @@ function knownVerdict(ctx, node, sourceId) {
   const mode = node.mode ?? 'auto';
   if (mode === 'llm') return null;
   const known = ctx.state[sourceId]?.verdict;
-  if (typeof known === 'boolean') return { verdict: known, output: `Hasil ${sourceId}: ${known ? 'PASS' : 'FAIL'}`, reason: 'verdict' };
+  if (typeof known === 'boolean') return { verdict: known, output: `Result of ${sourceId}: ${known ? 'PASS' : 'FAIL'}`, reason: 'verdict' };
   const parsed = parseVerdict(ctx.state[sourceId]?.output ?? '');
-  if (parsed !== null) return { verdict: parsed, output: `VERDICT dari ${sourceId}: ${parsed ? 'PASS' : 'FAIL'}`, reason: 'verdict' };
-  if (mode === 'verdict') throw new Error(`Output ${sourceId} tidak punya baris VERDICT`);
+  if (parsed !== null) return { verdict: parsed, output: `VERDICT from ${sourceId}: ${parsed ? 'PASS' : 'FAIL'}`, reason: 'verdict' };
+  if (mode === 'verdict') throw new CodedError(`Output of ${sourceId} has no VERDICT line`, 'VERDICT_MISSING', { node: sourceId });
   return null;
 }
 
@@ -86,20 +87,20 @@ export async function evaluateCondition(ctx, node, signal) {
   if (known) return known;
   const settings = resolveSettings({ ...node, model: node.model ?? 'haiku', max_turns: 1 }, ctx.wf, null);
   const runner = requireRunner(ctx, settings.runner);
-  ctx.emit({ type: 'activity', node: node.id, kind: 'text', text: `Menilai: ${node.check}` });
+  ctx.emit({ type: 'activity', node: node.id, kind: 'text', text: `Judging: ${node.check}`, code: 'ACTIVITY_JUDGING', params: { check: node.check } });
   const prompt = buildJudgePrompt({ question: node.check, subject: ctx.state[sourceId]?.output ?? '' });
   const res = await withTimeout(settings.timeout_min, signal, (s) => runner.judge({ prompt, settings, workdir: ctx.workdir, signal: s }));
   ctx.addCost(res.cost);
   const verdict = parseVerdict(res.output);
-  if (verdict === null) throw new Error('Penilai tidak mengembalikan VERDICT');
+  if (verdict === null) throw new CodedError('The judge did not return a VERDICT', 'JUDGE_NO_VERDICT');
   return { verdict, output: res.output, cost: res.cost, reason: 'llm' };
 }
 
 export function waitApproval(ctx, node) {
-  ctx.setNode(node.id, { status: 'waiting', activity: node.message || 'Menunggu persetujuan' });
+  ctx.setNode(node.id, { status: 'waiting', activity: node.message || 'Waiting for approval', ...(node.message ? {} : { activityCode: 'ACTIVITY_WAITING_APPROVAL' }) });
   return new Promise((resolve) => {
     ctx.registerApproval(node.id, ({ approved, note }) => {
-      resolve({ verdict: approved, output: `${approved ? 'Disetujui' : 'Ditolak'}${note ? `: ${note}` : ''}` });
+      resolve({ verdict: approved, output: `${approved ? 'Approved' : 'Rejected'}${note ? `: ${note}` : ''}` });
     });
   });
 }

@@ -48,6 +48,8 @@ test('respons API memakai format { success, data }', async () => {
   assert.equal(status, 200);
   assert.equal(json.success, true);
   assert.equal(json.data.workdir, workdir);
+  assert.match(json.data.appVersion, /^\d+\.\d+\.\d+/);
+  assert.match(json.data.contentVersion, /^\d+\.\d+\.\d+/);
 });
 
 test('validasi input: body salah → 400 dengan detail', async () => {
@@ -104,7 +106,7 @@ test('penjelajah folder mengembalikan subfolder dan root', async () => {
 test('router mencocokkan parameter path', () => {
   const r = new Router().get('/api/x/:kind/:name', () => 'ok');
   assert.deepEqual(r.resolve('GET', '/api/x/agents/qa%20tester').params, { kind: 'agents', name: 'qa tester' });
-  assert.throws(() => r.resolve('POST', '/api/x/a/b'), /tidak ada endpoint/);
+  assert.throws(() => r.resolve('POST', '/api/x/a/b'), /No endpoint/);
 });
 
 test('docx diubah jadi teks', () => {

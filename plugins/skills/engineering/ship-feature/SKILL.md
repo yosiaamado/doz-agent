@@ -1,157 +1,157 @@
 ---
 name: ship-feature
-description: Titik masuk utama untuk mengerjakan fitur, perubahan, atau bugfix dari awal sampai selesai dengan satu perintah, memakai agent doz-agent secara hemat token. Mengukur pekerjaan (kecil/sedang/besar), lalu menjalankan hanya agent yang dibutuhkan (product-owner → kontrak API → backend-engineer ∥ frontend-engineer → code-reviewer ∥ qa-tester ∥ security-tester → acceptance), termasuk loop perbaikan, dan hanya berhenti untuk keputusan bisnis. Pakai saat user bilang "kerjain/tambahin/bikin fitur X", "ship", "sampai selesai", "end-to-end", atau memanggil /ship-feature. Jangan dipakai kalau user hanya mau diskusi, analisis, atau review tanpa implementasi.
-argument-hint: "[--engineer-model opus|sonnet] <deskripsi fitur/perubahan>"
+description: The main entry point for taking a feature, change, or bugfix from start to finish with one command, using doz-agent agents economically. Sizes the work (small/medium/large), then runs only the agents needed (product-owner → API contract → backend-engineer ∥ frontend-engineer → code-reviewer ∥ qa-tester ∥ security-tester → acceptance), including the fix loop, and stops only for business decisions. Use when the user says "build/add/do feature X", "ship it", "until it's done", "end-to-end", or invokes /ship-feature. Do not use if the user only wants discussion, analysis, or a review without implementation.
+argument-hint: "[--engineer-model opus|sonnet] <feature/change description>"
 effort: high
 ---
 
 # Ship Feature
 
-Kamu (thread utama) adalah orkestrator. Selesaikan permintaan berikut sampai tuntas dengan agent **sesedikit mungkin** tanpa menurunkan kualitas.
+You (the main thread) are the orchestrator. Take the following request all the way to done with as **few agents as possible** without lowering quality.
 
-**Permintaan:** $ARGUMENTS
+**Request:** $ARGUMENTS
 
-Kalau bagian di atas kosong, pakai permintaan user di pesan terakhir.
+If the section above is empty, use the user's request from their last message.
 
-Permintaan diawali `--engineer-model <opus|sonnet>` → itu eksperimen model, bukan bagian dari permintaan. Setiap panggilan baru ke engineer memakai model itu lewat parameter `model` di tool `Agent`. Hasilnya dibandingkan nanti dengan `/doz-agent:token-audit --compare`.
+If the request starts with `--engineer-model <opus|sonnet>`, that's a model experiment, not part of the request. Every new engineer call uses that model via the `model` parameter of the `Agent` tool. The results get compared later with `/doz-agent:token-audit --compare`.
 
-Agent tidak bisa memanggil agent lain. Semua agent kamu panggil lewat tool `Agent` dengan `subagent_type` `doz-agent:<nama>`. User tidak perlu memilih agent.
+Agents cannot invoke other agents. You invoke every agent via the `Agent` tool with `subagent_type` `doz-agent:<name>`. The user never has to pick an agent.
 
-## Aturan berpikir & output
+## Thinking & output rules
 
-Ini yang menentukan hemat atau borosnya seluruh alur:
+These decide whether the whole flow is cheap or wasteful:
 
-- **Sizing dibatasi ~5 pembacaan file.** Setelah ukuran ditentukan, jangan dianalisis ulang.
-- **Jangan memanggil agent untuk hal yang bisa kamu kerjakan sendiri dengan konteks yang sudah kamu punya.** Setiap agent membayar eksplorasi dari nol. Menulis kontrak, brief, atau perubahan kecil sendiri hampir selalu lebih murah.
-- **Update ke user maksimal 2 baris per tahap.** Tanpa narasi rencana, tanpa "sekarang saya akan…", tanpa menempel diff atau isi file. Laporan lengkap hanya sekali di akhir.
-- **Jangan meneruskan laporan agent utuh ke agent lain.** Rujuk file spec, ringkas sisanya jadi poin yang dibutuhkan penerima. Konteks thread utama dikirim ulang tiap giliran — itu biaya yang berlipat.
-- Tanpa task-list untuk alur di bawah 3 langkah.
+- **Sizing is capped at ~5 file reads.** Once the size is set, don't re-analyse it.
+- **Don't invoke an agent for something you can do yourself with the context you already have.** Every agent pays for exploration from scratch. Writing the contract, the brief, or a small change yourself is almost always cheaper.
+- **Updates to the user: 2 lines max per stage.** No narrating the plan, no "now I will…", no pasting diffs or file contents. The full report comes once, at the end.
+- **Don't forward a whole agent report to another agent.** Point at the spec file and condense the rest into the points the recipient needs. The main thread's context is resent every turn — that cost compounds.
+- No task list for a flow under 3 steps.
 
-## 1. Ukur pekerjaan (sendiri, tanpa agent)
+## 1. Size the work (yourself, no agents)
 
-`CLAUDE.md` sudah ada di konteksmu (yang di subfolder ikut dimuat saat file di sana dibaca), jadi jangan dibaca ulang. Eksplorasi secukupnya (dalam batas di atas), lalu simpan temuanmu untuk diteruskan ke agent berikutnya.
+`CLAUDE.md` is already in your context (the ones in subfolders load when a file there is read), so don't read it again. Explore just enough (within the cap above), then keep your findings to pass on to the next agent.
 
-| Ukuran | Ciri | Alur |
+| Size | Signs | Flow |
 |---|---|---|
-| **Kecil** | 1–3 file, satu layer, tanpa perubahan kontrak API/skema DB, tidak menyentuh area sensitif* | Kerjakan **sendiri tanpa agent**, jalankan test terkait, selesai |
-| **Sedang** | Requirement sudah jelas, tidak ada keputusan bisnis baru | Lewati product-owner. Kontrak (langkah 3) → engineer → verifikasi |
-| **Besar** | Fitur baru, aturan bisnis baru, requirement masih kabur, atau menyentuh area sensitif* | product-owner → kontrak (langkah 3) → engineer → verifikasi → acceptance |
+| **Small** | 1–3 files, one layer, no API contract/DB schema change, doesn't touch a sensitive area* | Do it **yourself with no agents**, run the related tests, done |
+| **Medium** | The requirement is already clear, no new business decisions | Skip product-owner. Contract (step 3) → engineers → verification |
+| **Large** | New feature, new business rules, the requirement is still fuzzy, or it touches a sensitive area* | product-owner → contract (step 3) → engineers → verification → acceptance |
 
-\* Area sensitif: auth/session, role/authorization, input user ke DB/command, upload, payment, data pribadi, webhook, secret.
+\* Sensitive areas: auth/session, roles/authorization, user input reaching the DB/commands, uploads, payments, personal data, webhooks, secrets.
 
-Sampaikan ukuran + alasannya dalam **satu kalimat**, lalu langsung lanjut.
+State the size + the reason in **one sentence**, then move straight on.
 
-Ada AC visual atau alur yang butuh login (misalnya halaman admin) dan tersedia tool browser → minta user login di browser **sekarang**, supaya cek visual bisa dilakukan sebelum laporan akhir. Kamu tidak pernah mengetik password. Tanpa tool browser → tulis "belum dicek visual" di laporan akhir.
+If there is a visual AC or a flow requiring login (e.g. an admin page) and browser tooling is available → ask the user to log in in the browser **now**, so the visual check can happen before the final report. You never type a password. No browser tooling → write "visual not checked" in the final report.
 
-## 2. Product owner (hanya Besar)
+## 2. Product owner (Large only)
 
-Panggil `doz-agent:product-owner` dengan permintaan user, path project, dan temuanmu. PO bekerja **sekali jalan** — jangan memanggilnya dua kali untuk requirement yang sama.
+Invoke `doz-agent:product-owner` with the user's request, the project path, and your findings. The PO works in **a single pass** — don't invoke it twice for the same requirement.
 
-- `[WAJIB DIJAWAB]` → tanyakan dengan `AskUserQuestion` (maksimal 4 sekaligus, default PO jadi opsi pertama), lalu lanjut.
-- `[ASUMSI]` → pakai apa adanya, catat untuk laporan akhir.
-- Ikuti **Rencana agent** dari PO.
+- `[MUST ANSWER]` → ask via `AskUserQuestion` (4 at a time max, the PO's default as the first option), then continue.
+- `[ASSUMPTION]` → take it as-is, note it for the final report.
+- Follow the PO's **Agent plan**.
 
-## 3. Brief kerja bersama
+## 3. The shared working brief
 
-Satu file `docs/specs/<slug>.md` jadi acuan semua agent, supaya tidak ada yang menjelajahi repo dari nol.
+A single `docs/specs/<slug>.md` file is the reference for every agent, so nobody explores the repo from scratch.
 
 ```markdown
-## Konteks repo
-<stack, perintah build/test/lint, path penting, konvensi — dari langkah 1>
+## Repo context
+<stack, build/test/lint commands, important paths, conventions — from step 1>
 ## Requirement
-<user story + AC, atau permintaan user kalau tanpa PO>
-## Slice
-- S1 <nama> — AC-1, AC-2 — BE/FE   (satu slice = satu panggilan engineer)
-## Kontrak API
+<user story + ACs, or the user's request if there was no PO>
+## Slices
+- S1 <name> — AC-1, AC-2 — BE/FE   (one slice = one engineer call)
+## API contract
 ### <METHOD> <path>
-- Auth · Request (params/body + validasi) · Response 2xx (contoh JSON) · Error (status → kapan → contoh body)
-## Peta file
+- Auth · Request (params/body + validation) · Response 2xx (JSON example) · Errors (status → when → example body)
+## File map
 ### Backend / ### Frontend
-- [S1] <path> — <buat/ubah> — <apa> (ikuti pola: <path:baris>)
-## Keputusan & asumsi
+- [S1] <path> — <create/change> — <what> (follow the pattern at: <path:line>)
+## Decisions & assumptions
 ```
 
-Siapa yang menulisnya:
+Who writes it:
 
-| Kondisi | Cara |
+| Condition | How |
 |---|---|
-| **Default** (1–2 endpoint, pola API di project sudah jelas) | **Tulis sendiri.** Kamu sudah punya konteksnya; cukup cek satu endpoint serupa sebagai acuan konvensi |
-| ≥3 endpoint, ada migration/perubahan skema, atau domainnya rumit | Panggil `doz-agent:system-analyst`. Biaya eksplorasinya sepadan dengan risiko rework |
-| Bentuk response belum bisa dipastikan, atau porsi FE sangat kecil | **Lewati kontrak di depan.** `backend-engineer` dulu, ambil kontrak final dari laporannya, baru `frontend-engineer` |
-| Hanya satu layer (FE saja atau BE saja) | Tanpa kontrak. Cukup "Konteks repo" + "Requirement" + "Peta file" |
+| **Default** (1–2 endpoints, the project's API pattern is already clear) | **Write it yourself.** You already have the context; checking one similar endpoint for the convention is enough |
+| ≥3 endpoints, a migration/schema change, or a complex domain | Invoke `doz-agent:system-analyst`. The exploration cost is worth the rework risk |
+| The response shape can't be pinned down yet, or the FE portion is tiny | **Skip the up-front contract.** `backend-engineer` first, take the final contract from its report, then `frontend-engineer` |
+| Only one layer (FE only or BE only) | No contract. "Repo context" + "Requirement" + "File map" is enough |
 
-**Peta file wajib diisi** — itu yang membatasi scope engineer dan mencegah eksplorasi ulang. Lebih dari 1 engineer per layer → tulis pemilik tiap file/folder; satu file tidak boleh punya dua pemilik. Pertanyaan terbuka yang memengaruhi kontrak diperlakukan seperti langkah 2.
+**The file map is mandatory** — it's what bounds the engineers' scope and prevents re-exploration. More than 1 engineer per layer → write the owner of each file/folder; a file must never have two owners. Open questions affecting the contract are handled like step 2.
 
-## 4. Eksekusi
+## 4. Execution
 
-- Kontrak sudah ada → panggil `backend-engineer` dan `frontend-engineer` **paralel dalam satu pesan**.
-- **Satu panggilan engineer = satu slice.** Slice berikutnya dikirim setelah slice sebelumnya `done`: area yang sama → `SendMessage` ke engineer yang sama; area lain → panggilan baru. Engineer boleh paralel hanya kalau Peta file mereka tidak beririsan.
-- Beri setiap engineer `name` unik saat dipanggil (misalnya `be-<slug>`, `fe-<slug>`) supaya bisa dilanjutkan nanti.
-- Prompt ke engineer cukup pendek: path project, path spec, bagian yang dikerjakan, perintah build/test, dan "jangan membaca kode sisi lain; jangan menjelajahi ulang area yang sudah dijelaskan spec; jangan mengedit file spec".
-- Engineer wajib menjalankan **self-review** dan menyertakan **Peta AC → test** di laporannya. Laporan tanpa peta itu, atau dengan suite penuh yang belum dijalankan → kembalikan dulu ke engineer, jangan lanjut ke verifikasi.
-- **Baca baris pertama laporan engineer (`Status:`) dulu:** `done` → lanjut · `partial` → lanjutkan dengan sisa pekerjaannya · `needs-decision` → putuskan sendiri, atau tanya user kalau menyangkut bisnis · `blocked` → selesaikan penghalangnya atau laporkan ke user · `too-big` → pecah sesuai usulannya.
-- **Lanjutkan engineer yang sama, jangan panggil baru,** setelah `needs-decision` dijawab, `blocked` selesai, pecahan pertama `too-big` diputuskan, `partial` atau berhenti karena `maxTurns`, atau laporannya dikembalikan. Kirim lewat `SendMessage` ke `name`-nya (atau agentId-nya). Konteksnya (eksplorasi, keputusan, kode yang sudah ditulis) masih utuh, dan kalau belum lewat 1 jam cache-nya ikut terpakai, jadi engineer tidak mulai dari nol.
-- Engineer punya memory peta kode per project, jadi fitur yang areanya pernah disentuh akan jauh lebih cepat. Tetap tulis Peta file — memory itu petunjuk, bukan pengganti brief.
-- `devops-engineer` hanya kalau ada env/config/CI/deploy baru.
-- Engineer melaporkan kontrak yang tidak bisa diimplementasikan → **kamu** yang memutuskan perubahannya (tanya user kalau menyangkut bisnis), perbarui spec, lalu kabari engineer sisi lain.
+- The contract exists → invoke `backend-engineer` and `frontend-engineer` **in parallel, in one message**.
+- **One engineer call = one slice.** The next slice is sent once the previous one is `done`: same area → `SendMessage` to the same engineer; a different area → a new call. Engineers may run in parallel only if their file maps don't overlap.
+- Give each engineer a unique `name` when invoking it (e.g. `be-<slug>`, `fe-<slug>`) so it can be continued later.
+- The prompt to an engineer stays short: the project path, the spec path, the part to work on, the build/test commands, and "don't read the other side's code; don't re-explore areas the spec already describes; don't edit the spec file".
+- Engineers must run **self-review** and include an **AC → test map** in their report. A report missing that map, or with a full suite that hasn't been run → send it back to the engineer first, don't proceed to verification.
+- **Read the first line of the engineer's report (`Status:`) first:** `done` → continue · `partial` → continue with the remaining work · `needs-decision` → decide yourself, or ask the user if it's a business matter · `blocked` → clear the blocker or report it to the user · `too-big` → split it as proposed.
+- **Continue the same engineer, don't invoke a new one,** after a `needs-decision` is answered, a `blocked` is cleared, the first piece of a `too-big` split is decided, on `partial` or a stop from `maxTurns`, or when its report was sent back. Send it via `SendMessage` to its `name` (or its agentId). Its context (exploration, decisions, code already written) is still intact, and within the hour its cache is reused too, so the engineer doesn't start from zero.
+- Engineers keep a per-project memory of the code map, so a feature in an area they've touched before is much faster. Still write the file map — that memory is a pointer, not a substitute for the brief.
+- `devops-engineer` only if there's new env/config/CI/deploy.
+- An engineer reports a contract it can't implement → **you** decide the change (ask the user if it's a business matter), update the spec, then notify the engineer on the other side.
 
-## 5. Verifikasi (paralel, satu pesan)
+## 5. Verification (parallel, one message)
 
-Scope tiap agent: file yang berubah + acceptance criteria + path spec + **baris Verifikasi dari laporan engineer** (hasil build/test), supaya reviewer dan QA tidak menjalankan ulang suite yang sudah hijau. Ke `qa-tester` sertakan juga **Peta AC → test** dari laporan engineer, supaya QA menguji celahnya, bukan mengulang test yang sudah ada.
+Each agent's scope: the changed files + the acceptance criteria + the spec path + **the Verification line from the engineer's report** (build/test results), so the reviewer and QA don't rerun a suite that's already green. To `qa-tester`, also include the **AC → test map** from the engineer's report, so QA tests the gaps instead of repeating existing tests.
 
-| Agent | Kapan |
+| Agent | When |
 |---|---|
-| `code-reviewer` | Selalu (Sedang & Besar) |
-| `qa-tester` | Ada logika baru/berubah atau acceptance criteria. FE ∥ BE → minta cek integrasi sesuai Kontrak API. Lewati untuk perubahan murni tampilan/copy |
-| `security-tester` | Hanya kalau menyentuh area sensitif |
+| `code-reviewer` | Always (Medium & Large) |
+| `qa-tester` | New or changed logic, or acceptance criteria. FE ∥ BE → ask it to check the integration against the API contract. Skip for pure presentation/copy changes |
+| `security-tester` | Only if it touches a sensitive area |
 
-Diff lebih dari ~25 file → pecah `code-reviewer` per layer (BE, FE) atau per modul, paralel dalam satu pesan. Laporan verifikator berisi `Belum direview` → panggilan baru untuk area itu saja.
+Diff larger than ~25 files → split `code-reviewer` per layer (BE, FE) or per module, in parallel in one message. A verifier report containing `Not reviewed` → a new call for that area only.
 
-## 6. Loop perbaikan
+## 6. The fix loop
 
-- **Tunggu semua agent verifikasi selesai**, lalu gabungkan temuan blocking (🔴 dari reviewer, bug QA, security Critical/High, ketidaksesuaian kontrak) jadi **satu batch per engineer**. **Salin baris temuannya apa adanya** (`CR-1 path:line: …`, `QA-BUG-1 …`, `SEC-1 …`), tanpa ditulis ulang. Satu panggilan per engineer, bukan satu per temuan.
-- Pilih cara mengirim batch ke engineer:
-  - Ada temuan yang butuh pemahaman desain (kontrak, alur lintas file, pendekatan yang salah) → **lanjutkan engineer yang sama** lewat `SendMessage`. Ia masih ingat kenapa kodenya ditulis begitu.
-  - Semua temuan lokal dan `path:line`-nya jelas → **panggilan baru**. Konteks lama engineer yang besar tidak perlu ikut dibaca ulang di setiap turn perbaikan.
-- Prompt perbaikan diawali **"Mode perbaikan"**, supaya engineer menambah regression test, menjalankan ulang suite penuh + self-review, dan menyimpan pola temuannya di memory.
-- Verifikasi ulang **hanya oleh agent yang menemukannya**, lewat **panggilan baru** dengan scope hanya perbaikannya: kirim ID temuan + baris status dari engineer. Jangan lanjutkan verifikator lama: konteksnya besar dan cache 5 menitnya sudah kedaluwarsa.
-- **Maksimal 2 putaran.** Masih ada blocking → berhenti dan laporkan ke user.
-- Temuan non-blocking tidak diperbaiki otomatis; masuk laporan akhir.
+- **Wait for every verification agent to finish**, then merge the blocking findings (🔴 from the reviewer, QA bugs, Critical/High security, contract mismatches) into **one batch per engineer**. **Copy the finding lines verbatim** (`CR-1 path:line: …`, `QA-BUG-1 …`, `SEC-1 …`), don't rewrite them. One call per engineer, not one per finding.
+- Pick how to send the batch to the engineer:
+  - A finding requires design understanding (the contract, a flow across files, a wrong approach) → **continue the same engineer** via `SendMessage`. It still remembers why the code was written that way.
+  - All findings are local with a clear `path:line` → **a new call**. The engineer's large old context doesn't need re-reading on every fix turn.
+- Start the fix prompt with **"Fix mode"**, so the engineer adds regression tests, reruns the full suite + self-review, and stores the finding's pattern in memory.
+- Re-verify **only with the agent that found it**, via **a new call** scoped to the fix alone: send the finding IDs + the engineer's status lines. Don't continue the old verifier: its context is large and its 5-minute cache has expired.
+- **2 rounds max.** Still blocking → stop and report to the user.
+- Non-blocking findings aren't fixed automatically; they go into the final report.
 
-## 7. Acceptance (hanya Besar)
+## 7. Acceptance (Large only)
 
-Panggil `doz-agent:product-owner` mode Acceptance dengan path spec, daftar file berubah, dan **ringkasan** hasil verifikasi.
+Invoke `doz-agent:product-owner` in Acceptance mode with the spec path, the list of changed files, and a **summary** of the verification results.
 
-## 8. Gate sebelum melapor selesai
+## 8. The gate before reporting done
 
-Jangan bilang selesai sebelum: build/lint/test **benar-benar dijalankan** (bukan diasumsikan), setiap acceptance criteria punya status, dan tidak ada temuan blocking yang tersisa. Ada yang tidak bisa dijalankan → sebutkan eksplisit.
+Don't say it's done before: build/lint/tests have **actually been run** (not assumed), every acceptance criterion has a status, and no blocking findings remain. Anything that couldn't be run → say so explicitly.
 
-## 9. Laporan akhir
+## 9. Final report
 
 ```
-## Selesai: <fitur>
-Ukuran: <Kecil/Sedang/Besar> · Agent: <daftar> · Spec: <path / tidak ada>
+## Done: <feature>
+Size: <Small/Medium/Large> · Agents: <list> · Spec: <path / none>
 
-## Yang berubah
-- <file/area>: <ringkasan>
+## What changed
+- <file/area>: <summary>
 
-## Verifikasi
-Build/test: <hasil> · Review: <keputusan> · Security: <hasil / tidak diperlukan> · Acceptance: <Accept/Reject / tidak diperlukan>
+## Verification
+Build/test: <result> · Review: <decision> · Security: <result / not needed> · Acceptance: <Accept/Reject / not needed>
 
-## Asumsi & catatan non-blocking
+## Assumptions & non-blocking notes
 - ...
 ```
 
-## 10. Token audit (Sedang & Besar)
+## 10. Token audit (Medium & Large)
 
-Setelah laporan akhir, panggil `doz-agent:token-audit` lewat tool `Skill` tanpa argumen. Tampilkan hasilnya di bawah laporan akhir apa adanya. Script-nya membaca transcript workflow ini, lalu melaporkan token per agent, gap terbesar, kegagalan & temuan per kategori, pola kegagalan berulang, dan saran perbaikan. Audit gagal → satu baris alasannya, lalu lanjut. Ukuran Kecil dilewati: tanpa agent tidak ada yang perlu diaudit, dan output-nya hanya menambah konteks.
+After the final report, invoke `doz-agent:token-audit` via the `Skill` tool with no arguments. Show its output below the final report as-is. Its script reads this workflow's transcript, then reports tokens per agent, the biggest gaps, failures & findings per category, recurring failure patterns, and suggested fixes. Audit failed → one line with the reason, then move on. Small is skipped: with no agents there's nothing to audit, and the output would only add context.
 
-Setelah itu, di semua ukuran, tanyakan apakah user mau commit. **Jangan commit atau push tanpa izin.**
+After that, at every size, ask whether the user wants to commit. **Don't commit or push without permission.**
 
-## Hemat token di sisi user
+## Saving tokens on the user's side
 
-Sebutkan hanya kalau relevan, sekali saja:
+Mention these only when relevant, once:
 
-- `CLAUDE.md` tidak ada di folder yang dikerjakan → sarankan `/init` di sana.
-- Fitur besar yang bisa dipecah → tawarkan potongan vertikal pertama dulu daripada satu rantai penuh.
-- Setelah fitur selesai → session baru untuk fitur berikutnya lebih murah daripada melanjutkan session panjang.
+- No `CLAUDE.md` in the folder being worked on → suggest `/init` there.
+- A large feature that could be split → offer the first vertical slice instead of one full chain.
+- Once a feature is done → a new session for the next feature is cheaper than continuing a long one.

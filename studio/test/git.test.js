@@ -58,7 +58,7 @@ test('branch tanpa upstream dibuat di origin saat push; error git dikembalikan r
   const pushed = await git.push('repo');
   assert.equal(pushed.status.upstream, 'origin/fitur-x');
   await assert.rejects(git.commit('repo', { message: 'kosong' }), /nothing to commit/);
-  await assert.rejects(git.status('lain'), /target git/);
+  await assert.rejects(git.status('lain'), /git target/);
 });
 
 test('parseStatus membaca ahead/behind dan konflik', () => {

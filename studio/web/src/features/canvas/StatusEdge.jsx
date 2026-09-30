@@ -2,8 +2,10 @@ import { memo, useContext } from 'react';
 import { BaseEdge, EdgeLabelRenderer, getSmoothStepPath } from '@xyflow/react';
 import { StudioContext } from '../../state/studioContext.js';
 import { edgeState } from '../../lib/model.js';
+import { useI18n } from '../../i18n/I18nProvider.jsx';
 
 function StatusEdge(props) {
+  const { t } = useI18n();
   const { id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data, selected, source } = props;
   const { run, nodeTypes } = useContext(StudioContext);
   const loop = data?.loop;
@@ -12,7 +14,7 @@ function StatusEdge(props) {
   });
   const state = edgeState(props, run, nodeTypes[source]);
   // Cabang ya/tidak sudah dilabeli di handle node; garis hanya diberi label kalau loop.
-  const label = loop ? `ulang ≤${loop}x` : null;
+  const label = loop ? t('canvas.edge.loop', { max: loop }) : null;
   return (
     <>
       <BaseEdge id={id} path={path} className={`sedge ${state ? `e-${state}` : ''} ${loop ? 'e-loop' : ''} ${selected ? 'e-selected' : ''}`} />

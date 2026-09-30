@@ -1,48 +1,48 @@
 ---
 name: token-audit
-description: Audit token dan kegagalan satu workflow Claude Code dari transcript session — token dan perkiraan biaya per agent, gap terbesar (file besar dibaca utuh, output command panjang, eksplorasi panjang, cache miss, narasi, laporan panjang, putaran perbaikan), kegagalan agent (status blocked/tanpa status, temuan blocking per kategori, test/build gagal, temuan muncul lagi), pola kegagalan berulang lintas workflow, dan saran perbaikan per file agent. Dipanggil otomatis di akhir ship-feature ukuran Sedang/Besar. Pakai juga saat user bilang "token audit", "berapa token yang kepake", "kenapa boros", "agent mana yang paling mahal", atau memanggil /token-audit.
-argument-hint: "[--workflow NAMA | --all | --since ISO-TIME | --transcript PATH | --compare]"
+description: Audits the token usage and failures of a single Claude Code workflow from the session transcript — tokens and estimated cost per agent, the biggest gaps (large files read whole, long command output, long exploration, cache misses, narration, long reports, fix rounds), agent failures (blocked/missing status, blocking findings per category, failing tests/builds, findings that came back), recurring failure patterns across workflows, and suggested fixes per agent file. Invoked automatically at the end of a Medium/Large ship-feature. Also use when the user says "token audit", "how many tokens did that use", "why is this so expensive", "which agent costs the most", or invokes /token-audit.
+argument-hint: "[--workflow NAME | --all | --since ISO-TIME | --transcript PATH | --compare]"
 ---
 
 # Token & Failure Audit
 
-Jalankan script di folder skill ini (lihat "Base directory for this skill" di atas):
+Run the script in this skill's folder (see "Base directory for this skill" above):
 
 ```bash
-python3 "<base directory skill ini>/scripts/token_audit.py" $ARGUMENTS
+python3 "<base directory of this skill>/scripts/token_audit.py" $ARGUMENTS
 ```
 
-`python3` tidak ada (umumnya di Windows) → pakai `python` dengan argumen yang sama.
+No `python3` (common on Windows) → use `python` with the same arguments.
 
-Tanpa argumen, script mengaudit **workflow `ship-feature` terakhir** di session terbaru project ini. Pilihan lain:
+With no arguments, the script audits the **last `ship-feature` workflow** in this project's most recent session. Other options:
 
-| Argumen | Scope |
+| Argument | Scope |
 |---|---|
-| `--workflow <nama-skill>` | Workflow terakhir yang dimulai dengan skill itu |
-| `--all` | Seluruh session |
-| `--since 2026-09-23T10:00:00Z` | Sejak waktu tertentu (UTC) |
-| `--transcript <path.jsonl>` | Transcript tertentu |
-| `--compare` | Rata-rata biaya, putaran perbaikan, verifikasi ulang, temuan blocking, dan laporan dikembalikan per model engineer, dari semua workflow yang tercatat. Tidak membaca transcript |
+| `--workflow <skill-name>` | The last workflow started by that skill |
+| `--all` | The whole session |
+| `--since 2026-09-23T10:00:00Z` | Since a given time (UTC) |
+| `--transcript <path.jsonl>` | A specific transcript |
+| `--compare` | Average cost, fix rounds, re-verifications, blocking findings, and returned reports per engineer model, across every recorded workflow. Doesn't read a transcript |
 
-## Aturan
+## Rules
 
-- **Tampilkan output script apa adanya.** Jangan diringkas ulang, jangan dihitung ulang, jangan menambah tabel sendiri. Angka token berasal dari `usage` API di transcript (persis). Ukuran hasil tool dan dampak $ adalah perkiraan.
-- Setelah output, tambahkan **maksimal 2 kalimat** hanya kalau ada hal yang tidak terlihat dari angka. Contoh: gap disebabkan permintaan user yang memang besar, bukan karena agent-nya boros.
-- **Saran harus umum, bukan untuk satu project.** Agent ini dipakai di banyak project, jadi yang diperbaiki adalah cara kerja agent (aturan di `plugins/agents/*.md` atau skill pattern), bukan error project tertentu. Pelajaran khusus project sudah disimpan memory engineer saat Mode perbaikan. Baris `↳` hanya bukti penyebabnya.
-- Kegagalan dengan penyebab **lingkungan** (DB mati, perintah tidak ada, jaringan) bukan kesalahan agent. Sarannya diarahkan ke `CLAUDE.md` project, bukan ke file agent.
-- **Jangan mengubah file agent otomatis.** Tawarkan ke user untuk menerapkan saran yang paling berdampak.
-- Script gagal atau transcript tidak ditemukan → laporkan pesan error-nya dalam satu baris, lalu lanjutkan. Audit tidak boleh memblokir workflow.
+- **Show the script's output as-is.** Don't re-summarise it, don't recompute it, don't add tables of your own. Token counts come from the API `usage` in the transcript (exact). Tool-result sizes and $ impact are estimates.
+- After the output, add **2 sentences max**, and only if something isn't visible from the numbers. For example: the gap was caused by a genuinely large user request, not by a wasteful agent.
+- **Suggestions must be general, not project-specific.** These agents are used across many projects, so what gets fixed is how the agent works (the rules in `plugins/agents/*.md` or a pattern skill), not one project's error. Project-specific lessons are already stored in the engineer's memory during Fix mode. The `↳` lines are only evidence of the cause.
+- A failure with an **environmental** cause (DB down, missing command, network) is not the agent's fault. Its suggestion is aimed at the project's `CLAUDE.md`, not at an agent file.
+- **Don't modify agent files automatically.** Offer to apply the highest-impact suggestions to the user.
+- The script fails or no transcript is found → report the error message in one line, then move on. The audit must never block the workflow.
 
-## Cara membaca hasil
+## How to read the results
 
-- **% biaya per agent** menunjukkan agent mana yang paling layak dioptimasi.
-- **Gap** diurutkan dari perkiraan dampaknya. Konten yang masuk konteks lebih awal dibaca ulang dari cache di setiap turn berikutnya, jadi satu file besar di awal bisa lebih mahal daripada banyak file kecil di akhir.
-- **Kegagalan & temuan** dibaca dari format laporan agent: `Status:` engineer, `Keputusan:`/`Rekomendasi:` verifikator, baris temuan `CR-n`/`QA-BUG-n`/`SEC-n`, test/build yang gagal di dalam agent, engineer yang dipanggil ulang setelah `done` tanpa "Mode perbaikan", dan temuan blocking yang muncul lagi setelah diperbaiki. Agent yang tidak mengikuti format laporan akan tampil sebagai "⚠ tanpa baris Status/keputusan"; run yang mentok `maxTurns` tampil sebagai "⚠ berhenti di maxTurns" dan ikut sinyal "Hampir kehabisan turn".
-- **Agent background & run lanjutan**: laporan agent background dibaca dari `<task-notification>`, karena tool_result-nya hanya "Async agent launched". Run yang dilanjutkan lewat `SendMessage` dihitung sebagai panggilan, dengan label `(lanjutan)`, `(lanjutan-maxTurns)`, `(slice berikutnya)`, `(perbaikan)`, atau `(dikembalikan)`. Hanya `(dikembalikan)` yang dihitung sebagai laporan dikembalikan. Yang masuk "Dipanggil berulang" hanya run perbaikan dan verifikasi ulang, dan `maxTurns` dicek per run.
-- **Kategori temuan** (authz-agregat, state-update, css-cascade, test lama, null/no-op, loop/data korup, authorization, validasi, kontrak, dst.) ditebak dari kata kunci di awal kata, tanpa label severity, jadi hasilnya kasar. Yang tidak cocok masuk "lain".
-- **Bukti (`↳`)**: satu baris dari data asli per item, maksimal 2. Untuk test/build: baris error yang menentukan beserta penyebabnya (kompilasi/tipe, test gagal, lint, lingkungan). Untuk pola berulang: temuan aslinya beserta nama project.
-- **Pola kegagalan berulang** muncul kalau kategori blocking yang sama untuk engineer yang sama terjadi di ≥2 dari 5 workflow terakhir. Kalau terjadi di beberapa project, itu tanda paling kuat bahwa kelemahannya ada di agent. Saran dari pola ini selalu ditampilkan paling atas.
-- Test yang gagal sekali di tengah iterasi itu wajar. Saran per penyebab baru muncul kalau penyebabnya berulang, berakhir merah, atau berasal dari lingkungan.
-- **Tren** muncul setelah ada minimal 2 run sebelumnya. Log disimpan di `~/.claude/doz-agent/token-audit.csv` (token), `findings.csv` (temuan), dan `runs.csv` (ringkasan per workflow, dipakai `--compare`).
-- Harga $ adalah harga list API. Langganan Pro/Max tidak ditagih per token, jadi angka $ hanya pembanding antar agent. Harga ada di `PRICES` di dalam script.
-- Kolom `*` artinya transcript subagent tidak ditemukan. Angkanya diambil dari ringkasan hasil Agent, tanpa analisis gap.
+- **% of cost per agent** shows which agent is most worth optimising.
+- **Gaps** are sorted by estimated impact. Content that enters the context earlier is re-read from cache on every later turn, so one large file at the start can cost more than many small files at the end.
+- **Failures & findings** are read from the agent report format: the engineer's `Status:`, the verifier's `Decision:`/`Recommendation:`, the `CR-n`/`QA-BUG-n`/`SEC-n` finding lines, tests/builds that failed inside the agent, engineers re-invoked after `done` without "Fix mode", and blocking findings that reappear after being fixed. An agent that didn't follow the report format shows up as "⚠ no Status/decision line"; a run that hit `maxTurns` shows up as "⚠ stopped at maxTurns" and feeds the "Nearly out of turns" signal.
+- **Background agents & continued runs**: a background agent's report is read from `<task-notification>`, because its tool_result is only "Async agent launched". A run continued via `SendMessage` counts as a call, labelled `(continued)`, `(continued-maxTurns)`, `(next slice)`, `(fix)`, or `(returned)`. Only `(returned)` counts as a returned report. Only fix runs and re-verifications count towards "Invoked repeatedly", and `maxTurns` is checked per run.
+- **Finding categories** (aggregate-authz, state-update, css-cascade, existing-tests, null/no-op, loop/corrupt-data, authorization/IDOR, validation, contract, etc.) are guessed from keyword prefixes, with no severity labels, so the result is rough. Anything unmatched lands in "other".
+- **Evidence (`↳`)**: one line of raw data per item, 2 max. For tests/builds: the decisive error line along with its cause (compilation/type, failing test, lint, environment). For recurring patterns: the original finding along with the project name.
+- **Recurring failure patterns** appear when the same blocking category for the same engineer occurs in ≥2 of the last 5 workflows. If it happens across several projects, that's the strongest sign the weakness is in the agent. Suggestions from these patterns are always shown at the top.
+- A test that fails once mid-iteration is normal. A per-cause suggestion only appears if the cause recurs, ends red, or comes from the environment.
+- **Trends** appear once there are at least 2 previous runs. The logs live in `~/.claude/doz-agent/token-audit.csv` (tokens), `findings.csv` (findings), and `runs.csv` (per-workflow summary, used by `--compare`).
+- $ figures are API list prices. Pro/Max subscriptions are not billed per token, so the $ figures only serve to compare agents. The prices live in `PRICES` inside the script.
+- A `*` in a column means the subagent's transcript wasn't found. Its numbers come from the Agent result summary, with no gap analysis.

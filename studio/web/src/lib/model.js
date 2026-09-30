@@ -1,15 +1,31 @@
 // Logika UI tanpa React: meta tipe node, konversi workflow ⇄ React Flow, reducer event run, dan warna garis.
+// Teks yang tampil ke user berupa kunci i18n; diterjemahkan di titik render. Formatter menerima `t`/`intl` dari useI18n().
+import { translate } from '../i18n/index.js';
+
+const tEn = (key, vars) => translate('en', key, vars);
 
 export const NODE_META = {
-  start: { label: 'Start', hint: 'Titik awal. Menerima permintaan saat run dimulai.' },
-  agent: { label: 'Agent', hint: 'Menjalankan satu subagent.' },
-  skill: { label: 'Skill', hint: 'Menjalankan skill (mis. doz-agent:ship-feature). Hanya runner claude-cli.' },
-  action: { label: 'Action', hint: 'Perintah shell di folder project (test, lint, build). Exit 0 = PASS.' },
-  condition: { label: 'Condition', hint: 'Memilih cabang ya/tidak dari VERDICT, exit code, atau penilaian LLM.' },
-  approval: { label: 'Approval', hint: 'Berhenti sampai kamu menyetujui atau menolak.' },
-  info: { label: 'Catatan', hint: 'Sticky note. Kalau disambung ke node, teksnya masuk ke konteks node itu.' },
-  output: { label: 'Output', hint: 'Mengumpulkan hasil semua langkah kerja sebelumnya jadi laporan akhir.' },
+  start: { label: 'canvas.node.start.label', hint: 'canvas.node.start.hint' },
+  agent: { label: 'canvas.node.agent.label', hint: 'canvas.node.agent.hint' },
+  skill: { label: 'canvas.node.skill.label', hint: 'canvas.node.skill.hint' },
+  action: { label: 'canvas.node.action.label', hint: 'canvas.node.action.hint' },
+  condition: { label: 'canvas.node.condition.label', hint: 'canvas.node.condition.hint' },
+  approval: { label: 'canvas.node.approval.label', hint: 'canvas.node.approval.hint' },
+  info: { label: 'canvas.node.info.label', hint: 'canvas.node.info.hint' },
+  output: { label: 'canvas.node.output.label', hint: 'canvas.node.output.hint' },
 };
+
+// Label / petunjuk tipe node yang sudah diterjemahkan; null kalau tipenya tidak dikenal.
+export const nodeTypeLabel = (t, type) => (Object.hasOwn(NODE_META, type) ? t(NODE_META[type].label) : null);
+export const nodeTypeHint = (t, type) => (Object.hasOwn(NODE_META, type) ? t(NODE_META[type].hint) : '');
+
+const STATUS_KEY = {
+  running: 'common.status.running', done: 'common.status.done', failed: 'common.status.failed', skipped: 'common.status.skipped',
+  waiting: 'common.status.waiting', stopped: 'common.status.stopped', pending: 'common.status.pending',
+};
+
+// Label status run/node yang sudah diterjemahkan; status tak dikenal ditampilkan apa adanya.
+export const statusLabel = (t, status) => (Object.hasOwn(STATUS_KEY, status) ? t(STATUS_KEY[status]) : (status ?? ''));
 
 export const BRANCHING = new Set(['condition', 'approval']);
 export const WORK = new Set(['agent', 'skill', 'action']);
@@ -28,7 +44,7 @@ export function effectiveSetting(key, node, wf, agent) {
   }
   const fromAgent = { model: agent?.model, effort: agent?.effort, max_turns: agent?.maxTurns }[key];
   if (fromAgent) return { value: fromAgent, from: 'agent' };
-  return { value: BUILTIN[key] ?? null, from: 'bawaan' };
+  return { value: BUILTIN[key] ?? null, from: 'builtin' };
 }
 
 export function emptyWorkflow(name) {
@@ -39,7 +55,8 @@ export function emptyWorkflow(name) {
     parallel: 3,
     budget_usd: null,
     notes: '',
-    nodes: [{ id: 'start', type: 'start', label: 'Permintaan' }],
+    // i18n-ignore: label bawaan yang ditulis ke file workflow, bukan copy UI
+    nodes: [{ id: 'start', type: 'start', label: 'Request' }],
     edges: [],
     layout: { start: [0, 120] },
   };
@@ -95,20 +112,21 @@ export function uniqueId(base, existing) {
   return `${slug}-${i}`;
 }
 
-export function validate(wf, agentNames) {
+export function validate(wf, agentNames, t = tEn) {
   const errors = [];
   const ids = new Set(wf.nodes.map((n) => n.id));
-  if (!wf.nodes.some((n) => n.type === 'start')) errors.push('Butuh satu node Start');
+  if (!wf.nodes.some((n) => n.type === 'start')) errors.push(t('canvas.validate.need-start'));
   for (const n of wf.nodes) {
-    if (n.type === 'agent' && !agentNames.includes(n.agent)) errors.push(`${n.label || n.id}: agent "${n.agent ?? ''}" tidak ada`);
-    if (n.type === 'skill' && !n.skill) errors.push(`${n.label || n.id}: pilih skill`);
-    if (n.type === 'action' && !n.command && !n.action) errors.push(`${n.label || n.id}: isi perintah`);
-    if (n.type === 'condition' && !n.check && !n.source) errors.push(`${n.label || n.id}: isi pertanyaan atau sumber`);
+    const label = n.label || n.id;
+    if (n.type === 'agent' && !agentNames.includes(n.agent)) errors.push(t('canvas.validate.agent-missing', { label, agent: n.agent ?? '' }));
+    if (n.type === 'skill' && !n.skill) errors.push(t('canvas.validate.skill-missing', { label }));
+    if (n.type === 'action' && !n.command && !n.action) errors.push(t('canvas.validate.action-missing', { label }));
+    if (n.type === 'condition' && !n.check && !n.source) errors.push(t('canvas.validate.condition-missing', { label }));
   }
   const types = Object.fromEntries(wf.nodes.map((n) => [n.id, n.type]));
   for (const e of wf.edges) {
     if (!ids.has(e.from) || !ids.has(e.to)) continue;
-    if (BRANCHING.has(types[e.from]) && e.when === undefined) errors.push(`Garis dari ${e.from}: pilih cabang ya/tidak`);
+    if (BRANCHING.has(types[e.from]) && e.when === undefined) errors.push(t('canvas.validate.edge-branch', { from: e.from }));
   }
   return errors;
 }
@@ -131,9 +149,13 @@ const FINAL = new Set(['done', 'failed', 'stopped']);
 
 export function reduceRun(run, ev) {
   const next = { ...run, nodes: { ...run.nodes } };
-  const logItem = (text, kind = ev.type) => {
-    next.log = [...run.log, { ts: ev.ts ?? Date.now(), node: ev.node ?? null, kind, text }].slice(-2000);
+  // Teks dari server/Claude (activity) dipakai apa adanya; pesan buatan studio disimpan sebagai kunci + params
+  // (`msg`) supaya ikut berganti bahasa, dengan `text` Inggris sebagai cadangan.
+  const push = (entry) => {
+    next.log = [...run.log, { ts: ev.ts ?? Date.now(), node: ev.node ?? null, ...entry }].slice(-2000);
   };
+  const logItem = (text, kind = ev.type) => push({ kind, text });
+  const logMsg = (key, params, kind = ev.type, fallback) => push({ kind, text: fallback ?? translate('en', key, params), msg: { key, params } });
   switch (ev.type) {
     case 'run_start':
       next.workflow = ev.workflow;
@@ -141,13 +163,15 @@ export function reduceRun(run, ev) {
       next.status = 'running';
       next.input = ev.input ?? '';
       next.startedAt = ev.ts ?? Date.now();
-      logItem(`Run dimulai${ev.source === 'claude-code' ? ' dari Claude Code' : ''}: ${ev.workflow}`);
+      logMsg(ev.source === 'claude-code' ? 'logs.event.run-start-cc' : 'logs.event.run-start', { workflow: ev.workflow });
       break;
     case 'node': {
       const prev = run.nodes[ev.node] ?? { history: [] };
       const patch = { ...ev };
       for (const k of ['type', 'ts', 'run', 'node', 'source']) delete patch[k];
       if (patch.summary && !patch.output) patch.output = patch.summary;
+      // activityCode null = activity dibersihkan; jangan ada kode lama yang menempel.
+      if ('activity' in patch && !('activityCode' in patch)) patch.activityCode = null;
       if (ev.status === 'running' && !patch.startedAt) patch.startedAt = ev.ts ?? Date.now();
       if (FINAL.has(ev.status) && !patch.endedAt) patch.endedAt = ev.ts ?? Date.now();
       // Eksekusi baru (loop/ulang): mulai dari nol, riwayat dipertahankan.
@@ -159,26 +183,30 @@ export function reduceRun(run, ev) {
         merged.history = [...(prev.history ?? []), {
           status: ev.status, startedAt: merged.startedAt, endedAt: merged.endedAt, durationMs: merged.durationMs,
           usage: merged.usage, cost: merged.cost, loop: merged.loop ?? 0, attempts: merged.attempts ?? 1,
-          verdict: merged.verdict, changes: merged.changes?.length ?? merged.touched?.length ?? 0, error: merged.error,
+          verdict: merged.verdict, changes: merged.changes?.length ?? merged.touched?.length ?? 0, error: merged.error, errorCode: merged.errorCode, errorParams: merged.errorParams,
         }];
       }
       next.nodes[ev.node] = merged;
       if (ev.status === 'running' && !run.order.includes(ev.node)) next.order = [...run.order, ev.node];
       if (ev.status && ev.status !== prev.status) {
-        const extra = ev.status === 'failed' ? `: ${ev.error ?? ''}` : typeof ev.verdict === 'boolean' ? ` (${ev.verdict ? 'PASS/ya' : 'FAIL/tidak'})` : '';
-        logItem(`${ev.status}${extra}`, 'status');
+        const params = { status: ev.status, error: ev.error ?? '', errorCode: ev.errorCode ?? null, errorParams: ev.errorParams ?? null };
+        const key = ev.status === 'failed' ? 'logs.event.status-failed'
+          : typeof ev.verdict === 'boolean' ? (ev.verdict ? 'logs.event.status-pass' : 'logs.event.status-fail')
+            : 'logs.event.status';
+        logMsg(key, params, 'status');
       }
       break;
     }
     case 'activity': {
       const prev = run.nodes[ev.node] ?? { history: [] };
-      next.nodes[ev.node] = { ...prev, activity: ev.text, model: ev.model ?? prev.model };
-      logItem(ev.text, ev.kind ?? 'activity');
+      next.nodes[ev.node] = { ...prev, activity: ev.text, activityCode: ev.code ?? null, activityParams: ev.params ?? null, model: ev.model ?? prev.model };
+      if (ev.code) logMsg(`logs.code.${ev.code.toLowerCase().replace(/_/g, '-')}`, ev.params, ev.kind ?? 'activity', ev.text);
+      else logItem(ev.text, ev.kind ?? 'activity');
       break;
     }
     case 'loop':
       next.loops = { ...run.loops, [ev.edge]: ev.count };
-      logItem(`Loop ${ev.edge} ke-${ev.count} dari ${ev.max}`);
+      logMsg('logs.event.loop', { edge: ev.edge, count: ev.count, max: ev.max });
       break;
     case 'cost':
       next.cost = ev.total;
@@ -187,8 +215,10 @@ export function reduceRun(run, ev) {
       next.status = ev.status ?? 'done';
       if (ev.cost !== undefined) next.cost = ev.cost;
       next.error = ev.error ?? null;
+      next.errorCode = ev.errorCode ?? null;
+      next.errorParams = ev.errorParams ?? null;
       next.endedAt = ev.ts ?? Date.now();
-      logItem(`Run selesai: ${next.status}${ev.error ? ` (${ev.error})` : ''}`);
+      logMsg(ev.error ? 'logs.event.run-end-error' : 'logs.event.run-end', { status: next.status, error: ev.error ?? '', errorCode: ev.errorCode ?? null, errorParams: ev.errorParams ?? null });
       break;
     default:
   }
@@ -227,20 +257,21 @@ export function formatCost(v) {
   return v < 0.01 ? `$${v.toFixed(4)}` : `$${v.toFixed(2)}`;
 }
 
-export function formatTokens(n) {
-  if (!n) return '0 token';
-  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M token`;
-  return n >= 1000 ? `${(n / 1000).toFixed(1)}k token` : `${n} token`;
+export function formatTokens(t, n) {
+  let value = String(n || 0);
+  if (n >= 1e6) value = `${(n / 1e6).toFixed(1)}M`;
+  else if (n >= 1000) value = `${(n / 1000).toFixed(1)}k`;
+  return t('common.tokens', { value });
 }
 
-export function formatDuration(ms) {
+export function formatDuration(t, ms) {
   if (ms === null || ms === undefined) return '';
   if (ms < 1000) return `${ms}ms`;
   const s = Math.round(ms / 1000);
-  if (s < 60) return `${s}d`;
-  return `${Math.floor(s / 60)}m ${s % 60}d`;
+  if (s < 60) return t('common.duration-s', { s });
+  return t('common.duration-ms', { m: Math.floor(s / 60), s: s % 60 });
 }
 
-export function formatTime(ts) {
-  return ts ? new Date(ts).toLocaleTimeString('id-ID', { hour12: false }) : '';
+export function formatTime(intl, ts) {
+  return ts ? new Date(ts).toLocaleTimeString(intl, { hour12: false }) : '';
 }

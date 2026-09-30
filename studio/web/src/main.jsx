@@ -6,15 +6,19 @@ import App from './App.jsx';
 import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
 import { ToastProvider } from './components/ui/Toast.jsx';
 import { DialogProvider } from './components/ui/Dialogs.jsx';
+import { I18nProvider } from './i18n/I18nProvider.jsx';
 
 createRoot(document.getElementById('root')).render(
-  <ErrorBoundary>
-    <ToastProvider>
-      <DialogProvider>
-        <ReactFlowProvider>
-          <App />
-        </ReactFlowProvider>
-      </DialogProvider>
-    </ToastProvider>
-  </ErrorBoundary>,
+  // I18nProvider paling luar supaya ErrorBoundary dan toast juga bisa menerjemahkan.
+  <I18nProvider>
+    <ErrorBoundary>
+      <ToastProvider>
+        <DialogProvider>
+          <ReactFlowProvider>
+            <App />
+          </ReactFlowProvider>
+        </DialogProvider>
+      </ToastProvider>
+    </ErrorBoundary>
+  </I18nProvider>,
 );

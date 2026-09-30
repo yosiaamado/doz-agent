@@ -1,25 +1,25 @@
 # Workflows
 
-Satu file `.md` = satu workflow. File ini adalah **sumber kebenaran**:
-- **doz studio** (`studio/`) menggambar dan mengedit file ini sebagai kotak dan garis, lalu bisa menjalankannya.
-- Skill **`run-workflow`** menjalankannya langsung dari Claude Code, tanpa studio: `/doz-agent:run-workflow <nama> <permintaan>`.
+One `.md` file = one workflow. These files are the **source of truth**:
+- **doz studio** (`studio/`) draws and edits them as boxes and lines, and can run them.
+- The **`run-workflow`** skill runs them straight from Claude Code, without studio: `/doz-agent:run-workflow <name> <request>`.
 
-File agent (`plugins/agents/`) tidak menyimpan alur. Agent itu kotaknya, workflow itu garisnya, jadi satu agent bisa dipakai di banyak workflow.
+Agent files (`plugins/agents/`) hold no flow. The agent is the box, the workflow is the wiring, so one agent can be used in many workflows.
 
 ## Format
 
 ```markdown
 ---
 name: fitur-kecil
-description: Satu kalimat
-defaults: { runner: claude-cli, inputs: previous }   # berlaku ke semua node agent/skill
-budget_usd: 8          # opsional: run berhenti kalau biaya lewat
-parallel: 3            # opsional: node paralel maksimal
+description: One sentence
+defaults: { runner: claude-cli, inputs: previous }   # applies to every agent/skill node
+budget_usd: 8          # optional: the run stops if cost exceeds this
+parallel: 3            # optional: max parallel nodes
 nodes:
-  - { id: start, type: start, label: Permintaan }
-  - { id: be, type: agent, agent: backend-engineer, label: Implementasi }
+  - { id: start, type: start, label: Request }
+  - { id: be, type: agent, agent: backend-engineer, label: Implementation }
   - { id: qa, type: agent, agent: qa-tester, verdict: true }
-  - { id: lolos, type: condition, source: qa, check: QA lolos? }
+  - { id: lolos, type: condition, source: qa, check: QA passed? }
   - { id: selesai, type: output }
 edges:
   - { from: start, to: be }
@@ -27,70 +27,70 @@ edges:
   - { from: qa, to: lolos }
   - { from: lolos, to: selesai, when: true }
   - { from: lolos, to: be, when: false, loop: 2 }
-layout:                # posisi kotak, hanya dipakai studio
+layout:                # box positions, used by studio only
   start: [ 0, 120 ]
 ---
 
-Catatan bebas. Ikut dikirim ke setiap agent sebagai konteks workflow.
+Free-form notes. These are sent to every agent as workflow context.
 ```
 
-### Tipe node
+### Node types
 
-| type | Field | Perilaku |
+| type | Fields | Behavior |
 |---|---|---|
-| `start` | `input` (opsional, default permintaan) | Titik awal. Output = permintaan saat run |
-| `agent` | `agent` (wajib), `instructions`, `verdict` + pengaturan | Menjalankan subagent `plugins/agents/<agent>.md` |
-| `skill` | `skill` (mis. `doz-agent:ship-feature`) + pengaturan | Menjalankan skill. Di studio hanya runner `claude-cli` |
-| `action` | `command` dan/atau `action` (nama di `plugins/actions/`), `timeout_min` | Perintah shell di folder project (test, lint, build). Exit code 0 = PASS, jadi bisa langsung disambung ke condition |
-| `condition` | `source`, `check`, `mode` (`auto`/`verdict`/`llm`), `model` | Memilih cabang. Pertama pakai exit code (kalau `source` action) atau baris `VERDICT: PASS/FAIL` di output `source`; kalau tidak ada, penilai LLM (bawaan haiku) menjawab `check` |
-| `approval` | `message` | Berhenti sampai manusia menyetujui (`when: true`) atau menolak (`when: false`) |
-| `info` | `text` | Sticky note. Kalau disambung ke node, teksnya masuk ke konteks node itu. Ukurannya disimpan di `layout` (`[x, y, lebar, tinggi]`) |
-| `output` | - | Mengumpulkan output semua agent/skill sebelumnya jadi laporan akhir |
+| `start` | `input` (optional, defaults to the request) | The entry point. Output = the request at run time |
+| `agent` | `agent` (required), `instructions`, `verdict` + settings | Runs the subagent `plugins/agents/<agent>.md` |
+| `skill` | `skill` (e.g. `doz-agent:ship-feature`) + settings | Runs a skill. In studio, only the `claude-cli` runner |
+| `action` | `command` and/or `action` (a name in `plugins/actions/`), `timeout_min` | A shell command in the project folder (test, lint, build). Exit code 0 = PASS, so it can wire straight into a condition |
+| `condition` | `source`, `check`, `mode` (`auto`/`verdict`/`llm`), `model` | Picks a branch. First it uses the exit code (if `source` is an action) or the `VERDICT: PASS/FAIL` line in `source`'s output; failing that, an LLM judge (haiku by default) answers the `check` |
+| `approval` | `message` | Halts until a human approves (`when: true`) or rejects (`when: false`) |
+| `info` | `text` | A sticky note. Wired into a node, its text goes into that node's context. Its size is stored in `layout` (`[x, y, width, height]`) |
+| `output` | - | Collects the output of every preceding agent/skill into a final report |
 
-`label` bisa diisi di semua node. `verdict: true` meminta agent menutup jawabannya dengan `VERDICT: PASS/FAIL`, supaya condition tidak perlu memanggil LLM lagi.
+`label` can be set on any node. `verdict: true` asks the agent to close its answer with `VERDICT: PASS/FAIL`, so the condition doesn't need another LLM call.
 
-### Edge
+### Edges
 
-- `{ from, to }`: output `from` mengalir ke `to`.
-- Keluar dari `condition`/`approval` wajib punya `when: true|false`.
-- `loop: N` menandai garis balik: node tujuan dan semua turunannya diulang dengan umpan balik, maksimal N kali. Siklus tanpa `loop` ditolak.
+- `{ from, to }`: `from`'s output flows into `to`.
+- An edge leaving a `condition`/`approval` must have `when: true|false`.
+- `loop: N` marks a back edge: the target node and all its descendants are repeated with feedback, N times max. A cycle without `loop` is rejected.
 
-### Pengaturan (di `defaults` atau di node agent/skill)
+### Settings (in `defaults` or on an agent/skill node)
 
-Urutan prioritas: **node > defaults workflow > frontmatter agent > bawaan**. Nilai kosong atau `inherit` tidak ditulis ke file.
+Precedence: **node > workflow defaults > the agent's frontmatter > the built-in default**. An empty value or `inherit` is not written to the file.
 
-| Kunci | Nilai | Bawaan | Keterangan |
+| Key | Values | Default | Notes |
 |---|---|---|---|
-| `runner` | `claude-cli` / `api` | `claude-cli` | `claude-cli`: `claude -p` dengan login Claude Code. `api`: Claude API dengan `ANTHROPIC_API_KEY` dan tool lokal (read/glob/grep/edit/write/bash/load_skill) |
-| `model` | `opus`/`sonnet`/`haiku`/id model | dari agent | |
-| `effort` | `low`…`max` | dari agent | |
-| `permission` | `read-only` | sesuai tools agent | Membuang Edit/Write. Di CLI, Bash dibatasi ke `git diff/log/status/show` dan `ls`. Di API, bash dibuang |
-| `inputs` | `previous`/`all`/`none` | `previous` | Output node mana yang ikut ke prompt. Makin sedikit, makin hemat token |
-| `max_output_chars` | angka | 12000 | Output node sebelumnya dipotong di sini |
-| `max_turns` | angka | dari agent | |
-| `timeout_min` | angka | 30 | |
-| `retry` | angka | 0 | Ulang kalau gagal (error/timeout) |
-| `budget_usd` | angka | - | Batas biaya per node |
+| `runner` | `claude-cli` / `api` | `claude-cli` | `claude-cli`: `claude -p` using the Claude Code login. `api`: the Claude API with `ANTHROPIC_API_KEY` and local tools (read/glob/grep/edit/write/bash/load_skill) |
+| `model` | `opus`/`sonnet`/`haiku`/a model id | from the agent | |
+| `effort` | `low`…`max` | from the agent | |
+| `permission` | `read-only` | per the agent's tools | Drops Edit/Write. On the CLI, Bash is restricted to `git diff/log/status/show` and `ls`. On the API, bash is dropped |
+| `inputs` | `previous`/`all`/`none` | `previous` | Which nodes' output goes into the prompt. The less, the cheaper in tokens |
+| `max_output_chars` | number | 12000 | Preceding nodes' output is truncated here |
+| `max_turns` | number | from the agent | |
+| `timeout_min` | number | 30 | |
+| `retry` | number | 0 | Retry on failure (error/timeout) |
+| `budget_usd` | number | - | Cost limit per node |
 
-Di `run-workflow` (Claude Code tanpa studio) yang berlaku hanya `model`, `permission` (sebagai instruksi), `inputs`, `max_output_chars`, dan `retry`. Sisanya hanya berlaku di studio.
+In `run-workflow` (Claude Code without studio), only `model`, `permission` (as an instruction), `inputs`, `max_output_chars`, and `retry` apply. The rest apply in studio only.
 
-## Action tersimpan (`plugins/actions/`)
+## Stored actions (`plugins/actions/`)
 
-Perintah yang sering dipakai bisa disimpan sebagai file supaya muncul di palet studio:
+Frequently used commands can be stored as files so they appear in studio's palette:
 
 ```markdown
 ---
 name: jalankan-test
-description: Jalankan test suite project
+description: Run the project's test suite
 command: npm test --silent
 timeout_min: 15
 ---
 
-Catatan kapan dipakai.
+Notes on when to use it.
 ```
 
-Node `action` merujuknya dengan `action: jalankan-test`. Isi `command` di node menimpa perintah file-nya. Action hanya dibaca studio dan `run-workflow`; Claude Code biasa tidak memakainya.
+An `action` node references it with `action: jalankan-test`. A `command` on the node overrides the file's command. Actions are read only by studio and `run-workflow`; plain Claude Code doesn't use them.
 
-## Progres realtime
+## Live progress
 
-Studio dan `run-workflow` sama-sama menulis event ke `<project>/.doz-studio/runs/<id>.jsonl` (satu JSON per baris: `run_start`, `node`, `activity`, `loop`, `cost`, `run_end`). Studio membaca folder ini, jadi run dari terminal Claude Code juga tampil di canvas. Tambahkan `.doz-studio/` ke `.gitignore` project.
+Studio and `run-workflow` both write events to `<project>/.doz-studio/runs/<id>.jsonl` (one JSON per line: `run_start`, `node`, `activity`, `loop`, `cost`, `run_end`). Studio watches this folder, so a run from the Claude Code terminal also shows up on the canvas. Add `.doz-studio/` to the project's `.gitignore`.

@@ -81,7 +81,7 @@ export function createUsageService({ usageFile, projectsDir = path.join(os.homed
     },
     // Panggilan kecil ke Claude Code (haiku, 1 turn) hanya untuk mendapatkan rate_limit_event terbaru.
     async refresh() {
-      if (!probe) throw new Error('refresh tidak tersedia');
+      if (!probe) throw new Error('refresh is not available');
       await probe();
       cache = { at: 0, local: null };
       return this.summary();

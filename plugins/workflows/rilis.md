@@ -1,18 +1,18 @@
 ---
 name: rilis
-description: Persiapan rilis. Test suite dan cek perubahan paralel, DevOps menyusun rencana deploy (read-only), kamu menyetujui, lalu DevOps menjalankan langkah rilis.
+description: Release preparation. The test suite and the change check run in parallel, DevOps drafts the deploy plan (read-only), you approve, then DevOps runs the release steps.
 defaults: { runner: claude-cli, inputs: previous }
 budget_usd: 8
 nodes:
-  - { id: start, type: start, label: Versi / catatan rilis }
+  - { id: start, type: start, label: Version / release notes }
   - { id: tes, type: action, action: jalankan-test, label: Test suite }
-  - { id: perubahan, type: action, action: cek-perubahan, label: Cek perubahan }
-  - { id: lolos, type: condition, label: Test lolos?, source: tes }
-  - { id: rencana, type: agent, agent: devops-engineer, label: Rencana deploy, permission: read-only, inputs: all, instructions: Susun rencana rilis, langkah rollback, dan risiko. Jangan menjalankan deploy. }
-  - { id: setuju, type: approval, label: Lanjut rilis?, message: Periksa rencana deploy dan rollback. }
-  - { id: rilis, type: agent, agent: devops-engineer, label: Jalankan rilis, instructions: Jalankan langkah rilis sesuai rencana yang disetujui. Berhenti dan laporkan kalau ada langkah yang gagal. }
-  - { id: batal, type: output, label: Rilis ditunda }
-  - { id: selesai, type: output, label: Catatan rilis }
+  - { id: perubahan, type: action, action: cek-perubahan, label: Check changes }
+  - { id: lolos, type: condition, label: Tests passed?, source: tes }
+  - { id: rencana, type: agent, agent: devops-engineer, label: Deploy plan, permission: read-only, inputs: all, instructions: Draft the release plan, the rollback steps, and the risks. Don't run the deploy. }
+  - { id: setuju, type: approval, label: Proceed with the release?, message: Review the deploy plan and the rollback. }
+  - { id: rilis, type: agent, agent: devops-engineer, label: Run the release, instructions: Run the release steps per the approved plan. Stop and report if any step fails. }
+  - { id: batal, type: output, label: Release postponed }
+  - { id: selesai, type: output, label: Release notes }
 edges:
   - { from: start, to: tes }
   - { from: start, to: perubahan }
@@ -36,4 +36,4 @@ layout:
   selesai: [ 1400, 100 ]
 ---
 
-Sesuaikan perintah di action `jalankan-test` dengan stack project sebelum dipakai.
+Adjust the command in the `jalankan-test` action to match the project's stack before using this.

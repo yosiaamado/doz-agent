@@ -6,14 +6,16 @@ import Modal from '../../components/ui/Modal.jsx';
 import Segmented from '../../components/ui/Segmented.jsx';
 import { useDialog } from '../../components/ui/Dialogs.jsx';
 import { api } from '../../lib/api.js';
+import { errorMessage, errorWithDetails } from '../../lib/errorMessage.js';
+import { useI18n } from '../../i18n/I18nProvider.jsx';
 import ComponentForm from './ComponentForm.jsx';
 
-const TITLES = { agents: 'Agent', skills: 'Skill', actions: 'Action' };
+const KIND_LABEL = { agents: 'dialogs.component.kind.agents', skills: 'dialogs.component.kind.skills', actions: 'dialogs.component.kind.actions' };
 const ICONS = { agents: Bot, skills: Sparkles, actions: SquareTerminal };
 const TEMPLATES = {
-  agents: 'Kamu adalah <peran>. Tugasmu <tujuan>.\n\n## Aturan kerja\n\n- \n\n## Format laporan\n\n```\nStatus: done | partial | blocked\n```\n',
-  skills: '# <Nama skill>\n\nKapan dipakai, langkah kerja, dan aturan.\n',
-  actions: 'Catatan: apa yang dicek perintah ini dan kapan dipakai.\n',
+  agents: 'You are <role>. Your job is <goal>.\n\n## Working rules\n\n- \n\n## Report format\n\n```\nStatus: done | partial | blocked\n```\n',
+  skills: '# <Skill name>\n\nWhen to use it, the steps, and the rules.\n',
+  actions: 'Note: what this command checks and when to use it.\n',
 };
 
 function toolsOf(meta) {
@@ -32,13 +34,13 @@ function metaPatch(kind, form) {
 }
 
 function ImpactNote({ item }) {
+  const { t } = useI18n();
   return (
     <div className="editor-note">
       <AlertTriangle size={14} />
       <span>
-        Mengubah file ini berlaku untuk <b>semua workflow</b>{item.usedBy.length ? ` (${item.usedBy.join(', ')})` : ''} dan pemakaian lewat Claude Code.
-        Kalau hanya untuk satu langkah, pakai <i>Instruksi</i> dan pengaturan di node. File di <code>plugins/</code> = versi plugin: catat di CHANGELOG.
-        {!item.strict && ' Frontmatter file ini bukan YAML ketat, jadi hanya bisa diedit lewat mode Raw.'}
+        {t('dialogs.component.impact', { usedBy: item.usedBy.length ? ` (${item.usedBy.join(', ')})` : '' })}
+        {!item.strict && ` ${t('dialogs.component.not-strict')}`}
       </span>
     </div>
   );
@@ -46,6 +48,7 @@ function ImpactNote({ item }) {
 
 export default function ComponentEditor({ kind, name, sources, onClose, onSaved }) {
   const isNew = !name;
+  const { t } = useI18n();
   const dialog = useDialog();
   const dirs = sources?.[kind] ?? [];
   const [item, setItem] = useState(null);
@@ -66,7 +69,9 @@ export default function ComponentEditor({ kind, name, sources, onClose, onSaved 
       setBody(it.body);
       setRaw(it.text);
       if (!it.strict) setMode('raw');
-    }).catch((err) => setError(err.message));
+    }).catch((err) => setError(errorMessage(t, err)));
+    // Muat sekali per komponen; ganti bahasa tidak boleh mereset form yang sedang diedit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, name, isNew]);
 
   const touch = (fn) => (...args) => { setDirty(true); fn(...args); };
@@ -74,7 +79,7 @@ export default function ComponentEditor({ kind, name, sources, onClose, onSaved 
 
   const close = async () => {
     if (dirty && !(await dialog.confirm({
-      title: 'Buang Perubahan?', message: 'Perubahan di editor ini belum disimpan dan akan hilang.', confirmLabel: 'Buang', tone: 'danger',
+      title: t('dialogs.discard.title'), message: t('dialogs.discard.editor'), confirmLabel: t('dialogs.discard.confirm'), tone: 'danger',
     }))) return;
     onClose();
   };
@@ -88,7 +93,7 @@ export default function ComponentEditor({ kind, name, sources, onClose, onSaved 
         : await api.updateItem(kind, name, mode === 'raw' ? { text: raw } : { meta: metaPatch(kind, form), body });
       onSaved(saved);
     } catch (err) {
-      setError([err.message, ...(err.details ?? [])].join(' · '));
+      setError(errorWithDetails(t, err, ' · '));
     } finally {
       setSaving(false);
     }
@@ -98,26 +103,26 @@ export default function ComponentEditor({ kind, name, sources, onClose, onSaved 
   return (
     <Modal
       size="xl" icon={<Icon size={18} />} onClose={close}
-      title={isNew ? `${TITLES[kind]} Baru` : `Edit ${TITLES[kind]}: ${name}`}
-      subtitle={item?.file ?? 'File baru'}
+      title={isNew ? t('dialogs.component.title-new', { kind: t(KIND_LABEL[kind]) }) : t('dialogs.component.title-edit', { kind: t(KIND_LABEL[kind]), name })}
+      subtitle={item?.file ?? t('dialogs.component.new-file')}
       headerExtra={!isNew && (
         <Segmented value={mode} onChange={(m) => { if (m === 'raw' && item) setRaw(item.text); setMode(m); }}
-          options={[{ value: 'form', label: 'Form' }, { value: 'raw', label: 'Raw' }].filter((o) => o.value === 'raw' || item?.strict !== false)} />
+          options={[{ value: 'form', label: t('dialogs.component.mode-form') }, { value: 'raw', label: t('dialogs.component.mode-raw') }].filter((o) => o.value === 'raw' || item?.strict !== false)} />
       )}
       footer={(
         <>
           {error && <span className="err small">{error}</span>}
           <span className="spacer" />
-          <button type="button" className="btn" onClick={close}>Batal</button>
+          <button type="button" className="btn" onClick={close}>{t('common.cancel')}</button>
           <button type="button" className="btn btn-primary" disabled={saving || (isNew && !target.name)} onClick={save}>
-            {saving ? 'Menyimpan…' : isNew ? 'Buat' : 'Simpan'}
+            {saving ? t('common.saving') : isNew ? t('dialogs.component.create') : t('common.save')}
           </button>
         </>
       )}
     >
       {!isNew && item && <ImpactNote item={item} />}
       {mode === 'raw'
-        ? <textarea className="mono editor-raw" value={raw} onChange={(e) => touch(setRaw)(e.target.value)} spellCheck={false} aria-label="Isi file" />
+        ? <textarea className="mono editor-raw" value={raw} onChange={(e) => touch(setRaw)(e.target.value)} spellCheck={false} aria-label={t('dialogs.component.file-content')} />
         : <ComponentForm kind={kind} isNew={isNew} form={form} set={set} target={target} setTarget={setTarget} dirs={dirs} body={body} setBody={touch(setBody)} />}
     </Modal>
   );

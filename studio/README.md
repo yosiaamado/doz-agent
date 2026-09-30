@@ -1,91 +1,91 @@
 # Doz Studio
 
-Editor visual (kotak + garis, ala n8n) dan runner lokal untuk workflow doz-agent. Tidak ikut ter-install sebagai plugin. Jalankan dari clone repo ini.
+A visual editor (boxes + edges, n8n style) and local runner for doz-agent workflows. It is not installed as part of the plugin. Run it from a clone of this repo.
 
-## Fitur
+## Features
 
-- **Persiapan (pertama kali dibuka)**: wizard yang mengecek dan mengetes semua syarat:
-  - Node.js dan git (identitas `user.name`/`user.email` bisa diisi langsung).
-  - Claude Code terpasang dan login. Tombol **Login Akun Claude** menjalankan `claude auth login`, dan **Tes claude -p** menjalankan panggilan nyata ke haiku.
-  - API key Anthropic: dipasang untuk sesi ini atau diingat di `studio/.local.json`, lalu dites dengan panggilan kecil.
-  - Folder project.
-  - Akses GitHub: `git ls-remote`, hanya membaca.
-  - Plugin doz-agent di Claude Code (opsional).
+- **Setup (on first open)**: a wizard that checks and tests every prerequisite:
+  - Node.js and git (the `user.name`/`user.email` identity can be filled in right there).
+  - Claude Code installed and logged in. The **Log in to Claude account** button runs `claude auth login`, and **Test claude -p** makes a real call to haiku.
+  - The Anthropic API key: set for this session or remembered in `studio/.local.json`, then tested with a small call.
+  - The project folder.
+  - GitHub access: `git ls-remote`, read-only.
+  - The doz-agent plugin in Claude Code (optional).
 
-  Minimal satu "otak" (Claude Code atau API key) harus lolos tes. Wizard bisa dibuka lagi lewat tombol **Persiapan** di kanan atas.
-- **Tampilan**: tema **gelap** (abu-abu ala n8n) dan **terang**, bisa ikut sistem (ikon monitor/matahari/bulan di kanan atas). Logo juga dipakai sebagai favicon.
-- **Menu kiri yang bisa melebar**: saat menyempit hanya berupa rail ikon. Saat kursor diarahkan ke sana, menu melebar di atas canvas, lalu menyempit lagi saat kursor pergi. Isinya: tab **Editor | Executions**, pencarian, lalu komponen **Agent / Skill / Action / Alur**. Komponen bisa diseret ke canvas (juga di layar kecil) atau diklik dua kali. `+` membuat file baru, ikon pensil mengedit file.
-- **Canvas**: node menempel ke grid 20px. Drag dengan klik kiri atau tengah menggeser layar. Scroll juga menggeser, Ctrl/⌘ + scroll atau pinch untuk zoom, dan Shift + drag untuk memilih banyak node. Catatan (sticky note) bisa di-resize.
-- **Status realtime**: node yang sedang jalan **biru** dan garis menuju node itu biru beranimasi. Node dan garis yang sudah dilewati **hijau**, cabang yang tidak dipilih redup. Di bawah node tampil aktivitas terakhir, durasi live, token, jumlah eksekusi, dan jumlah file yang diubah.
-- **Logs**: pohon node dan detail per node:
-  - **Info**: status, waktu, durasi, token, biaya, model, dan riwayat tiap eksekusi.
-  - **Input**: prompt lengkap, termasuk dokumen lampiran.
+  At least one "brain" (Claude Code or an API key) has to pass its test. The wizard can be reopened via the **Setup** button in the top right.
+- **Appearance**: a **dark** theme (n8n-style grey) and a **light** one, optionally following the system (the monitor/sun/moon icon in the top right). The logo doubles as the favicon.
+- **An expanding left menu**: when narrow it's just a rail of icons. Point the cursor at it and the menu expands over the canvas, then narrows again when the cursor leaves. It holds: the **Editor | Executions** tabs, search, then the **Agent / Skill / Action / Workflow** components. Components can be dragged onto the canvas (on a small screen too) or double-clicked. `+` creates a new file, the pencil icon edits one.
+- **The canvas**: nodes snap to a 20px grid. Dragging with the left or middle button pans the view. Scrolling pans too, Ctrl/⌘ + scroll or pinch zooms, and Shift + drag selects multiple nodes. Sticky notes are resizable.
+- **Live status**: a running node is **blue** and the edge leading into it is animated blue. Nodes and edges already passed are **green**, and unselected branches dim. Below each node you see the latest activity, live duration, tokens, the execution count, and the number of files changed.
+- **Logs**: a node tree with per-node detail:
+  - **Info**: status, time, duration, tokens, cost, model, and the history of each execution.
+  - **Input**: the complete prompt, including attached documents.
   - **Output**.
-  - **File**: diff lama vs baru yang dimuat saat file dipilih.
-  - **Command**: perintah `claude -p` persis.
-  - **Aktivitas**.
-- **Dokumen di permintaan**: saat menjalankan workflow, lampirkan PRD/spec/catatan (md, txt, docx, pdf, gambar, file kode). Teks disisipkan ke prompt. PDF dan gambar dibaca agent lewat tool Read.
-- **Pemakaian Claude Code**: batas sesi 5 jam dan mingguan (dari `rate_limit_event` yang dikirim `claude -p`) plus total token lokal dari `~/.claude/projects`. Tombol Refresh memakai satu panggilan haiku kecil.
-- **Pilih folder ala file manager**: folder project dan folder sumber dipilih lewat penjelajah folder, tidak perlu mengetik path. Tampilannya tetap pendek (`{workdir}/…`, `~/…`, `plugins/…`).
-- **Dropdown, modal, dan konfirmasi** memakai komponen sendiri yang bisa dipakai dengan keyboard. Tidak ada `alert`/`confirm` bawaan browser.
-- **Sinkronisasi GitHub** (tombol GitHub di kanan atas): lihat branch, commit yang belum di-push/pull, dan file yang berubah, lalu **Pull** (rebase + autostash), **Commit**, **Commit & Push**, atau **Push**. Targetnya bisa **Repo doz-agent** (agent/skill/workflow yang diedit di studio) atau **Project Aktif**. Studio memakai git dan kredensial GitHub yang sudah ada di komputer (SSH key atau credential helper), tidak pernah force push, dan token di URL remote disamarkan.
-- **Workflow baru** bisa dimulai kosong atau dari workflow/template yang ada (`fitur-kecil`, `fitur-lengkap`, `perbaikan-bug`, `audit-keamanan`, `review-pr`, `rilis`).
+  - **Files**: an old-vs-new diff, loaded when you pick a file.
+  - **Command**: the exact `claude -p` command.
+  - **Activity**.
+- **Documents on a request**: when running a workflow, attach a PRD/spec/notes (md, txt, docx, pdf, images, code files). Text is inlined into the prompt. PDFs and images are read by the agent through the Read tool.
+- **Claude Code usage**: the 5-hour session and weekly limits (from the `rate_limit_event` that `claude -p` emits) plus the local token total from `~/.claude/projects`. The Refresh button uses one small haiku call.
+- **A file-manager-style folder picker**: the project folder and source folders are chosen through a folder browser, with no path to type. The display stays short (`{workdir}/…`, `~/…`, `plugins/…`).
+- **Dropdowns, modals, and confirmations** use custom components that are fully keyboard-operable. No built-in browser `alert`/`confirm`.
+- **GitHub sync** (the GitHub button in the top right): see the branch, the commits not yet pushed/pulled, and the changed files, then **Pull** (rebase + autostash), **Commit**, **Commit & Push**, or **Push**. The target can be the **doz-agent repo** (the agents/skills/workflows edited in studio) or the **Active project**. Studio uses the git and GitHub credentials already on the machine (an SSH key or a credential helper), never force-pushes, and masks tokens in the remote URL.
+- **A new workflow** can start blank or from an existing workflow/template (`fitur-kecil`, `fitur-lengkap`, `perbaikan-bug`, `audit-keamanan`, `review-pr`, `rilis`).
 
-## Edit agent / skill: konsepnya
+## Editing an agent / skill: the idea
 
-| Mau mengubah | Tempat | Berlaku untuk |
+| What you want to change | Where | Applies to |
 |---|---|---|
-| Perilaku agent/skill secara umum (prompt, tools, model bawaan) | Editor komponen (ikon pensil) → menulis file `.md`-nya | Semua workflow + pemakaian lewat Claude Code |
-| Perilaku di satu langkah saja | Panel kanan node: *Instruksi untuk Langkah Ini*, model, izin, dll. | Node itu saja (disimpan di file workflow) |
+| An agent's/skill's general behavior (prompt, tools, default model) | The component editor (the pencil icon) → writes its `.md` file | Every workflow + use through Claude Code |
+| Behavior in a single step only | The node's right-hand panel: *Instructions for this step*, model, permission, etc. | That node alone (stored in the workflow file) |
 
-Editor punya dua mode. **Form** mengubah key frontmatter satu per satu (key lain dan komentar tetap), sedangkan **Raw** mengedit seluruh isi file. Editor menampilkan workflow mana saja yang memakai komponen itu dan meminta konfirmasi kalau kamu menutupnya dengan perubahan yang belum disimpan.
+The editor has two modes. **Form** changes frontmatter keys one at a time (other keys and comments are preserved), while **Raw** edits the whole file. The editor shows which workflows use that component and asks for confirmation if you close it with unsaved changes.
 
-## Menjalankan
+## Running it
 
-Butuh Node 20+. Runner `claude-cli` butuh `claude` di PATH (termasuk `claude.cmd` di Windows). Runner `api` butuh `ANTHROPIC_API_KEY`. Diff per node dan sinkronisasi GitHub butuh folder berupa repo git dengan remote `origin`. Kalau push/pull minta password, simpan dulu kredensialnya (mis. `gh auth login` atau SSH key), karena studio tidak bisa menampilkan prompt password.
+Requires Node 20+. The `claude-cli` runner needs `claude` on the PATH (including `claude.cmd` on Windows). The `api` runner needs `ANTHROPIC_API_KEY`. Per-node diffs and GitHub sync need the folder to be a git repo with an `origin` remote. If push/pull asks for a password, store the credentials first (e.g. `gh auth login` or an SSH key), because studio cannot display a password prompt.
 
 ```bash
 cd studio
 npm install
 npm run build
-npm start -- --workdir /path/ke/project-kamu     # buka http://localhost:4317
+npm start -- --workdir /path/to/your-project     # open http://localhost:4317
 ```
 
-Saat pertama dibuka, wizard **Persiapan** muncul. Ikuti langkahnya sampai tombol **Selesai** aktif.
+On first open, the **Setup** wizard appears. Follow its steps until the **Done** button activates.
 
-- `--workdir` bisa diganti dari UI (tombol folder di kanan atas). Pilihan disimpan di `studio/.local.json`.
-- `--port` atau `DOZ_STUDIO_PORT`: port lain (bawaan 4317). `DOZ_LOG_LEVEL=debug` untuk log lebih rinci.
-- `npm run dev`: server + Vite hot reload di http://localhost:5317.
-- `npm test`: 43 test (unit + integrasi API + template workflow), coverage baris ±89% (`node --test --experimental-test-coverage`).
+- `--workdir` can be changed from the UI (the folder button in the top right). The choice is stored in `studio/.local.json`.
+- `--port` or `DOZ_STUDIO_PORT`: a different port (4317 by default). `DOZ_LOG_LEVEL=debug` for more detailed logs.
+- `npm run dev`: server + Vite hot reload at http://localhost:5317.
+- `npm test`: 43 tests (unit + API integration + workflow templates), line coverage ~89% (`node --test --experimental-test-coverage`).
 
-## Arsitektur
+## Architecture
 
-Mengikuti pola dari [everything-claude-code](https://github.com/worldflowai/everything-claude-code) (coding-style, backend/frontend patterns): lapisan terpisah, satu tanggung jawab per file, state tidak dimutasi, input divalidasi, error ditangani terpusat.
+It follows the patterns from [everything-claude-code](https://github.com/worldflowai/everything-claude-code) (coding-style, backend/frontend patterns): separate layers, one responsibility per file, state never mutated, input validated, errors handled centrally.
 
 ```
 server/
 ├─ index.js            entry: listen + banner
-├─ app.js              composition root: merakit config → repository → service → route (dependency injection)
-├─ http/               router, middleware (hanya localhost), respond ({ success, data | error }), schemas (zod), static, socket
-├─ routes/             systemRoutes, libraryRoutes, runRoutes, gitRoutes, setupRoutes: tipis, hanya validasi + panggil service
+├─ app.js              composition root: assembles config → repository → service → route (dependency injection)
+├─ http/               router, middleware (localhost only), respond ({ success, data | error }), schemas (zod), static, socket
+├─ routes/             systemRoutes, libraryRoutes, runRoutes, gitRoutes, setupRoutes: thin, just validation + calling a service
 ├─ services/           workflowService, runService, usageService, folderService, attachmentService, gitService, setupService
-├─ repositories/       componentRepository (agent/skill/action/workflow di banyak folder), runLogRepository (JSONL)
-├─ domain/             engine (orkestrasi), executors (per tipe node), graph (fungsi murni), prompt, workflow, timeout
-├─ runners/            claude-cli (prompt via stdin, agent via file), api (Claude API + tool lokal), shell, tools, activity
-├─ infra/              config (workdir, folder sumber), gitdiff (snapshot per node)
-└─ lib/                errors (ApiError), logger (JSON terstruktur), paths, frontmatter
+├─ repositories/       componentRepository (agents/skills/actions/workflows across several folders), runLogRepository (JSONL)
+├─ domain/             engine (orchestration), executors (per node type), graph (pure functions), prompt, workflow, timeout
+├─ runners/            claude-cli (prompt via stdin, agent via a file), api (Claude API + local tools), shell, tools, activity
+├─ infra/              config (workdir, source folders), gitdiff (a snapshot per node)
+└─ lib/                errors (ApiError), logger (structured JSON), paths, frontmatter
 
 web/src/
-├─ App.jsx             merangkai layout; dialog di-lazy-load
+├─ App.jsx             assembles the layout; dialogs are lazy-loaded
 ├─ components/ui/      Select, Combobox, Modal, Dialogs (confirm/prompt), Toast, Segmented, Field, Logo, ErrorBoundary
-├─ features/           topbar, sidebar, canvas, settings, logs, dialogs (per fitur)
+├─ features/           topbar, sidebar, canvas, settings, logs, dialogs (per feature)
 ├─ hooks/              useWorkflowEditor, useRuns, useLibrary, useTheme, useNow, useDebounce, useClickOutside
-├─ lib/                api (klien + WebSocket), model (fungsi murni: konversi, reducer run, warna garis), storage
+├─ lib/                api (client + WebSocket), model (pure functions: conversion, the run reducer, edge colours), storage
 ├─ state/              studioContext
-└─ styles/             tokens (tema gelap/terang), base, ui, layout, canvas, logs, dialogs
+└─ styles/             tokens (dark/light themes), base, ui, layout, canvas, logs, dialogs
 ```
 
-- **API**: semua respons `{ success, data }` atau `{ success: false, error, details }`. Input divalidasi zod dan error tak terduga disembunyikan (500 + log).
-- **Perubahan file per node**: snapshot working tree lewat index git sementara sebelum dan sesudah node (index, branch, dan stash kamu tidak disentuh). Diff dimuat saat dipilih.
-- **Runner claude-cli**: prompt lewat stdin dan definisi agent lewat file sementara, jadi argumen CLI pendek dan aman di Windows. `--plugin-dir plugins` membuat skill `doz-agent:*` tersedia walau plugin belum ter-install. Mode `-p` tidak bisa menanyakan izin, jadi tools agent diizinkan di depan. Pakai `permission: read-only` untuk agent yang tidak boleh mengubah apa pun.
-- **Keamanan**: server hanya listen di `127.0.0.1` dan menolak Host/Origin selain localhost. File komponen hanya bisa ditulis ke folder sumber yang terdaftar, dan path tool API dikurung di workdir.
+- **API**: every response is `{ success, data }` or `{ success: false, error, details }`. Input is validated with zod and unexpected errors are hidden (500 + a log entry).
+- **Per-node file changes**: the working tree is snapshotted through a temporary git index before and after a node (your index, branch, and stash are untouched). The diff is loaded on selection.
+- **The claude-cli runner**: the prompt goes via stdin and agent definitions via a temporary file, so the CLI arguments stay short and safe on Windows. `--plugin-dir plugins` makes the `doz-agent:*` skills available even when the plugin isn't installed. `-p` mode cannot ask for permission, so an agent's tools are allowed up front. Use `permission: read-only` for agents that must not change anything.
+- **Security**: the server listens only on `127.0.0.1` and rejects any Host/Origin other than localhost. Component files can only be written into a registered source folder, and API tool paths are confined to the workdir.

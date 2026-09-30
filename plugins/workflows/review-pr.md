@@ -1,14 +1,14 @@
 ---
 name: review-pr
-description: Review perubahan saat ini. Code review dan security review paralel (read-only), lalu kamu memutuskan.
+description: Review the current changes. Code review and security review in parallel (read-only), then you decide.
 defaults: { runner: claude-cli, permission: read-only }
 nodes:
-  - { id: start, type: start, label: Apa yang direview }
+  - { id: start, type: start, label: What to review }
   - { id: review, type: agent, agent: code-reviewer, label: Code review }
   - { id: security, type: agent, agent: security-tester, label: Security review }
-  - { id: putuskan, type: approval, label: Lanjut merge?, message: Baca kedua laporan lalu setujui atau tolak. }
-  - { id: ok, type: output, label: Disetujui }
-  - { id: revisi, type: output, label: Perlu revisi }
+  - { id: putuskan, type: approval, label: Proceed to merge?, message: Read both reports, then approve or reject. }
+  - { id: ok, type: output, label: Approved }
+  - { id: revisi, type: output, label: Needs revision }
 edges:
   - { from: start, to: review }
   - { from: start, to: security }
@@ -25,4 +25,4 @@ layout:
   revisi: [ 860, 260 ]
 ---
 
-Fokus pada `git diff` terhadap branch utama. Jangan mengubah file apa pun.
+Focus on `git diff` against the main branch. Don't modify any file.

@@ -23,13 +23,13 @@ export function createFolderService(config) {
   const roots = () => {
     const home = os.homedir();
     const base = [
-      { label: 'Home', path: home },
-      { label: 'Project aktif', path: config.getWorkdir() },
-      { label: 'Repo doz-agent', path: config.repoRoot },
+      { id: 'home', label: 'Home', path: home },
+      { id: 'workdir', label: 'Active project', path: config.getWorkdir() },
+      ...(config.repoRoot ? [{ id: 'repo', label: 'doz-agent repo', path: config.repoRoot }] : []),
     ];
     const drives = process.platform === 'win32'
-      ? windowsDrives().map((d) => ({ label: d.slice(0, 2), path: d }))
-      : [{ label: '/', path: '/' }];
+      ? windowsDrives().map((d) => ({ id: 'drive', label: d.slice(0, 2), path: d }))
+      : [{ id: 'drive', label: '/', path: '/' }];
     return [...base, ...drives];
   };
 
@@ -39,7 +39,7 @@ export function createFolderService(config) {
     try {
       entries = fs.readdirSync(dir, { withFileTypes: true });
     } catch (err) {
-      throw badRequest(`Tidak bisa membuka folder: ${err.code ?? err.message}`);
+      throw badRequest(`Cannot open folder: ${err.code ?? err.message}`, { code: 'FOLDER_UNREADABLE', params: { reason: String(err.code ?? err.message).slice(0, 100) } });
     }
     const folders = entries
       .filter((e) => e.isDirectory() && !e.name.startsWith('.') && e.name !== 'node_modules')

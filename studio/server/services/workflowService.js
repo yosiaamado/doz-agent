@@ -4,16 +4,16 @@ import path from 'node:path';
 import { parseWorkflow, serializeWorkflow, validateWorkflow, normalize } from '../domain/workflow.js';
 import { NAME_RE } from '../repositories/componentRepository.js';
 import { badRequest, notFound } from '../lib/errors.js';
-import { toPosix } from '../lib/paths.js';
+import { displayPath } from '../lib/paths.js';
 
 export function createWorkflowService({ config, components }) {
   const agentNames = () => components.list('agents').filter((a) => !a.shadowed).map((a) => a.name);
 
   const locate = (name, { create = false } = {}) => {
-    if (!NAME_RE.test(name ?? '')) throw badRequest('nama workflow hanya boleh huruf, angka, - dan _');
+    if (!NAME_RE.test(name ?? '')) throw badRequest('The workflow name may only contain letters, digits, - and _', { code: 'NAME_INVALID' });
     const existing = components.find('workflows', name);
     if (existing) return existing.path;
-    if (!create) throw notFound(`workflow "${name}" tidak ada`);
+    if (!create) throw notFound(`Workflow "${name}" not found`, { code: 'WORKFLOW_NOT_FOUND', params: { name: String(name).slice(0, 100) } });
     return path.join(config.primaryDir('workflows'), `${name}.md`);
   };
 
@@ -37,7 +37,7 @@ export function createWorkflowService({ config, components }) {
       const wf = normalize({ ...workflow, name }, name);
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, serializeWorkflow(wf));
-      return { workflow: wf, errors: validateWorkflow(wf, agentNames()), file: toPosix(path.relative(config.repoRoot, file)) };
+      return { workflow: wf, errors: validateWorkflow(wf, agentNames()), file: displayPath(file, { workdir: config.getWorkdir(), repoRoot: config.repoRoot }) };
     },
     // Workflow siap jalan: dari body (versi di canvas) atau dari file.
     resolveForRun({ workflow, name }) {

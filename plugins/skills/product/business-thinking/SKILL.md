@@ -1,141 +1,141 @@
 ---
 name: business-thinking
-description: Kerangka berpikir bisnis dan produk profesional. Mencakup discovery & validasi ide, PRD/one-pager, prioritas fitur (RICE, WSJF), model bisnis & unit economics, pricing, metrik (North Star, OKR, AARRR), eksperimen/A-B test, build vs buy, pasar & kompetisi, dan kepatuhan (UU PDP). Pakai saat user membahas ide bisnis/startup, fitur mana yang dibangun duluan, MVP, monetisasi, target pasar, go-to-market, roadmap, atau "apakah ini worth it".
+description: Professional business and product thinking frameworks. Covers discovery & idea validation, PRDs/one-pagers, feature prioritisation (RICE, WSJF), business models & unit economics, pricing, metrics (North Star, OKR, AARRR), experiments/A-B tests, build vs buy, market & competition, and compliance (Indonesia's UU PDP). Use when the user discusses a business/startup idea, which feature to build first, an MVP, monetisation, target market, go-to-market, a roadmap, or "is this worth it".
 effort: high
 ---
 
 # Business Thinking
 
-Setiap keputusan produk dan teknis harus bisa menjawab: **siapa yang diuntungkan, seberapa besar, berapa biayanya, dan bagaimana kita tahu kalau berhasil?**
+Every product and technical decision has to answer: **who benefits, by how much, at what cost, and how will we know it worked?**
 
-## 1. Mulai dari masalah, bukan solusi
+## 1. Start from the problem, not the solution
 
-- **Siapa** user atau pelanggannya? Pakai segmen spesifik, bukan "semua orang". Bedakan **user** (yang memakai) dan **buyer** (yang membayar).
-- **Masalah apa** yang mereka alami, seberapa sering, dan seberapa sakit? Apakah mereka sudah mengeluarkan uang atau waktu untuk mengatasinya?
-- **Bagaimana mereka mengatasinya sekarang** (kompetitor, spreadsheet, cara manual)? Kenapa itu belum cukup?
-- **Jobs To Be Done:** "Saat [situasi], saya ingin [motivasi], supaya [hasil]."
-- **Lean Canvas** untuk ide baru: problem, customer segment, unique value proposition, solution, channel, revenue, cost, key metric, dan unfair advantage.
+- **Who** is the user or customer? Use a specific segment, not "everyone". Distinguish the **user** (who uses it) from the **buyer** (who pays).
+- **What problem** do they have, how often, and how much does it hurt? Are they already spending money or time working around it?
+- **How do they cope today** (a competitor, a spreadsheet, a manual process)? Why isn't that enough?
+- **Jobs To Be Done:** "When [situation], I want [motivation], so I can [outcome]."
+- **Lean Canvas** for a new idea: problem, customer segment, unique value proposition, solution, channel, revenue, cost, key metric, and unfair advantage.
 
-## 2. Discovery & validasi sebelum membangun
+## 2. Discovery & validation before building
 
-- Tulis asumsi-asumsi yang ada, lalu kelompokkan jadi tiga:
-  - **Desirability:** apakah mereka mau?
-  - **Viability:** apakah menguntungkan?
-  - **Feasibility:** apakah bisa dibangun?
-- Uji asumsi yang **paling berisiko dan paling tidak pasti** duluan.
-- **Cara validasi murah**, diurutkan dari yang termurah:
-  1. Wawancara user. Tanyakan perilaku masa lalu, bukan pendapat tentang masa depan (The Mom Test).
-  2. Landing page + waitlist.
-  3. Fake door test.
-  4. Pre-order atau LOI.
-  5. Concierge/manual MVP (layani secara manual dulu).
-  6. Prototipe yang bisa diklik.
-- **Tentukan kriteria sukses sebelum eksperimen dimulai.** Contoh: "≥ 10% pengunjung mendaftar waitlist dalam 2 minggu".
-- **MVP** adalah versi **terkecil** yang bisa membuktikan atau membantah asumsi utama, bukan versi murahan dari produk lengkap.
+- Write down the assumptions in play, then sort them into three buckets:
+  - **Desirability:** do they want it?
+  - **Viability:** is it profitable?
+  - **Feasibility:** can it be built?
+- Test the **riskiest and least certain** assumption first.
+- **Cheap ways to validate**, cheapest first:
+  1. User interviews. Ask about past behavior, not opinions about the future (The Mom Test).
+  2. A landing page + waitlist.
+  3. A fake door test.
+  4. Pre-orders or an LOI.
+  5. A concierge/manual MVP (serve them by hand first).
+  6. A clickable prototype.
+- **Set the success criteria before the experiment starts.** For example: "≥ 10% of visitors join the waitlist within 2 weeks".
+- An **MVP** is the **smallest** version that can prove or disprove the core assumption, not a shoddy version of the full product.
 
-## 3. PRD / one-pager (sebelum fitur dibangun)
+## 3. PRD / one-pager (before a feature is built)
 
 ```markdown
-# <Nama fitur>
-## Masalah
-<siapa, masalah apa, bukti (data/kutipan user)>
-## Tujuan & metrik sukses
-<metrik utama + target + guardrail metric yang tidak boleh turun>
-## Non-goal
-<apa yang sengaja TIDAK dikerjakan>
-## Solusi (ringkas)
-<alur utama, user story + acceptance criteria>
-## Risiko & asumsi
-## Rencana rilis
-<bertahap? feature flag? eksperimen?>
+# <Feature name>
+## Problem
+<who, what problem, evidence (data/user quotes)>
+## Goal & success metrics
+<the primary metric + target + the guardrail metric that must not drop>
+## Non-goals
+<what is deliberately NOT being done>
+## Solution (condensed)
+<the main flow, user story + acceptance criteria>
+## Risks & assumptions
+## Release plan
+<phased? feature flag? an experiment?>
 ```
 
-## 4. Prioritas
+## 4. Prioritisation
 
-- **RICE** = (Reach × Impact × Confidence) / Effort. Cocok untuk membandingkan banyak ide fitur.
-- **WSJF / Cost of Delay:** (nilai bisnis + urgensi waktu + pengurangan risiko) / ukuran pekerjaan. Cocok kalau ada tenggat atau risiko.
-- **MoSCoW** (Must / Should / Could / Won't) untuk memotong scope sebuah rilis.
-- **Kano:** bedakan fitur dasar (wajib ada), fitur performa (makin banyak makin baik), dan fitur penyenang.
-- Selalu tanyakan: **kalau fitur ini TIDAK dibangun, apa yang terjadi?** Dan apa yang dikorbankan kalau kita mengerjakannya (opportunity cost)?
+- **RICE** = (Reach × Impact × Confidence) / Effort. Good for comparing many feature ideas.
+- **WSJF / Cost of Delay:** (business value + time criticality + risk reduction) / job size. Good when there's a deadline or a risk.
+- **MoSCoW** (Must / Should / Could / Won't) for cutting a release's scope.
+- **Kano:** separate basic features (must exist), performance features (more is better), and delighters.
+- Always ask: **if this feature is NOT built, what happens?** And what gets sacrificed if we do build it (opportunity cost)?
 
-## 5. Model bisnis & unit economics
+## 5. Business model & unit economics
 
-- **Sumber pendapatan:** subscription, transaksi/komisi (take rate), usage-based, one-time/lisensi, iklan, atau freemium.
-- **Metrik inti:**
-  - **CAC:** total biaya akuisisi ÷ pelanggan baru.
-  - **LTV:** ARPU × gross margin × umur rata-rata pelanggan (≈ 1 / churn bulanan). Targetkan **LTV : CAC ≥ 3 : 1**.
-  - **Payback CAC** idealnya < 12 bulan (lebih pendek untuk UKM/konsumen).
-  - **Gross margin:** hitung **semua** biaya variabel, termasuk server, API/AI per request, payment fee, support, dan refund.
-  - **Churn & NRR** (Net Revenue Retention). NRR > 100% berarti pelanggan lama tumbuh sendiri.
-  - **Burn rate & runway:** kas ÷ burn bulanan.
-- **Break-even:** biaya tetap ÷ margin kontribusi per unit = jumlah pelanggan/transaksi yang dibutuhkan.
-- Buat model di spreadsheet dengan skenario **pesimis / realistis / optimis**, dan tulis setiap asumsinya secara eksplisit.
+- **Revenue sources:** subscription, transaction/commission (take rate), usage-based, one-time/licence, advertising, or freemium.
+- **The core metrics:**
+  - **CAC:** total acquisition spend ÷ new customers.
+  - **LTV:** ARPU × gross margin × average customer lifetime (≈ 1 / monthly churn). Target **LTV : CAC ≥ 3 : 1**.
+  - **CAC payback** ideally < 12 months (shorter for SMB/consumer).
+  - **Gross margin:** count **all** variable costs, including servers, API/AI per request, payment fees, support, and refunds.
+  - **Churn & NRR** (Net Revenue Retention). NRR > 100% means existing customers grow on their own.
+  - **Burn rate & runway:** cash ÷ monthly burn.
+- **Break-even:** fixed costs ÷ contribution margin per unit = the number of customers/transactions needed.
+- Model it in a spreadsheet with **pessimistic / realistic / optimistic** scenarios, and write out every assumption explicitly.
 
 ## 6. Pricing
 
-- Tentukan harga berdasarkan **nilai** yang dirasakan user (penghematan waktu atau uang, tambahan pendapatan), bukan hanya biaya + margin.
-- **Value metric:** harga naik mengikuti nilai yang didapat (per user, per transaksi, per volume).
-- Buat tier yang jelas (misalnya Free / Pro / Business) dengan pembeda yang bermakna. Tier tengah biasanya jadi pilihan utama.
-- Sesuaikan dengan pasar lokal: daya beli, dan metode pembayaran yang umum (QRIS, e-wallet, virtual account, paylater).
-- **Uji harga, jangan menebak.** Pakai wawancara willingness-to-pay (Van Westendorp), A/B test di landing page, atau coba ke pelanggan baru dulu.
+- Price against the **value** the user perceives (time or money saved, revenue gained), not just cost + margin.
+- **Value metric:** the price rises with the value received (per user, per transaction, per volume).
+- Build clear tiers (e.g. Free / Pro / Business) with meaningful differences. The middle tier usually becomes the default choice.
+- Fit the local market: purchasing power, and the payment methods people actually use (QRIS, e-wallets, virtual accounts, buy-now-pay-later).
+- **Test the price, don't guess it.** Use willingness-to-pay interviews (Van Westendorp), an A/B test on the landing page, or try it on new customers first.
 
-## 7. Metrik & tujuan
+## 7. Metrics & goals
 
-- **North Star Metric:** satu metrik yang mencerminkan nilai yang diterima user dan berkorelasi dengan pendapatan. Contoh: "jumlah transaksi sukses per minggu", bukan "jumlah download".
-- **Funnel AARRR:** Acquisition → Activation → Retention → Referral → Revenue. Perbaiki tahap yang paling bocor duluan.
-- **Retention** adalah bukti product-market fit. Lihat **kurva cohort**: yang sehat akan melandai, bukan terus turun ke nol.
-- **OKR:**
-  - Objective kualitatif yang menginspirasi, dengan 2–4 Key Result yang terukur.
-  - Key Result berupa outcome (hasil), bukan output (fitur yang dikirim).
-- Hindari vanity metric (total download, pageview, jumlah registrasi) tanpa konteks aktivasi dan retensi.
-- Setiap fitur punya **metrik sukses dan guardrail metric** yang ditentukan **sebelum** dibangun.
+- **North Star Metric:** the single metric that reflects the value users receive and correlates with revenue. For example: "successful transactions per week", not "number of downloads".
+- **The AARRR funnel:** Acquisition → Activation → Retention → Referral → Revenue. Fix the leakiest stage first.
+- **Retention** is the evidence of product-market fit. Look at the **cohort curve**: a healthy one flattens out, it doesn't keep falling to zero.
+- **OKRs:**
+  - A qualitative, inspiring Objective, with 2–4 measurable Key Results.
+  - Key Results are outcomes, not outputs (features shipped).
+- Avoid vanity metrics (total downloads, pageviews, signup counts) without activation and retention context.
+- Every feature has **success metrics and a guardrail metric** defined **before** it is built.
 
-## 8. Eksperimen & A/B test
+## 8. Experiments & A/B tests
 
-- **Hipotesis:** "Kalau kita [ubah X], maka [metrik Y] naik [Z%], karena [alasan]."
-- Tentukan dulu metrik utama, guardrail, ukuran sampel minimum (pakai kalkulator sample size), dan durasi (minimal 1–2 siklus mingguan).
-- **Jangan menghentikan test lebih awal** begitu terlihat "menang" (peeking). Hasilnya jadi bias.
-- Kalau trafik kecil, lebih baik melakukan perubahan besar atau riset kualitatif daripada A/B test untuk perubahan kecil.
+- **Hypothesis:** "If we [change X], then [metric Y] rises [Z%], because [reason]."
+- Decide the primary metric, the guardrails, the minimum sample size (use a sample-size calculator), and the duration (at least 1–2 weekly cycles) up front.
+- **Don't stop a test early** the moment it looks like it's "winning" (peeking). That biases the result.
+- With low traffic, a large change or qualitative research beats A/B testing a small change.
 
 ## 9. Build vs buy
 
-- **Beli atau pakai layanan jadi** untuk hal yang bukan inti pembeda bisnis: auth, payment, email/SMS, analytics, search, dan monitoring.
-- **Bangun sendiri** hanya untuk hal yang menjadi keunggulan kompetitif, atau kalau layanan jadi tidak memenuhi kebutuhan, biaya, atau regulasi.
-- Hitung **TCO** (total cost of ownership): biaya pembuatan + maintenance + infrastruktur + waktu tim + risiko, dibandingkan dengan biaya langganan. Pertimbangkan juga vendor lock-in dan exit plan.
+- **Buy or use an off-the-shelf service** for anything that isn't your core differentiator: auth, payments, email/SMS, analytics, search, and monitoring.
+- **Build it yourself** only for what constitutes a competitive advantage, or when an off-the-shelf service doesn't meet the requirements, the cost, or the regulations.
+- Calculate the **TCO** (total cost of ownership): build + maintenance + infrastructure + team time + risk, versus the subscription cost. Also weigh vendor lock-in and your exit plan.
 
-## 10. Pasar & kompetisi
+## 10. Market & competition
 
-- **Ukuran pasar:** TAM → SAM → SOM. Hitung secara **bottom-up**: jumlah calon pelanggan yang bisa dijangkau × harga × frekuensi. Jangan hanya mengutip angka laporan industri.
-- **Positioning:** "Untuk [segmen] yang [masalah], [produk] adalah [kategori] yang [manfaat utama], tidak seperti [alternatif], karena [pembeda]."
-- **Moat:** network effect, data eksklusif, switching cost, brand, skala/biaya lebih rendah, distribusi, atau regulasi.
-- **Go-to-market:** channel mana yang paling murah untuk menjangkau segmen awal (komunitas, konten/SEO, partnership, direct sales, marketplace)? Fokus ke satu atau dua channel dulu.
+- **Market size:** TAM → SAM → SOM. Calculate it **bottom-up**: reachable prospects × price × frequency. Don't just quote an industry report's number.
+- **Positioning:** "For [segment] who [problem], [product] is the [category] that [primary benefit], unlike [alternative], because [differentiator]."
+- **Moat:** network effects, exclusive data, switching costs, brand, scale/lower cost, distribution, or regulation.
+- **Go-to-market:** which channel is the cheapest way to reach the first segment (communities, content/SEO, partnerships, direct sales, marketplaces)? Focus on one or two channels first.
 
-## 11. Kepatuhan & risiko
+## 11. Compliance & risk
 
-- **Data pribadi:** patuhi **UU PDP (UU No. 27/2022)** untuk user di Indonesia, dan GDPR kalau melayani user di Eropa. Aturan dasarnya:
-  - Punya dasar pemrosesan dan consent.
-  - Kumpulkan data seminimal mungkin.
-  - Beri hak user untuk mengakses dan menghapus datanya.
-  - Siap memberi notifikasi kalau terjadi kebocoran.
-- **Sektor khusus** punya regulasi sendiri: pembayaran/fintech (BI/OJK), kesehatan, dan pendidikan anak. Cek dulu sebelum membangun.
-- Pertimbangkan juga risiko reputasi, ketergantungan pada satu platform (algoritma media sosial, marketplace, app store), dan ketergantungan pada satu pelanggan besar.
+- **Personal data:** comply with **UU PDP (Law No. 27/2022, Indonesia's personal data protection law)** for users in Indonesia, and GDPR if serving users in Europe. The basic rules:
+  - Have a lawful basis for processing, and consent.
+  - Collect as little data as possible.
+  - Give users the right to access and delete their data.
+  - Be ready to notify in the event of a breach.
+- **Specific sectors** have their own regulations: payments/fintech (Bank Indonesia/OJK), healthcare, and children's education. Check before building.
+- Also weigh reputational risk, dependence on a single platform (a social media algorithm, a marketplace, an app store), and dependence on one large customer.
 
-## 12. Menerjemahkan ke keputusan teknis
+## 12. Translating this into technical decisions
 
-- Pilih solusi **paling sederhana yang cukup untuk tahap bisnis saat ini.** Jangan over-engineer sebelum ada traction. Arsitektur untuk 1 juta user tidak dibutuhkan saat user masih 100.
-- Pasang **analytics dan event tracking sejak awal** supaya keputusan berbasis data.
-- **Tech debt boleh diambil secara sadar** untuk mengejar validasi, asal dicatat dan dibayar sebelum menghambat.
-- Hitung biaya teknis per unit (biaya server/AI per transaksi) dan masukkan ke perhitungan gross margin.
+- Choose the **simplest solution sufficient for the current stage of the business.** Don't over-engineer before there's traction. Architecture for 1 million users isn't needed while there are 100.
+- Put **analytics and event tracking in from the start** so decisions can be data-driven.
+- **Tech debt may be taken on deliberately** to reach validation faster, as long as it's recorded and paid off before it becomes a bottleneck.
+- Calculate the technical cost per unit (server/AI cost per transaction) and fold it into the gross margin.
 
-## 13. Format jawaban
+## 13. Answer format
 
 ```
-**Rekomendasi:** <keputusan + 1 kalimat alasan>
-**Asumsi kunci:** <yang harus benar supaya ini berhasil — mana yang paling berisiko>
-**Angka:** <estimasi kasar dengan rentang: biaya, potensi pendapatan, unit economics>
-**Metrik sukses:** <metrik utama + target + guardrail>
-**Risiko:** <apa yang bisa gagal + mitigasinya>
-**Langkah berikutnya:** <eksperimen/aksi konkret, yang termurah dulu, + kriteria lanjut/berhenti>
+**Recommendation:** <the decision + a one-sentence reason>
+**Key assumptions:** <what has to be true for this to work — and which is riskiest>
+**Numbers:** <rough estimates with ranges: cost, revenue potential, unit economics>
+**Success metrics:** <primary metric + target + guardrail>
+**Risks:** <what could fail + the mitigation>
+**Next steps:** <concrete experiments/actions, cheapest first, + the go/no-go criteria>
 ```
 
-Terus terang kalau sebuah ide lemah. Jelaskan alasannya dengan data atau logika, lalu tawarkan alternatif atau cara memvalidasinya dengan murah.
+Be blunt when an idea is weak. Explain why with data or logic, then offer an alternative or a cheap way to validate it.

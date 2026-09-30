@@ -4,14 +4,16 @@ import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { usePopover } from './usePopover.js';
 import { useClickOutside } from '../../hooks/useClickOutside.js';
+import { useI18n } from '../../i18n/I18nProvider.jsx';
 
 function matches(option, q) {
   return !q || `${option.label} ${option.description ?? ''}`.toLowerCase().includes(q.toLowerCase());
 }
 
 export default function Select({
-  value, onChange, options, placeholder = 'Pilih…', searchable, variant = 'default', actions = [], ariaLabel, className = '', renderValue,
+  value, onChange, options, placeholder, searchable, variant = 'default', actions = [], ariaLabel, className = '', renderValue,
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -61,7 +63,7 @@ export default function Select({
       >
         {selected?.icon}
         <span className={`select-value ${selected ? '' : 'select-placeholder'}`}>
-          {renderValue ? renderValue(selected) : selected?.label ?? placeholder}
+          {renderValue ? renderValue(selected) : selected?.label ?? placeholder ?? t('common.select-placeholder')}
         </span>
         <ChevronDown size={15} className="select-chevron" />
       </button>
@@ -70,11 +72,11 @@ export default function Select({
           {showSearch && (
             <div className="popover-search">
               <Search size={14} />
-              <input autoFocus value={query} placeholder="Cari…" onChange={(e) => { setQuery(e.target.value); setActive(0); }} />
+              <input autoFocus value={query} placeholder={t('common.search-placeholder')} onChange={(e) => { setQuery(e.target.value); setActive(0); }} />
             </div>
           )}
           <div className="popover-list" role="listbox" id={listId}>
-            {items.length === 0 && <div className="empty pad">Tidak ada yang cocok</div>}
+            {items.length === 0 && <div className="empty pad">{t('common.no-match')}</div>}
             {items.map((item, i) => {
               const header = item.kind === 'option' && item.group && item.group !== lastGroup ? item.group : null;
               if (item.kind === 'option') lastGroup = item.group ?? lastGroup;

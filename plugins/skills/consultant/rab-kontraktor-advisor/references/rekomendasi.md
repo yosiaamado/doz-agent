@@ -1,48 +1,48 @@
-# RAB Generator — Sintesis & Rekomendasi
+# RAB Generator — Synthesis & Recommendations
 
-Referensi skill `rab-kontraktor-advisor`. Konteks produk dan aturan pakainya ada di `SKILL.md`.
+A reference for the `rab-kontraktor-advisor` skill. The product context and usage rules are in `SKILL.md`.
 
-## Bagian 3: Sintesis & Rekomendasi
+## Part 3: Synthesis & recommendations
 
-### Perbandingan Indonesia vs Internasional
+### Indonesia vs international comparison
 
-#### Persamaan
+#### What's the same
 
-- **Formula inti sama**: kuantitas × harga satuan = biaya item, dijumlah jadi total. AHSP+HSPK setara *unit rate buildup*; BOQ = quantity × rate.
-- **Keduanya memisahkan "kebutuhan teknis" dari "harga pasar"** secara konseptual: koefisien AHSP vs harga HSD/HSPK di Indonesia; quantity (disiapkan QS) vs rate (diisi kontraktor saat bidding) di BOQ — tapi di Indonesia pemisahan ini kurang terlihat karena HSPK resmi sudah menggabungkan keduanya jadi satu angka jadi per daerah.
-- **Unit pengukuran mirip**: m, m², m³, kg/ton, OH/nr, ls/item.
+- **The core formula is identical**: quantity × unit price = item cost, summed into a total. AHSP+HSPK is equivalent to a *unit rate buildup*; a BOQ is quantity × rate.
+- **Both separate "technical requirements" from "market prices"** conceptually: AHSP coefficients vs HSD/HSPK prices in Indonesia; quantity (prepared by the QS) vs rate (filled in by the contractor when bidding) in a BOQ — although in Indonesia this separation is less visible, because the official HSPK already merges the two into a single ready-made figure per region.
+- **Similar units of measurement**: m, m², m³, kg/tonne, OH/nr, lump sum/item.
 
-#### Perbedaan
+#### What's different
 
-| Aspek | Indonesia (AHSP/HSPK) | Internasional (BOQ/AACE) |
+| Aspect | Indonesia (AHSP/HSPK) | International (BOQ/AACE) |
 | --- | --- | --- |
-| Sumber otoritas | Top-down pemerintah (Permen PUPR + Perbup/Perwal per daerah, wajib untuk proyek pemerintah) | Standar profesi (RICS), bukan hukum negara, disusun quantity surveyor independen |
-| Kematangan estimasi | Tidak ada sistem eksplisit — RAB dianggap "pasti" begitu jadi | AACE punya 5 kelas eksplisit dengan rentang akurasi terikat level definisi desain |
-| Item belum pasti | Umumnya tidak ada slot formal — kontraktor kecil sering "all-in"/nebak | Provisional sum & prime cost sum formal untuk item yang belum jelas saat tender |
-| Kapan disusun | Sering paralel/sebelum desain final (skala rumah tinggal jarang punya gambar kerja lengkap) | Setelah desain selesai, oleh profesi khusus (QS), sebagai bagian tender |
-| Standardisasi format | AHSP terstandardisasi by regulation, tapi RAB Excel kontraktor kecil bebas format, tidak konsisten antar kontraktor | Measurement rules (NRM) eksplisit — "two estimators measuring the same drawings produce bills that compare line by line" |
-| Kematangan software pasar | Baru ada software lokal sederhana (mis. RAB Otomatis) dengan database AHSP resmi | Software matang (Buildxact, PlanSwift, JobTread) dengan cost catalog/assembly reusable + live pricing |
+| Source of authority | Top-down government (Permen PUPR + a regional Perbup/Perwal, mandatory for government projects) | A professional standard (RICS), not state law, produced by independent quantity surveyors |
+| Estimate maturity | No explicit system — an RAB is treated as "definite" once produced | AACE has 5 explicit classes with accuracy ranges tied to the design definition level |
+| Items not yet certain | Generally no formal slot — small contractors often go "all-in"/guess | Formal provisional sums & prime cost sums for items unclear at tender |
+| When it's produced | Often in parallel with, or before, the final design (house-scale projects rarely have complete working drawings) | After the design is finished, by a dedicated profession (QS), as part of the tender |
+| Format standardisation | AHSP is standardised by regulation, but a small contractor's RAB Excel is free-form and inconsistent between contractors | Explicit measurement rules (NRM) — "two estimators measuring the same drawings produce bills that compare line by line" |
+| Maturity of market software | Only simple local software so far (e.g. RAB Otomatis) with the official AHSP database | Mature software (Buildxact, PlanSwift, JobTread) with a reusable cost catalog/assemblies + live pricing |
 
-**Kesimpulan buat produk**: tidak perlu meniru mentah BOQ/AACE (itu didesain untuk proyek besar dengan QS profesional) — tapi tiga konsepnya layak diadopsi versi sederhana: (1) pisahkan quantity dari rate di level data, (2) sediakan slot untuk item "belum pasti", (3) tandai kematangan estimasi.
+**The conclusion for the product**: there's no need to copy BOQ/AACE wholesale (they're designed for large projects with professional QSs) — but three of their concepts are worth adopting in simplified form: (1) separate quantity from rate at the data level, (2) provide a slot for "not yet certain" items, (3) mark the estimate's maturity.
 
-### Rekomendasi Struktur Data
+### Data structure recommendations
 
-Prinsip utama: **pisahkan "katalog item pekerjaan" (reusable) dari "harga per proyek" (manual, sesuai keputusan MVP)** sejak desain skema awal — supaya kalau nanti mau tambah auto-update harga (fase 2+, pakai data AHSP/HSPK resmi atau live pricing), tidak perlu migrasi besar.
+The main principle: **separate the "work item catalogue" (reusable) from "prices per project" (manual, per the MVP decision)** from the initial schema design — so that adding automatic price updates later (phase 2+, using official AHSP/HSPK data or live pricing) needs no large migration.
 
-#### Entitas inti
+#### Core entities
 
-| Entitas | Fungsi | Field kunci |
+| Entity | Purpose | Key fields |
 | --- | --- | --- |
-| `work_item` (katalog pekerjaan) | Master data milik akun kontraktor, dipakai ulang lintas proyek — analog *assembly*/AHSP | nama pekerjaan, kategori, satuan default, catatan |
-| `project` (proyek) | Satu RAB per proyek/klien | nama proyek, klien, tanggal, status ("Estimasi Awal" / "RAB Final") |
-| `rab_item` (baris RAB) | Satu baris dalam RAB, milik satu proyek | proyek_id, work_item_id (opsional, nullable untuk item custom sekali pakai), uraian, kategori, volume, satuan, harga_satuan, subtotal (computed), catatan/asumsi, flag "belum pasti" (opsional, terinspirasi provisional sum) |
-| `project_overhead` | Overhead & profit per proyek | persentase atau nominal — field terpisah, bukan di-hardcode ke tiap item, karena persentase (sering diasumsikan ~10% di berbagai referensi) sebenarnya keputusan tiap kontraktor, bukan angka wajib |
+| `work_item` (work catalogue) | Master data owned by the contractor's account, reused across projects — analogous to an *assembly*/AHSP item | work name, category, default unit, notes |
+| `project` | One RAB per project/client | project name, client, date, status ("Preliminary estimate" / "Final RAB") |
+| `rab_item` (an RAB line) | One line in an RAB, belonging to one project | project_id, work_item_id (optional, nullable for one-off custom items), description, category, quantity, unit, unit_price, subtotal (computed), notes/assumptions, a "not yet certain" flag (optional, inspired by provisional sums) |
+| `project_overhead` | Overhead & profit per project | a percentage or an absolute amount — a separate field, not hardcoded into each item, because the percentage (often assumed to be ~10% across various references) is really each contractor's decision, not a mandatory figure |
 
-#### Kenapa `work_item` dipisah dari `rab_item`
+#### Why `work_item` is separate from `rab_item`
 
-Di MVP, harga tetap manual per proyek (`rab_item.harga_satuan` diisi tangan) — tapi *nama & satuan pekerjaan* ("Pasang 1 m² dinding bata merah", satuan m²) hampir selalu sama antar proyek. Kalau `work_item` sudah jadi entitas sendiri sejak awal, kontraktor bisa simpan & pakai ulang daftar pekerjaan mereka (insight dari cost catalog Buildxact/JobTread) tanpa harus ketik ulang tiap proyek baru — dan strukturnya sudah siap menampung koefisien/harga resmi nanti tanpa redesain skema.
+In the MVP, prices stay manual per project (`rab_item.unit_price` is typed in by hand) — but the *work name & unit* ("Lay 1 m² of red brick wall", unit m²) is almost always the same across projects. If `work_item` is its own entity from the start, contractors can save and reuse their list of work items (the insight from Buildxact/JobTread's cost catalog) without retyping it for every new project — and the structure is already ready to hold official coefficients/prices later without a schema redesign.
 
-#### Formula RAB
+#### The RAB formula
 
 ```latex
 Subtotal_{item} = Volume \times HargaSatuan
@@ -50,39 +50,39 @@ Total_{kategori} = \sum Subtotal_{item \in kategori}
 Total_{proyek} = \sum Total_{kategori} \times (1 + Overhead\%)
 ```
 
-#### Kategori pekerjaan
+#### Work categories
 
-Sediakan starter list kategori umum yang mengikuti pengelompokan SNI/AHSP (persiapan, tanah, pondasi, struktur beton, dinding, plesteran, atap, lantai, finishing, mekanikal-elektrikal) sebagai default yang bisa diedit — supaya kontraktor tidak mulai dari kosong, tapi tetap bebas menyesuaikan ke kebiasaan mereka sendiri.
+Provide a starter list of common categories following the SNI/AHSP grouping (site preparation, earthwork, foundations, concrete structure, walls, plastering, roofing, flooring, finishing, mechanical-electrical) as an editable default — so contractors don't start from nothing, but stay free to adapt it to their own habits.
 
-#### Struktur koefisien (fase 2+, tidak untuk MVP)
+#### Coefficient structure (phase 2+, not for the MVP)
 
-Kalau nanti mau tambah auto-price dari AHSP/HSPK resmi, siapkan tabel terpisah `work_item_component` (work_item_id, jenis: bahan/upah/alat, nama komponen, satuan komponen, koefisien) yang MVP-nya dibiarkan kosong — skema DB sudah siap tanpa perlu dipakai dulu.
+If auto-pricing from the official AHSP/HSPK is added later, prepare a separate `work_item_component` table (work_item_id, type: material/labour/equipment, component name, component unit, coefficient) that stays empty in the MVP — the DB schema is ready without having to be used yet.
 
-### Rekomendasi UX Minim-Friksi
+### Low-friction UX recommendations
 
-1. **Tiru pola Excel yang sudah mereka kenal** — tabel: No, Uraian, Kategori, Volume, Satuan, Harga Satuan, Subtotal. Jangan reinvent UI; kontraktor kecil sudah terbiasa dengan format ini dari template Excel yang beredar luas — UI yang mirip = friksi belajar mendekati nol.
-2. **Auto-kalkulasi live**: begitu volume/harga diinput, subtotal per item, rekap per kategori, dan total proyek langsung update otomatis. Hilangkan kebutuhan mereka menulis/mengingat rumus sendiri.
-3. **Katalog item pekerjaan pribadi**: begitu kontraktor input satu jenis pekerjaan, tawarkan simpan ke "daftar pekerjaan saya" — proyek berikutnya tinggal cari/pilih, bukan ketik ulang dari nol.
-4. **Kategori starter bawaan, tapi bisa diedit**: sediakan daftar kategori umum ala SNI/AHSP sebagai default, bukan wajib.
-5. **Desain ramah HP**: banyak kontraktor kerja di lapangan, bukan di depan laptop. Form input sebaiknya nyaman diisi dari HP.
-6. **Ekspor ke format yang sudah biasa dipakai**: PDF rapi (dan idealnya Excel) untuk diberikan ke klien.
-7. **Sembunyikan istilah teknis, bukan konsepnya**: label di UI pakai bahasa yang sudah dikenal kontraktor dari RAB manual — jangan paksa user belajar istilah baru seperti "assembly" atau "provisional sum".
-8. **Status kematangan RAB yang disederhanakan**: dua status saja — "Estimasi Awal" vs "RAB Final".
-9. **Progressive disclosure untuk fase depan**: susun UI supaya nanti kalau fase 2 menambah auto-price, tinggal "nempel" tanpa redesain total.
+1. **Mirror the Excel pattern they already know** — a table: No., Description, Category, Quantity, Unit, Unit Price, Subtotal. Don't reinvent the UI; small contractors are already used to this format from the widely circulated Excel templates — a similar UI means the learning friction is near zero.
+2. **Live auto-calculation**: as soon as a quantity/price is entered, the per-item subtotal, the per-category rollup, and the project total update automatically. Remove any need for them to write or remember formulas themselves.
+3. **A personal work-item catalogue**: once a contractor enters a type of work, offer to save it to "my work items" — the next project is a search/select, not retyping from scratch.
+4. **Built-in starter categories, but editable**: provide a list of common SNI/AHSP-style categories as a default, not a requirement.
+5. **Phone-friendly design**: many contractors work on site, not at a laptop. The input form should be comfortable to fill in on a phone.
+6. **Export to the formats they already use**: a tidy PDF (and ideally Excel) to hand to the client.
+7. **Hide the technical terms, not the concepts**: label things in the UI using the language contractors already know from manual RABs — don't force them to learn new terms like "assembly" or "provisional sum".
+8. **A simplified RAB maturity status**: just two states — "Preliminary estimate" vs "Final RAB".
+9. **Progressive disclosure for future phases**: lay the UI out so that when phase 2 adds auto-pricing it can just "slot in" without a total redesign.
 
-### Asumsi yang Perlu Divalidasi ke Kontraktor
+### Assumptions to validate with contractors
 
-Riset ini menjelaskan standar & praktik umum, tapi bukan pengganti wawancara langsung. Klaim/asumsi berikut sebaiknya dicek ke kontraktor kecil asli sebelum jadi keputusan desain final:
+This research explains the standards & common practice, but it isn't a substitute for direct interviews. The following claims/assumptions should be checked with real small contractors before becoming final design decisions:
 
-1. **Tool yang dipakai sekarang** — apakah benar masih Excel manual, atau sebagian sudah pakai software serupa (RAB Otomatis atau lainnya).
-2. **Angka overhead & profit riil** — asumsi ~10% dari referensi sekunder belum dikonfirmasi dari teks resmi Permen 8/2023, kemungkinan besar bervariasi per kontraktor/jenis proyek/daerah.
-3. **Relevansi kategori standar SNI/AHSP** — apakah kontraktor benar butuh pengelompokan formal ini.
-4. **Seberapa sering HSPK/AHSP resmi benar-benar dipakai** untuk proyek swasta kecil.
-5. **Device yang dipakai bikin RAB** — HP, laptop, atau keduanya.
-6. **Format yang diberikan ke klien saat ini** — PDF, print, Excel, atau foto/WhatsApp.
-7. **Kebutuhan detail uraian per item** — nama singkat vs deskripsi/spek material detail.
-8. **Nilai fitur katalog item reusable** — apakah benar dirasa berguna, atau tiap proyek dianggap unik.
-9. **Skala tipikal satu RAB** — rata-rata berapa baris/item per proyek.
-10. **Familiaritas dengan konsep volume & satuan** — apakah m²/m³/OH/ls sudah dipahami natural.
+1. **The tool they use today** — is it really still manual Excel, or have some moved to similar software (RAB Otomatis or another)?
+2. **Real overhead & profit figures** — the ~10% assumption from secondary references isn't confirmed from the official text of Permen 8/2023, and most likely varies per contractor/project type/region.
+3. **The relevance of standard SNI/AHSP categories** — do contractors actually need this formal grouping?
+4. **How often the official HSPK/AHSP is genuinely used** for small private projects.
+5. **The device used to produce an RAB** — phone, laptop, or both.
+6. **The format currently given to the client** — PDF, print, Excel, or a photo/WhatsApp.
+7. **How much detail each line description needs** — a short name vs a detailed description/material spec.
+8. **The value of a reusable item catalogue** — is it genuinely seen as useful, or is every project considered unique?
+9. **The typical scale of one RAB** — how many lines/items per project on average.
+10. **Familiarity with quantities & units** — are m²/m³/OH/lump sum already understood naturally?
 
-Wawancara singkat (15-20 menit) yang fokus ke poin #1, #2, #5, #6, dan #8 paling langsung memengaruhi keputusan desain MVP berikutnya.
+A short interview (15-20 minutes) focused on points #1, #2, #5, #6, and #8 has the most direct bearing on the next MVP design decisions.

@@ -1,90 +1,90 @@
-# Studi Kasus Visual
+# Visual Case Studies
 
-Bahan referensi untuk `ui-design-taste`. Angka warna dan tipografi di bawah diambil langsung dari CSS situsnya (inspeksi September 2026), bukan dikira-kira.
+Reference material for `ui-design-taste`. The color and typography figures below are taken straight from the sites' CSS (inspected September 2026), not estimated.
 
-## Bagian 1: Lima dashboard admin
+## Part 1: Five admin dashboards
 
-### A. Dashboard template padat (gaya "Architect")
+### A. The dense template dashboard ("Architect" style)
 
-Sidebar terang berkelompok, header hijau, banyak widget kecil, tab, tabel dengan sparkline.
+A light grouped sidebar, a green header, many small widgets, tabs, a table with sparklines.
 
-- **Ditiru:** pengelompokan sidebar berlabel (`MENU`, `UI COMPONENTS`, `FORMS`), sparkline di dalam baris tabel, badge status pill.
-- **Dihindari:** terlalu banyak widget setara di satu layar sehingga tidak ada yang menonjol; teks 11–12px di mana-mana; warna badge yang saling bersaing (kuning, hijau, merah, biru dalam satu kolom dengan saturasi penuh).
-- **Pelajaran:** kepadatan tinggi boleh untuk alat kerja harian, tapi tetap harus ada **satu** elemen yang paling besar di layar.
+- **Borrow:** labelled sidebar grouping (`MENU`, `UI COMPONENTS`, `FORMS`), sparklines inside table rows, pill status badges.
+- **Avoid:** too many equally weighted widgets on one screen, so nothing stands out; 11–12px text everywhere; badge colors competing with each other (yellow, green, red, blue at full saturation in a single column).
+- **Lesson:** high density is fine for a daily work tool, but there must still be **one** element that is the largest on screen.
 
-### B. Dashboard SaaS lapang (gaya "Consult")
+### B. The roomy SaaS dashboard ("Consult" style)
 
-Kartu besar radius ±20px, satu kartu ungu dominan berisi angka utama, kalender di kanan, daftar wawancara.
+Large cards at ~20px radius, one dominant purple card holding the headline number, a calendar on the right, a list of interviews.
 
-- **Ditiru:** satu kartu "pahlawan" berwarna aksen penuh untuk angka terpenting, sementara kartu lain putih dan tenang. Ini cara paling murah membuat hierarki di dashboard.
-- **Ditiru:** ruang kosong yang berani, dan daftar jadwal dengan avatar + waktu di kanan.
-- **Dihindari:** CTA "Upgrade" berilustrasi besar yang memakan sepertiga sidebar.
-- **Palet acuan:** ungu `#5B4CC4` (aksen), mint `#7DE0E6` dan coral `#F4846B` (pendukung, porsi kecil), latar `#FFFFFF` dengan halaman abu sangat terang.
+- **Borrow:** one "hero" card in full accent color for the most important number, while the other cards stay white and quiet. This is the cheapest way to create hierarchy in a dashboard.
+- **Borrow:** the bold use of whitespace, and a schedule list with avatars + times on the right.
+- **Avoid:** a big illustrated "Upgrade" CTA eating a third of the sidebar.
+- **Reference palette:** purple `#5B4CC4` (accent), mint `#7DE0E6` and coral `#F4846B` (supporting, small doses), surfaces `#FFFFFF` with a very light grey page.
 
-### C. Dashboard gradien (gaya "Purple")
+### C. The gradient dashboard ("Purple" style)
 
-Tiga kartu KPI gradien (pink, biru, tosca) berjejer, chart batang warna-warni, donat tiga warna.
+Three gradient KPI cards (pink, blue, teal) in a row, a multicoloured bar chart, a three-colour donut.
 
-- **Ini contoh anti-pattern utama.** Gradien di semua kartu membuat tidak ada yang lebih penting, dan teks putih di atas gradien terang sering gagal kontras.
-- **Kalau ingin memakai gradien:** satu kartu saja, atau untuk hero. Sisanya putih dengan delta berwarna.
-- **Yang layak ditiru:** ikon kecil di pojok kanan kartu sebagai penanda kategori, dan keterangan perubahan ("Increased by 60%") tepat di bawah angka.
+- **This is the headline anti-pattern.** Gradients on every card mean nothing is more important than anything else, and white text on a light gradient often fails contrast.
+- **If you do want a gradient:** one card only, or a hero. Everything else white with coloured deltas.
+- **Worth borrowing:** the small icon in the card's top-right corner as a category marker, and the change caption ("Increased by 60%") right below the number.
 
-### D. Dashboard bertema (gaya "EduAdmin")
+### D. The themed dashboard ("EduAdmin" style)
 
-Sidebar navy gelap, banner sambutan biru dengan ilustrasi, kartu kursus dengan chip kategori berwarna dan progress bar.
+A dark navy sidebar, a blue welcome banner with an illustration, course cards with coloured category chips and progress bars.
 
-- **Ditiru:** banner sambutan personal di atas ("Welcome, Jhone") memberi rasa produk, bukan panel mentah. Progress bar tipis dengan persentase di atasnya mudah dipindai.
-- **Dihindari:** chip kategori dengan warna solid berbeda-beda (biru, oranye, merah, cyan) yang tidak punya arti sistematis; notifikasi berwarna-warni yang menarik perhatian lebih besar dari konten utamanya.
-- **Pelajaran:** sidebar gelap + konten terang adalah kombinasi aman dan terlihat rapi, asal warna aksen di konten tetap satu.
+- **Borrow:** the personal welcome banner at the top ("Welcome, Jhone") gives it the feel of a product rather than a raw panel. A thin progress bar with the percentage above it is easy to scan.
+- **Avoid:** category chips in assorted solid colors (blue, orange, red, cyan) with no systematic meaning; multicoloured notifications that pull more attention than the main content.
+- **Lesson:** a dark sidebar + light content is a safe combination and looks tidy, as long as the accent color in the content stays singular.
 
-### E. Dashboard data-first (gaya "Adminator")
+### E. The data-first dashboard ("Adminator" style)
 
-Netral hampir seluruhnya, label kecil huruf kapital, angka besar dengan huruf berjarak sama, delta berikut baris pembanding, daftar wilayah dengan bar tipis.
+Almost entirely neutral, small uppercase labels, large figures in monospaced-width digits, deltas with a comparison line, a region list with thin bars.
 
-- **Ini acuan terbaik untuk dashboard internal.** Hampir tanpa warna, tapi paling cepat dibaca.
-- **Ditiru semuanya:**
-  - Kalimat ringkasan di atas: "Total visits +10% week over week… Two new regions came online overnight." Satu paragraf manusiawi mengalahkan empat kartu tanpa konteks.
-  - Anatomi KPI: label → angka → delta → baris pembanding (`up from 1.12M last week`).
-  - Label seksi kecil (`GEOGRAPHY`, `PERFORMANCE`, `PERSONAL`) sebagai pembatas, bukan garis tebal.
-  - Angka dengan `tabular-nums` sehingga kolom terlihat lurus.
-  - Warna hanya muncul pada delta dan bar progres.
+- **This is the best reference for an internal dashboard.** Almost no color, yet the fastest to read.
+- **Borrow all of it:**
+  - The summary sentence at the top: "Total visits +10% week over week… Two new regions came online overnight." One human paragraph beats four cards with no context.
+  - The KPI anatomy: label → number → delta → comparison line (`up from 1.12M last week`).
+  - Small section labels (`GEOGRAPHY`, `PERFORMANCE`, `PERSONAL`) as dividers, rather than heavy rules.
+  - Figures with `tabular-nums` so columns line up.
+  - Color appearing only on deltas and progress bars.
 
-## Bagian 2: Tiga situs Indonesia
+## Part 2: Three Indonesian sites
 
-### Gojek — sistem yang matang
+### Gojek — a mature system
 
-- **Tipografi:** satu keluarga (Maison Neue) dengan varian Book/Demi/Bold/Extended. Body 16px, `line-height` 24px, judul 24–26px. Hierarki dibangun dari berat huruf, bukan dari banyak ukuran.
-- **Warna:** hijau `#00AA13` sebagai aksen tunggal, ink gelap `#101820` dan `#27455C` untuk teks/latar, abu `#696969` untuk teks sekunder, putih sebagai kanvas utama. Warna pastel (pink, oranye, hijau muda) hanya muncul sebagai aksen kecil di ilustrasi.
-- **Bentuk:** radius ekstrem dipakai sengaja — `2px` untuk elemen kecil, tapi `40px`, `64px`, `96px` untuk kartu dan panel besar. Kontras radius ini yang membuatnya terasa ramah tapi tegas.
-- **Bayangan:** halus dan berwarna (`rgba(16,24,32,.2) 0 0 10px`, dan glow berwarna `rgb(208,180,212) 0 0 32px 10px` di kartu tertentu) — dipakai sebagai aksen, bukan pemisah.
-- **Diambil untuk dashboard:** satu aksen kuat, tipografi satu keluarga, dan keberanian memakai radius besar secara konsisten pada kartu.
+- **Typography:** one family (Maison Neue) with Book/Demi/Bold/Extended variants. Body 16px, `line-height` 24px, headings 24–26px. Hierarchy comes from font weight, not from many sizes.
+- **Color:** green `#00AA13` as the single accent, dark ink `#101820` and `#27455C` for text/backgrounds, grey `#696969` for secondary text, white as the main canvas. Pastels (pink, orange, light green) appear only as small accents in illustrations.
+- **Shape:** extreme radii used deliberately — `2px` for small elements, but `40px`, `64px`, `96px` for large cards and panels. That radius contrast is what makes it feel friendly yet confident.
+- **Shadows:** soft and coloured (`rgba(16,24,32,.2) 0 0 10px`, and a coloured glow `rgb(208,180,212) 0 0 32px 10px` on certain cards) — used as an accent, not as a separator.
+- **What to take for a dashboard:** one strong accent, a single type family, and the confidence to use large radii consistently on cards.
 
-### Toko Kopi Tuku — karakter dari palet dan tipografi
+### Toko Kopi Tuku — character from palette and type
 
-- **Warna:** krem `#F3EAD2`, tan `#C0AF90`, oranye `#EA9330`, biru-abu `#5D84A3`, cokelat `#B76545`. Palet hangat, rendah saturasi, terasa seperti kemasan produk.
-- **Bentuk:** `border-radius: 0` di seluruh situs, **tanpa bayangan sama sekali**. Flat, editorial, seperti poster cetak.
-- **Tipografi:** font display khusus + font tulisan tangan untuk aksen. Ukuran kecil (10–16px) untuk isi, besar untuk judul.
-- **Pelajaran:** karakter tidak datang dari efek, tapi dari **palet yang konsisten + tipografi berkarakter**. Sudut siku dan tanpa bayangan justru terasa lebih mahal daripada kartu mengambang.
-- **Kapan dipakai:** produk bermerek kuat, landing page, atau halaman publik. Untuk dashboard, ambil paletnya saja, jangan radius nol-nya pada kontrol interaktif.
+- **Color:** cream `#F3EAD2`, tan `#C0AF90`, orange `#EA9330`, blue-grey `#5D84A3`, brown `#B76545`. A warm, low-saturation palette that feels like product packaging.
+- **Shape:** `border-radius: 0` across the whole site, **no shadows at all**. Flat, editorial, like a printed poster.
+- **Typography:** a custom display font + a handwritten font for accents. Small sizes (10–16px) for body, large for headings.
+- **Lesson:** character doesn't come from effects, it comes from **a consistent palette + typography with character**. Square corners and no shadows actually read as more expensive than floating cards.
+- **When to use it:** strongly branded products, landing pages, or public pages. For a dashboard, take the palette only — not the zero radius on interactive controls.
 
-### Good Day "Hidup Banyak Rasa" — kampanye satu warna
+### Good Day "Hidup Banyak Rasa" — a single-color campaign
 
-- **Warna:** merah `#E1241C` di atas putih, teks ink `#212529`. Praktis dua warna saja.
-- **Tipografi:** Poppins, berat 400 dan 700 saja.
-- **Motion:** transisi `0.2s` konsisten di seluruh elemen interaktif.
-- **Pelajaran:** satu warna berani + satu font + transisi seragam sudah cukup untuk terasa rapi. Kerumitan bukan syarat.
+- **Color:** red `#E1241C` on white, ink text `#212529`. Effectively two colors.
+- **Typography:** Poppins, weights 400 and 700 only.
+- **Motion:** a consistent `0.2s` transition across every interactive element.
+- **Lesson:** one bold color + one font + uniform transitions is already enough to look polished. Complexity is not a requirement.
 
-## Bagian 3: Ringkasan yang bisa langsung dipakai
+## Part 3: The directly usable summary
 
-| Kebutuhan | Arah visual |
+| Need | Visual direction |
 |---|---|
-| Dashboard internal, data padat | Gaya E: netral, label kecil, angka besar tabular, warna hanya di delta |
-| Dashboard produk untuk pelanggan | Gaya B + Gojek: satu kartu aksen dominan, radius besar konsisten, banyak ruang |
-| Produk bermerek / halaman publik | Tuku: palet hangat konsisten, tipografi display, efek minimal |
-| Kampanye atau halaman fokus tunggal | Good Day: dua warna, dua berat huruf, satu ajakan aksi |
+| Internal dashboard, dense data | Style E: neutral, small labels, large tabular figures, color only on deltas |
+| Customer-facing product dashboard | Style B + Gojek: one dominant accent card, consistent large radii, lots of space |
+| Branded product / public page | Tuku: a consistent warm palette, display typography, minimal effects |
+| A campaign or single-focus page | Good Day: two colors, two font weights, one call to action |
 
-**Tiga hal yang muncul di semua contoh bagus, dan tidak ada di contoh yang lemah:**
+**Three things present in every good example, and absent from every weak one:**
 
-1. Aksen tunggal yang dipakai disiplin.
-2. Satu keluarga font dengan sedikit berat, bukan banyak ukuran.
-3. Angka selalu ditemani konteks: periode, pembanding, atau target.
+1. A single accent, used with discipline.
+2. One font family with few weights, rather than many sizes.
+3. Numbers always accompanied by context: a period, a comparison, or a target.

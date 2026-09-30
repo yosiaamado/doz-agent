@@ -1,8 +1,8 @@
 # agent-usage
 
-Catatan pemakaian agent per workflow, sebagai pembanding antar versi doz-agent. Folder ini tidak ikut ter-install ke project (plugin hanya berisi `plugins/`).
+Notes on agent usage per workflow, for comparing doz-agent versions against each other. This folder is not installed into a project (the plugin contains only `plugins/`).
 
-- Nama file: `YYYY-MM-DD.md` (tanggal workflow). Lebih dari satu di hari yang sama → `YYYY-MM-DD-2.md`.
-- Isi: tabel konteks (workflow, cakupan, versi doz-agent saat dijalankan), tabel token per agent dari output `token-audit` apa adanya, tabel **Metrik pembanding** dengan baris yang sama seperti file sebelumnya, lalu catatan singkat.
-- Perubahan agent yang dipicu audit dicatat di `CHANGELOG.md` dan merujuk ke file di sini.
-- Membandingkan: bandingkan Metrik pembanding antar file, dengan memperhatikan kolom versi dan cakupan (jumlah permintaan/slice, stack). Workflow dengan cakupan berbeda jauh tidak bisa dibandingkan langsung; pakai $ per slice.
+- File name: `YYYY-MM-DD.md` (the workflow's date). More than one on the same day → `YYYY-MM-DD-2.md`.
+- Contents: a context table (the workflow, its scope, the doz-agent version it ran on), the per-agent token table from the `token-audit` output verbatim, a **Comparison metrics** table with the same rows as the previous file, then short notes.
+- Agent changes triggered by an audit are recorded in `CHANGELOG.md` and reference the file here.
+- Comparing: compare the Comparison metrics between files, keeping an eye on the version and scope columns (the number of requests/slices, the stack). Workflows with very different scopes can't be compared directly; use $ per slice.

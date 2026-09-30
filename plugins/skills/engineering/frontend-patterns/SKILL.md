@@ -1,82 +1,82 @@
 ---
 name: frontend-patterns
-description: Aturan coding dan arsitektur frontend profesional. Mencakup struktur, komponen & design system, state management, data fetching, form, aksesibilitas WCAG 2.2 AA, performa Core Web Vitals, keamanan (XSS/CSP), i18n, error monitoring, dan testing. Pakai saat menulis, mengubah, atau mendesain UI/komponen/halaman web (React/Next.js/Vue/Svelte).
+description: Professional frontend coding and architecture rules. Covers structure, components & design systems, state management, data fetching, forms, WCAG 2.2 AA accessibility, Core Web Vitals performance, security (XSS/CSP), i18n, error monitoring, and testing. Use when writing, changing, or designing web UI/components/pages (React/Next.js/Vue/Svelte).
 ---
 
 # Frontend Patterns
 
-Isinya **keputusan default** untuk hal yang belum diatur project, bukan tutorial. Konvensi di codebase yang ada **selalu menang**. Jangan menambahkan library atau pola dari sini ke project yang belum memakainya, kecuali spec memintanya: pola yang tidak konsisten dengan sekitarnya lebih mahal daripada pola yang kurang ideal.
+This is a set of **default decisions** for things the project hasn't settled, not a tutorial. Conventions in the existing codebase **always win**. Don't add a library or pattern from here to a project that doesn't already use it, unless the spec asks for it: a pattern inconsistent with its surroundings costs more than a less-than-ideal one.
 
-## 1. Struktur
+## 1. Structure
 
 ```
 src/
-├── app/ atau pages/     # routing tipis: menyusun komponen fitur
-├── features/<fitur>/    # components/, hooks/, api.ts, schemas.ts (zod), types.ts
-├── components/ui/       # komponen generik (Button, Input, Modal): design system
-├── lib/                 # api client, util, config
-└── styles/              # design token, global CSS
+├── app/ or pages/       # thin routing: composes feature components
+├── features/<feature>/  # components/, hooks/, api.ts, schemas.ts (zod), types.ts
+├── components/ui/       # generic components (Button, Input, Modal): the design system
+├── lib/                 # api client, utils, config
+└── styles/              # design tokens, global CSS
 ```
 
-Arah dependency: `app` → `features` → `components/ui` / `lib`. Komponen generik tidak bergantung ke fitur, dan satu fitur tidak meng-import isi internal fitur lain.
+Dependency direction: `app` → `features` → `components/ui` / `lib`. Generic components don't depend on features, and one feature doesn't import another feature's internals.
 
-## 2. Komponen
+## 2. Components
 
-- Pakai design token (warna, spacing, radius, tipografi, shadow); jangan hardcode hex atau px.
-- Logika di hook, tampilan di komponen. Komponen yang mengambil data, mengatur form, dan menggambar tabel sekaligus dipecah jadi container + presentational. Komponen di atas ±200 baris dipecah.
-- Komponen memanggil API lewat modul fitur (`wishlistApi.list()`), bukan `fetch()` langsung.
-- Props kecil dan spesifik (jangan mengoper seluruh objek demi dua field). Varian lewat composition (`<Card><Card.Footer/></Card>`), bukan tumpukan prop boolean. Prop drilling lebih dari 2 level → composition atau context.
-- **Rem YAGNI:** komponen generik dibuat setelah ada **≥2 pemakaian nyata**. Project memakai Storybook → komponen UI generik didokumentasikan di sana.
-- Setiap tampilan data menangani loading (skeleton), empty (dengan ajakan aksi), error (pesan manusiawi + retry), success, dan disabled/submitting, serta teks panjang, data banyak, dan gambar yang gagal dimuat.
+- Use design tokens (color, spacing, radius, typography, shadow); don't hardcode hex or px.
+- Logic in hooks, presentation in components. A component that fetches data, manages a form, and renders a table all at once is split into container + presentational. A component past ~200 lines gets split.
+- Components call the API through the feature module (`wishlistApi.list()`), not `fetch()` directly.
+- Props are small and specific (don't pass a whole object for two fields). Variants via composition (`<Card><Card.Footer/></Card>`), not a pile of boolean props. Prop drilling deeper than 2 levels → composition or context.
+- **The YAGNI brake:** a generic component is created once there are **≥2 real usages**. Project uses Storybook → generic UI components are documented there.
+- Every data view handles loading (skeleton), empty (with a call to action), error (a human message + retry), success, and disabled/submitting, plus long text, large data sets, and images that fail to load.
 
 ## 3. State
 
-| Jenis state | Tempat |
+| Kind of state | Where it lives |
 |---|---|
-| Server state (data API) | TanStack Query / SWR / RTK Query, **tidak disalin ke global store** |
-| URL state (filter, page, tab) | Query params, supaya bisa di-share dan tombol back berfungsi |
-| Form state | Library form |
-| UI lokal | `useState` / `useReducer` |
-| Global client (tema, sesi, keranjang) | Zustand/Context, secukupnya |
+| Server state (API data) | TanStack Query / SWR / RTK Query, **never copied into a global store** |
+| URL state (filters, page, tab) | Query params, so it can be shared and the back button works |
+| Form state | A form library |
+| Local UI | `useState` / `useReducer` |
+| Global client (theme, session, cart) | Zustand/Context, sparingly |
 
-Nilai turunan dihitung, bukan disimpan. Satu sumber kebenaran untuk setiap data.
+Derived values are computed, not stored. One source of truth per piece of data.
 
 ## 4. Data fetching
 
-- Satu API client terpusat: base URL, auth, timeout, parsing error RFC 9457, dan refresh token.
-- Tipe dibuat dari skema OpenAPI atau divalidasi zod di boundary.
-- Error: 401 → login · 403 → halaman "tidak berhak" · 404 → halaman not found · 422 → error per field · 5xx → pesan umum + retry.
-- Pencarian di-debounce, dan request yang sudah tidak relevan dibatalkan (AbortController). Optimistic update hanya untuk aksi yang jarang gagal, dengan rollback kalau gagal.
-- Next.js/SSR: ambil data di server kalau memungkinkan; data server-only tidak boleh bocor ke client component.
+- One central API client: base URL, auth, timeouts, RFC 9457 error parsing, and token refresh.
+- Types generated from the OpenAPI schema or validated with zod at the boundary.
+- Errors: 401 → login · 403 → a "not authorized" page · 404 → a not-found page · 422 → per-field errors · 5xx → a generic message + retry.
+- Search is debounced, and requests that are no longer relevant are cancelled (AbortController). Optimistic updates only for actions that rarely fail, with a rollback on failure.
+- Next.js/SSR: fetch on the server where possible; server-only data must never leak into a client component.
 
-## 5. Form
+## 5. Forms
 
-React Hook Form + zod (atau setara), dengan schema yang sebisa mungkin dipakai bersama backend. Server tetap sumber kebenaran, dan errornya ditampilkan per field. Label terlihat (bukan hanya placeholder), fokus pindah ke field error pertama saat submit, tombol submit di-disable saat submitting, aksi destruktif dikonfirmasi, dan `type`/`autocomplete` input benar (`email`, `tel`, `one-time-code`, `current-password`).
+React Hook Form + zod (or equivalent), with the schema shared with the backend wherever possible. The server remains the source of truth, and its errors are shown per field. Visible labels (not just a placeholder), focus moves to the first errored field on submit, the submit button is disabled while submitting, destructive actions are confirmed, and input `type`/`autocomplete` are correct (`email`, `tel`, `one-time-code`, `current-password`).
 
-## 6. Responsif
+## 6. Responsiveness
 
-Mobile-first, diuji mulai dari lebar **360px** tanpa scroll horizontal. Teks pakai `rem`. Dark mode dan `prefers-reduced-motion` kalau design system mendukung.
+Mobile-first, tested from **360px** wide with no horizontal scroll. Text in `rem`. Dark mode and `prefers-reduced-motion` if the design system supports them.
 
-## 7. Aksesibilitas (WCAG 2.2 AA)
+## 7. Accessibility (WCAG 2.2 AA)
 
-Yang paling sering terlewat: input tanpa `label` dan icon button tanpa `aria-label` · aksi pakai `button`, navigasi pakai `a` · fokus terlihat dan **tidak tertutup** header sticky · modal menjebak fokus, bisa ditutup dengan Esc, lalu fokus kembali ke pemicunya · kontras teks 4.5:1 (teks besar dan komponen UI 3:1) · target sentuh minimal 24×24px · informasi tidak hanya lewat warna · perubahan dinamis (toast, error, hasil pencarian) diumumkan lewat `aria-live`. ARIA hanya kalau HTML native tidak cukup. Cek dengan axe dan navigasi keyboard.
+What gets missed most often: inputs without a `label` and icon buttons without an `aria-label` · actions use `button`, navigation uses `a` · focus is visible and **not hidden** behind a sticky header · modals trap focus, close on Esc, then return focus to their trigger · text contrast 4.5:1 (large text and UI components 3:1) · touch targets at least 24×24px · information never conveyed by color alone · dynamic changes (toasts, errors, search results) announced via `aria-live`. ARIA only where native HTML isn't enough. Check with axe and keyboard navigation.
 
-## 8. Performa
+## 8. Performance
 
-Target p75: LCP < 2.5 s, INP < 200 ms, CLS < 0.1. Code splitting per route dan lazy-load komponen berat (chart, editor, map) · gambar modern dengan `width`/`height`, `loading="lazy"` di bawah fold, prioritas tinggi untuk gambar LCP · font `swap` + preload font utama · cek dampak bundle sebelum menambah dependency · `memo`/`useMemo`/`useCallback` hanya untuk masalah re-render yang **terukur** · list di atas ±100 item di-virtualize.
+p75 targets: LCP < 2.5 s, INP < 200 ms, CLS < 0.1. Code splitting per route and lazy-loading heavy components (charts, editors, maps) · modern image formats with `width`/`height`, `loading="lazy"` below the fold, high priority for the LCP image · font `swap` + preload the primary font · check the bundle impact before adding a dependency · `memo`/`useMemo`/`useCallback` only for a **measured** re-render problem · lists over ~100 items are virtualised.
 
-## 9. Keamanan
+## 9. Security
 
-HTML dari user disanitasi (DOMPurify); hindari `dangerouslySetInnerHTML`/`v-html` · tidak ada secret di kode client, hanya env publik (`NEXT_PUBLIC_*`, `VITE_*`) · token sesi di cookie `HttpOnly; Secure; SameSite`, bukan localStorage · Content Security Policy tanpa inline script · URL divalidasi sebelum dipakai di `href`/redirect (cegah `javascript:` dan open redirect) · key dari input user/URL untuk lookup objek memakai `Map`/`Set` atau `Object.hasOwn`, bukan `obj[key]` biasa (`__proto__`, `constructor`) · authorization di UI hanya untuk kenyamanan, keamanan sebenarnya ada di server.
+User-supplied HTML is sanitised (DOMPurify); avoid `dangerouslySetInnerHTML`/`v-html` · no secrets in client code, only public env vars (`NEXT_PUBLIC_*`, `VITE_*`) · session tokens in an `HttpOnly; Secure; SameSite` cookie, not localStorage · a Content Security Policy with no inline scripts · URLs validated before use in `href`/redirects (prevents `javascript:` and open redirects) · keys from user input/the URL used for object lookup go through `Map`/`Set` or `Object.hasOwn`, not a plain `obj[key]` (`__proto__`, `constructor`) · authorization in the UI is only a convenience; the real security lives on the server.
 
-## 10. i18n, analytics & privasi
+## 10. i18n, analytics & privacy
 
-Teks yang dilihat user dipusatkan di file terjemahan kalau project multi-bahasa · tanggal, angka, dan uang diformat lewat `Intl` (misalnya `Rp 150.000`) · nama event analytics konsisten (`checkout_started`), tanpa PII, dan menghormati consent (UU PDP/GDPR).
+User-facing text is centralised in translation files if the project is multilingual · dates, numbers, and money formatted via `Intl` (e.g. `Rp 150.000`) · analytics event names are consistent (`checkout_started`), carry no PII, and respect consent (Indonesia's UU PDP/GDPR).
 
-## 11. Error & monitoring
+## 11. Errors & monitoring
 
-Error boundary di level route/fitur · error dikirim ke monitoring (Sentry, dll.) dengan route, release, dan user ID yang aman, plus source map · pesan error untuk user manusiawi dan bisa ditindaklanjuti.
+An error boundary at the route/feature level · errors sent to monitoring (Sentry, etc.) with the route, release, and a safe user ID, plus source maps · error messages for users are human and actionable.
 
 ## 12. Testing
 
-Testing trophy: fokus terbesar di component/integration test dengan Testing Library (query berdasarkan role/label, bukan class/test-id); unit test untuk util, hook, dan logika murni; E2E (Playwright) untuk alur kritis. Mock API memakai MSW, bukan mock internal fungsi fetch. Uji perilaku, bukan detail implementasi.
+The testing trophy: the bulk of the effort in component/integration tests with Testing Library (query by role/label, not class/test-id); unit tests for utils, hooks, and pure logic; E2E (Playwright) for critical flows. Mock the API with MSW, not by mocking the fetch function internally. Test behavior, not implementation details.

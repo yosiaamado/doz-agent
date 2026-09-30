@@ -15,7 +15,7 @@ function clip(s) {
 export function confine(workdir, p) {
   const root = path.resolve(workdir);
   const abs = path.resolve(root, String(p ?? '.'));
-  if (abs !== root && !abs.startsWith(root + path.sep)) throw new Error(`path di luar workdir: ${p}`);
+  if (abs !== root && !abs.startsWith(root + path.sep)) throw new Error(`path is outside the workdir: ${p}`);
   return abs;
 }
 
@@ -68,7 +68,7 @@ const DEFS = {
       const re = globToRegExp(pattern);
       const hits = [];
       walk(wd, (f) => { const rel = path.relative(wd, f).split(path.sep).join('/'); if (re.test(rel)) hits.push(rel); });
-      return hits.slice(0, 300).join('\n') || '(tidak ada)';
+      return hits.slice(0, 300).join('\n') || '(none)';
     },
   },
   grep: {
@@ -89,7 +89,7 @@ const DEFS = {
         text.split('\n').forEach((line, i) => { if (hits.length < 200 && re.test(line)) hits.push(`${rel}:${i + 1}:${line.slice(0, 300)}`); });
       };
       if (fs.statSync(base).isFile()) check(base); else walk(base, check);
-      return hits.join('\n') || '(tidak ada)';
+      return hits.join('\n') || '(none)';
     },
   },
   write_file: {
@@ -113,7 +113,7 @@ const DEFS = {
       const abs = confine(wd, p);
       const text = fs.readFileSync(abs, 'utf8');
       const count = text.split(a).length - 1;
-      if (count !== 1) throw new Error(`old_string ditemukan ${count}x, harus tepat 1x`);
+      if (count !== 1) throw new Error(`old_string found ${count}x, must be exactly 1x`);
       fs.writeFileSync(abs, text.replace(a, () => b));
       return `diedit ${p}`;
     },
@@ -135,7 +135,7 @@ const DEFS = {
     run: ({ name }, wd, ctx) => {
       const skills = ctx?.listSkills?.() ?? [];
       const skill = skills.find((s) => s.name === name || s.name === `doz-agent:${name}`);
-      if (!skill) return `skill tidak ada. Tersedia: ${skills.map((s) => s.name).join(', ')}`;
+      if (!skill) return `skill not found. Available: ${skills.map((s) => s.name).join(', ')}`;
       return clip(fs.readFileSync(skill.file, 'utf8'));
     },
   },
@@ -151,6 +151,6 @@ export function toolsFor(agentTools, permission) {
 
 export async function runTool(name, input, workdir, ctx = {}) {
   const def = DEFS[name];
-  if (!def) throw new Error(`tool tidak dikenal: ${name}`);
+  if (!def) throw new Error(`unknown tool: ${name}`);
   return String(await def.run(input ?? {}, workdir, ctx));
 }

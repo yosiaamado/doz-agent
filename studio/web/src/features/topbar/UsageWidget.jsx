@@ -7,10 +7,12 @@ import { formatTokens } from '../../lib/model.js';
 import { usePopover } from '../../components/ui/usePopover.js';
 import { useClickOutside } from '../../hooks/useClickOutside.js';
 import { useToast } from '../../components/ui/Toast.jsx';
+import { useI18n } from '../../i18n/I18nProvider.jsx';
+import { errorMessage } from '../../lib/errorMessage.js';
 
 const WINDOWS = [
-  { key: 'five_hour', label: 'Sesi 5 Jam' },
-  { key: 'seven_day', label: 'Mingguan (7 Hari)' },
+  { key: 'five_hour', label: 'topbar.usage.window-five' },
+  { key: 'seven_day', label: 'topbar.usage.window-week' },
 ];
 const POLL_MS = 30_000;
 
@@ -20,10 +22,10 @@ function levelClass(pct) {
   return '';
 }
 
-function formatReset(epochSeconds) {
+function formatReset(t, intl, epochSeconds) {
   if (!epochSeconds) return '';
   const d = new Date(epochSeconds * 1000);
-  return `reset ${d.toLocaleString('id-ID', { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`;
+  return t('topbar.usage.reset', { time: d.toLocaleString(intl, { weekday: 'short', hour: '2-digit', minute: '2-digit' }) });
 }
 
 function percent(window) {
@@ -35,40 +37,42 @@ function UsageBar({ pct }) {
 }
 
 function UsagePopover({ data, refreshing, onRefresh }) {
+  const { t, intl } = useI18n();
   const windows = data?.limits?.unifiedWindows ?? {};
   return (
     <div className="usage-pop">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <strong>Pemakaian Claude Code</strong>
+        <strong>{t('topbar.usage.title')}</strong>
         <span className="spacer" />
-        <button type="button" className="btn btn-xs" disabled={refreshing} onClick={onRefresh} title="Satu panggilan haiku kecil untuk membaca batas terbaru">
-          <RefreshCw size={12} className={refreshing ? 'spin' : ''} /> Refresh
+        <button type="button" className="btn btn-xs" disabled={refreshing} onClick={onRefresh} title={t('topbar.usage.refresh-title')}>
+          <RefreshCw size={12} className={refreshing ? 'spin' : ''} /> {t('topbar.usage.refresh')}
         </button>
       </div>
-      {!data?.limits && <p className="muted small">Belum ada data batas. Jalankan workflow dengan runner claude-cli atau klik Refresh.</p>}
+      {!data?.limits && <p className="muted small">{t('topbar.usage.empty')}</p>}
       {WINDOWS.map(({ key, label }) => {
         const pct = percent(windows[key]);
         const local = data?.local?.[key];
         return (
           <div key={key} className="usage-row">
-            <div className="usage-row-head"><span>{label}</span><strong>{pct === null ? '–' : `${pct}%`}</strong></div>
+            <div className="usage-row-head"><span>{t(label)}</span><strong>{pct === null ? '–' : `${pct}%`}</strong></div>
             <UsageBar pct={pct} />
             <div className="usage-models">
-              <span>{formatReset(windows[key]?.resetsAt)}</span><span />
-              {local && <><span>Token lokal ({local.messages} pesan)</span><span>{formatTokens(local.tokens)}</span></>}
+              <span>{formatReset(t, intl, windows[key]?.resetsAt)}</span><span />
+              {local && <><span>{t('topbar.usage.local-tokens', { messages: local.messages })}</span><span>{formatTokens(t, local.tokens)}</span></>}
               {local && Object.entries(local.byModel).map(([model, tokens]) => (
-                <span key={model} style={{ display: 'contents' }}><span>· {model}</span><span>{formatTokens(tokens)}</span></span>
+                <span key={model} style={{ display: 'contents' }}><span>· {model}</span><span>{formatTokens(t, tokens)}</span></span>
               ))}
             </div>
           </div>
         );
       })}
-      {data?.limitsUpdatedAt && <p className="muted small" style={{ marginBottom: 0 }}>Batas diperbarui {new Date(data.limitsUpdatedAt).toLocaleString('id-ID')}</p>}
+      {data?.limitsUpdatedAt && <p className="muted small" style={{ marginBottom: 0 }}>{t('topbar.usage.updated', { time: new Date(data.limitsUpdatedAt).toLocaleString(intl) })}</p>}
     </div>
   );
 }
 
 export default function UsageWidget() {
+  const { t } = useI18n();
   const [data, setData] = useState(null);
   const [open, setOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -91,7 +95,7 @@ export default function UsageWidget() {
     try {
       setData(await api.refreshUsage());
     } catch (err) {
-      notify(err.message, 'error');
+      notify(errorMessage(t, err), 'error');
     } finally {
       setRefreshing(false);
     }
@@ -103,10 +107,10 @@ export default function UsageWidget() {
   return (
     <>
       <button ref={btnRef} type="button" className="btn btn-ghost usage-btn" onClick={() => setOpen((o) => !o)}
-        title="Pemakaian Claude Code" aria-expanded={open}>
+        title={t('topbar.usage.title')} aria-expanded={open}>
         <Gauge size={16} />
         <span className="usage-mini" aria-hidden="true"><UsageBar pct={five} /><UsageBar pct={week} /></span>
-        <span className="small">{week === null ? 'Usage' : `${week}%`}</span>
+        <span className="small">{week === null ? t('topbar.usage.button') : `${week}%`}</span>
       </button>
       {open && style && createPortal(
         <div ref={popRef} className="popover" style={{ ...style, maxHeight: 'none' }}>

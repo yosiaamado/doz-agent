@@ -135,7 +135,8 @@ export function toRunResult(state) {
     cost: result.total_cost_usd ?? 0,
     usage: result.usage ? toUsage(result.usage) : null,
     turns: result.num_turns,
-    warning: maxTurns ? 'berhenti di max_turns, hasil bisa belum lengkap' : undefined,
+    warning: maxTurns ? 'stopped at max_turns, the result may be incomplete' : undefined,
+    warningCode: maxTurns ? 'MAX_TURNS_REACHED' : undefined,
   };
 }
 
@@ -158,12 +159,12 @@ function runClaude({ bin, args, input, workdir, signal, callbacks, cleanup }) {
       }
     });
     child.stderr.on('data', (c) => { stderr += c; });
-    child.on('error', (err) => reject(new Error(`gagal menjalankan claude: ${err.message}`)));
+    child.on('error', (err) => reject(new Error(`failed to run claude: ${err.message}`)));
     child.on('close', (code) => {
       signal?.removeEventListener('abort', onAbort);
       cleanup?.();
-      if (signal?.aborted) return reject(new Error('dihentikan'));
-      if (!state.result) return reject(new Error(stderr.trim().slice(-500) || `claude keluar dengan kode ${code}`));
+      if (signal?.aborted) return reject(new Error('stopped'));
+      if (!state.result) return reject(new Error(stderr.trim().slice(-500) || `claude exited with code ${code}`));
       try {
         resolve(toRunResult(state));
       } catch (err) {

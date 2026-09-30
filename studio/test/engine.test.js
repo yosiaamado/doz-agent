@@ -49,7 +49,7 @@ test('contoh workflow valid dan jalan berurutan', async () => {
   assert.equal(status, 'done');
   assert.deepEqual(runner.calls.map((c) => c.node), ['po', 'be', 'qa']);
   assert.equal(r.state.selesai.status, 'done');
-  assert.match(runner.calls[1].prompt, /Ikuti pola kode/); // node info masuk ke konteks be
+  assert.match(runner.calls[1].prompt, /Follow the existing code patterns/); // node info masuk ke konteks be
   assert.match(runner.calls[1].prompt, /### Scope & acceptance criteria/); // output po diteruskan
 });
 
@@ -58,8 +58,8 @@ test('loop mengulang be+qa dengan umpan balik lalu lolos', async () => {
   const { status, runner, r } = await run(wf, { qa: ['bug A\nVERDICT: FAIL', 'masih bug B\nVERDICT: FAIL', 'VERDICT: PASS'] });
   assert.equal(status, 'done');
   assert.deepEqual(runner.calls.map((c) => c.node), ['po', 'be', 'qa', 'be', 'qa', 'be', 'qa']);
-  assert.match(runner.calls[3].prompt, /percobaan ke-2[\s\S]*bug A/);
-  assert.match(runner.calls[5].prompt, /percobaan ke-3[\s\S]*masih bug B/);
+  assert.match(runner.calls[3].prompt, /attempt 2[\s\S]*bug A/);
+  assert.match(runner.calls[5].prompt, /attempt 3[\s\S]*masih bug B/);
   assert.equal(r.state.selesai.status, 'done');
 });
 
@@ -67,7 +67,8 @@ test('loop berhenti saat batas habis', async () => {
   const wf = parseWorkflow(fs.readFileSync(exampleFile, 'utf8'));
   const { status, r } = await run(wf, { qa: ['VERDICT: FAIL'] });
   assert.equal(status, 'failed');
-  assert.match(r.error, /Batas loop lolos->be \(2x\)/);
+  assert.match(r.error, /Loop limit lolos->be/);
+  assert.equal(r.errorCode, 'NODE_FAILED');
 });
 
 test('cabang yang tidak dipilih di-skip, cabang paralel jalan', async () => {
@@ -104,7 +105,7 @@ test('approval menunggu keputusan manusia', async () => {
   assert.equal(status, 'done');
   assert.equal(r.state.ok.status, 'skipped');
   assert.equal(r.state.revisi.status, 'done');
-  assert.match(r.state.putuskan.output, /Ditolak: perbaiki dulu/);
+  assert.match(r.state.putuskan.output, /Rejected: perbaiki dulu/);
 });
 
 test('budget workflow menghentikan run', async () => {
@@ -112,7 +113,7 @@ test('budget workflow menghentikan run', async () => {
   wf.budget_usd = 0.15;
   const { status, r } = await run(wf, {});
   assert.equal(status, 'failed');
-  assert.match(r.error, /Budget/);
+  assert.match(r.error, /budget/);
 });
 
 test('validasi menangkap siklus tanpa loop dan edge condition tanpa when', () => {
@@ -120,9 +121,9 @@ test('validasi menangkap siklus tanpa loop dan edge condition tanpa when', () =>
     nodes: [{ id: 's', type: 'start' }, { id: 'a', type: 'agent', agent: 'x' }, { id: 'c', type: 'condition', check: '?' }],
     edges: [{ from: 's', to: 'a' }, { from: 'a', to: 'c' }, { from: 'c', to: 'a' }],
   }), ['y']);
-  assert.ok(errs.some((e) => e.includes('siklus')));
+  assert.ok(errs.some((e) => e.includes('cycle')));
   assert.ok(errs.some((e) => e.includes('when')));
-  assert.ok(errs.some((e) => e.includes('tidak ada di plugins/agents')));
+  assert.ok(errs.some((e) => e.includes('is not in plugins/agents')));
 });
 
 test('pengaturan: node > defaults > agent', () => {
@@ -154,7 +155,7 @@ test('argumen claude-cli: read-only membuang tool tulis, prompt tidak di argumen
 });
 
 test('tool api: path dikurung di workdir, glob dan mapping tool', () => {
-  assert.throws(() => confine('/tmp/proj', '../etc/passwd'), /di luar workdir/);
+  assert.throws(() => confine('/tmp/proj', '../etc/passwd'), /outside the workdir/);
   assert.equal(confine('/tmp/proj', 'src/a.ts'), '/tmp/proj/src/a.ts');
   assert.ok(globToRegExp('src/**/*.{ts,tsx}').test('src/a/b/c.tsx'));
   assert.ok(!globToRegExp('*.ts').test('src/a.ts'));

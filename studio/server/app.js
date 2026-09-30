@@ -1,5 +1,7 @@
 // Composition root: merakit config, repository, service, runner, dan route jadi satu server HTTP.
 import http from 'node:http';
+import path from 'node:path';
+import fs from 'node:fs';
 import { createConfig } from './infra/config.js';
 import { snapshot, changes } from './infra/gitdiff.js';
 import { Router } from './http/router.js';
@@ -15,6 +17,8 @@ import { createUsageService } from './services/usageService.js';
 import { createFolderService } from './services/folderService.js';
 import { createAttachmentService } from './services/attachmentService.js';
 import { createGitService } from './services/gitService.js';
+import { logger } from './lib/logger.js';
+import { setInjectedApiKey } from './lib/secretEnv.js';
 import { createSetupService } from './services/setupService.js';
 import { createClaudeCliRunner, claudeVersion } from './runners/claude-cli.js';
 import { createApiRunner, apiAvailable, testApiConnection, resetClient } from './runners/api.js';
@@ -23,6 +27,8 @@ import { registerLibraryRoutes } from './routes/libraryRoutes.js';
 import { registerRunRoutes } from './routes/runRoutes.js';
 import { registerGitRoutes } from './routes/gitRoutes.js';
 import { registerSetupRoutes } from './routes/setupRoutes.js';
+import { registerUpdateRoutes } from './routes/updateRoutes.js';
+import { createUpdateService } from './services/updateService.js';
 
 function createRunners({ config, components, usage }) {
   const cli = createClaudeCliRunner({ pluginDir: config.pluginDir, onRateLimit: (info) => usage.recordRateLimit(info) });
@@ -33,15 +39,22 @@ function createRunners({ config, components, usage }) {
 function createRunnerStatus() {
   const version = claudeVersion();
   return () => ({
-    'claude-cli': { available: Boolean(version), detail: version ?? 'perintah `claude` tidak ditemukan di PATH' },
-    api: { available: apiAvailable(), detail: apiAvailable() ? 'ANTHROPIC_API_KEY terpasang' : 'set ANTHROPIC_API_KEY sebelum menjalankan studio' },
+    'claude-cli': { available: Boolean(version), detail: version ?? 'the `claude` command was not found in PATH', ...(version ? {} : { code: 'CLAUDE_CLI_MISSING' }) },
+    api: { available: apiAvailable(), detail: apiAvailable() ? 'ANTHROPIC_API_KEY is set' : 'set ANTHROPIC_API_KEY before starting studio', code: apiAvailable() ? 'API_KEY_PRESENT' : 'API_KEY_NOT_SET' },
   });
 }
 
 export function createApp(options = {}) {
-  const config = options.config ?? createConfig();
+  // secretCodec: { encrypt(plain) → string, decrypt(cipher) → string } dari Electron safeStorage; kosong di `npm start`.
+  const config = options.config ?? createConfig({ secretCodec: options.secretCodec });
   // API key yang disimpan lewat wizard dipakai kalau environment belum punya.
-  if (!process.env.ANTHROPIC_API_KEY && config.savedApiKey()) process.env.ANTHROPIC_API_KEY = config.savedApiKey();
+  if (!process.env.ANTHROPIC_API_KEY) {
+    const saved = config.savedApiKey();
+    if (saved) {
+      process.env.ANTHROPIC_API_KEY = saved;
+      setInjectedApiKey(saved);
+    }
+  }
   const components = createComponentRepository(config);
   // probe dipanggil saat user menekan refresh, setelah `runners` terbentuk.
   const usage = createUsageService({
@@ -61,15 +74,18 @@ export function createApp(options = {}) {
   const folders = createFolderService(config);
 
   const router = new Router();
-  registerSystemRoutes(router, { config, runLog, runnerStatus: options.runnerStatus ?? createRunnerStatus(), folders, usage });
+  const update = createUpdateService({ config, isRunActive: () => runs.hasActive() });
+  registerSystemRoutes(router, { config, runLog, runnerStatus: options.runnerStatus ?? createRunnerStatus(), folders, usage, contentVersion: update.contentVersion });
   registerLibraryRoutes(router, { components, workflows });
   registerRunRoutes(router, { config, runs, attachments });
   registerGitRoutes(router, { git: createGitService(config) });
   registerSetupRoutes(router, {
     setup: createSetupService({ config, apiRunner: { testApiConnection, resetClient }, claudeRunner: runners['claude-cli'] }),
   });
+  registerUpdateRoutes(router, { update });
 
-  const serveStatic = createStaticHandler(config.webDist);
+  // Overlay update web (S5) dicek per request, jadi aset baru langsung terlayani tanpa restart.
+  const serveStatic = createStaticHandler(config.webDist, config.webOverlay);
   server.on('request', async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     try {
@@ -85,4 +101,59 @@ export function createApp(options = {}) {
   });
 
   return { server, config, runnerStatus: options.runnerStatus };
+}
+
+const HOST = '127.0.0.1';
+const PORT_FALLBACK_SPAN = 10; // port, port+1 ... port+9, lalu port acak dari OS
+
+function listenOnce(server, port) {
+  return new Promise((resolve, reject) => {
+    const onError = (err) => { server.off('listening', onListening); reject(err); };
+    const onListening = () => { server.off('error', onError); resolve(server.address().port); };
+    server.once('error', onError);
+    server.once('listening', onListening);
+    server.listen(port, HOST);
+  });
+}
+
+async function listenWithFallback(server, wanted) {
+  // wanted = 0 berarti "port apa saja": jangan menghitung naik dari 1.
+  const candidates = wanted > 0 ? Array.from({ length: PORT_FALLBACK_SPAN }, (_, i) => wanted + i).filter((p) => p <= 65535) : [];
+  for (const port of [...candidates, 0]) {
+    try {
+      return await listenOnce(server, port);
+    } catch (err) {
+      if (err.code !== 'EADDRINUSE' && err.code !== 'EACCES') throw err;
+    }
+  }
+  throw new Error('Tidak bisa membuka port lokal');
+}
+
+// runtime.json dibaca Electron main process untuk tahu URL yang harus dibuka.
+function publishRuntime(config, port) {
+  const file = path.join(config.userDataDir, 'runtime.json');
+  try {
+    fs.mkdirSync(config.userDataDir, { recursive: true });
+    fs.writeFileSync(file, JSON.stringify({ port, url: `http://${HOST}:${port}`, pid: process.pid, startedAt: Date.now() }));
+  } catch (err) {
+    logger.warn('could not write runtime.json', { file, error: err?.message });
+    return () => {};
+  }
+  return () => {
+    try { fs.rmSync(file, { force: true }); } catch { /* proses sedang berhenti */ }
+  };
+}
+
+// Merakit app lalu listen; kalau port terpakai pindah ke port bebas. UI memakai URL relatif, jadi port baru otomatis benar.
+export async function startServer(options = {}) {
+  const app = createApp(options);
+  const { server, config } = app;
+  const wanted = options.port ?? config.port;
+  const port = await listenWithFallback(server, wanted);
+  if (wanted !== 0 && port !== wanted) logger.warn('port in use, switched to another port', { wanted, port });
+  config.port = port;
+  const cleanup = publishRuntime(config, port);
+  process.once('exit', cleanup);
+  server.once('close', () => { cleanup(); process.off('exit', cleanup); });
+  return { ...app, server, config, port, url: `http://${HOST}:${port}` };
 }

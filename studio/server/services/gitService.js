@@ -3,6 +3,7 @@
 // Tidak pernah force push; pull memakai rebase + autostash supaya perubahan lokal tidak hilang.
 import { execFile } from 'node:child_process';
 import { badRequest } from '../lib/errors.js';
+import { childEnv } from '../lib/secretEnv.js';
 
 const TIMEOUT_MS = 120_000;
 const STATUS_CODES = { M: 'modified', A: 'added', D: 'deleted', R: 'renamed', C: 'copied', '?': 'untracked', U: 'conflict' };
@@ -12,7 +13,7 @@ function git(cwd, args) {
     execFile('git', args, {
       cwd, timeout: TIMEOUT_MS, maxBuffer: 16 * 1024 * 1024,
       // Jangan menunggu input password di terminal server; kredensial harus sudah tersimpan (ssh key / credential helper).
-      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+      env: childEnv({ GIT_TERMINAL_PROMPT: '0' }),
     }, (err, stdout, stderr) => {
       if (err) reject(badRequest(redactText((stderr || stdout || err.message).trim().split('\n').slice(-6).join('\n'))));
       else resolve(redactText(`${stdout}${stderr}`.trim()));
@@ -45,9 +46,12 @@ export function parseStatus(porcelain) {
 
 export function createGitService(config) {
   const dirOf = (target) => {
-    if (target === 'repo') return config.repoRoot;
+    if (target === 'repo') {
+      if (!config.repoRoot) throw badRequest('Repository is not available in this installation', { code: 'REPO_UNAVAILABLE' });
+      return config.repoRoot;
+    }
     if (target === 'workdir') return config.getWorkdir();
-    throw badRequest('target git harus repo atau workdir');
+    throw badRequest('The git target must be repo or workdir', { code: 'GIT_TARGET_INVALID' });
   };
 
   const status = async (target) => {

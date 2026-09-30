@@ -5,11 +5,17 @@ import { shortName } from '../lib/paths.js';
 import { workdirBody, sourcesBody, folderQuery } from '../http/schemas.js';
 import fs from 'node:fs';
 
-export function registerSystemRoutes(router, { config, runLog, runnerStatus, folders, usage }) {
+export function registerSystemRoutes(router, { config, runLog, runnerStatus, folders, usage, contentVersion }) {
   const status = async () => ({
     workdir: config.getWorkdir(),
     workdirName: shortName(config.getWorkdir()),
     repoRoot: config.repoRoot,
+    mode: config.mode,
+    port: config.port,
+    userDataDir: config.userDataDir,
+    // Dua nomor berbeda: binary (app) vs plugins + web yang bisa di-update (content).
+    appVersion: config.appVersion,
+    contentVersion: contentVersion(),
     platform: process.platform,
     git: await isGitRepo(config.getWorkdir()),
     runners: runnerStatus(),
