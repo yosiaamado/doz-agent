@@ -9,6 +9,17 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [2.1.0] - 2026-10-21
+
+Source: a user request — engineer agents were writing too many documentation comments.
+
+- `skills/engineering/backend-patterns/SKILL.md` §10: a "Comments: few, and only for why" rule — none by default, no doc comments on internal members, no restating/narration/change history/banners/commented-out code, match the file's density.
+- `skills/engineering/frontend-patterns/SKILL.md` §2: the same rule for components, hooks and props (no JSDoc on internals).
+- `agents/backend-engineer.md`, `agents/frontend-engineer.md`: a "Comments" self-review item (count added comments, delete any that aren't a non-obvious why); "full sentences" no longer applies to code comments.
+- `agents/devops-engineer.md`: config/pipeline comments are rare, one line, why only.
+- `agents/qa-tester.md` step 5: the same rule for test code — no Arrange/Act/Assert labels, no comments restating assertions, no doc comments on tests or fixtures.
+- `agents/code-reviewer.md`: excess comments flagged as non-blocking.
+
 ## [2.0.0] - 2026-09-30
 
 Source: a user request to make the product sellable — two languages, a packaged desktop app, and a one-click update button. Major version because every agent and skill file switched from Indonesian to English, and the report markers the orchestrator matches on changed (`Keputusan:`/`Rekomendasi:` → `Decision:`/`Recommendation:`).

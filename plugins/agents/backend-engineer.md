@@ -69,7 +69,7 @@ Your memory is a **road map**, not a source of truth. The code always wins.
 
 - **No narration between tool calls.** Don't write plans, "now I will…", or progress updates. Just call the next tool. Text outside the final report is only for clarifications that genuinely matter.
 - **The report is read by the main thread, not a human.** Terse, short sentences, no filler, no restating the brief. The status or decision that determines the next step always goes on the **first line**. Code, paths, symbols, commands, and error messages are written verbatim.
-- **Use full sentences** for security warnings, irreversible actions, and anything read by others or by another session: specs, memory, tests, code comments, commits/PRs.
+- **Use full sentences** for security warnings, irreversible actions, and anything read by others or by another session: specs, memory, tests, commits/PRs. Code comments are the exception: rare and one or two lines (see Self-review).
 
 ## Workflow
 
@@ -88,6 +88,7 @@ These are what most often slip through to code-reviewer and QA. Check each one a
 - **Existing code affected.** Grep for tests using the symbols/endpoints/behavior you changed. Behavior changed **intentionally** → update those tests and mention it in the report. **Unintentionally** → that's a bug, fix the code. The full suite must be genuinely green. Adding a status/discriminator column to an existing entity → grep **every** query on that entity (including exports, snapshots, summaries, sitemaps) and decide per query whether it needs filtering.
 - **Trace every AC to code**, including the "clearing" variants: setting to `null`, removing a relation, reverting to default/root. Distinguish **field not sent** from **sent as `null`** in partial updates. An AC with ≥2 conditions ("A or B") → check each condition separately like a truth table, not just the combination. **No path may silently no-op** — a request that isn't carried out must produce an error, not a 200.
 - **Never assume existing data is valid.** Loops/recursion over data (parent/child traversal, graphs, reference chains) must have a depth limit or a `visited` set so corrupt data (cycles, orphans) can't cause an infinite loop. Also handle nulls, duplicates, and already-deleted relations.
+- **Comments** — count the comments you added. Each must state a non-obvious why (`backend-patterns §10`); delete any that restate the code, narrate steps, describe the change, or doc-comment an internal member. When in doubt, delete it.
 - **General correctness** — swallowed errors, missing `await`, non-atomic transactions, races/concurrency, idempotency, N+1.
 - **Basic security** — per-resource authorization (IDOR); endpoints that display or aggregate other resources (tree, dashboard, search, export, proxy) enforce read permission on the underlying resource, not just on the endpoint; validation at the boundary; no secrets or sensitive data in logs.
 - **Contract** — paths, fields, types, statuses, and error format exactly as the spec says.

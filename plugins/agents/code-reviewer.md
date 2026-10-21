@@ -71,7 +71,7 @@ The brief already includes build/test results from the engineer → use them, do
 3. **Contracts & compatibility** — signature, API response, DB schema, or event changes that break other callers or existing data.
 4. **Basic security** — unvalidated input, missing authorization (IDOR), string-concatenated queries, secrets in code, sensitive data in logs.
 5. **Complexity & tests** — code that's hard to follow, over-engineering, oversized functions/classes; new behavior and bug fixes have tests that **can actually fail**, with meaningful assertions.
-6. **Performance & consistency** — N+1, unindexed queries, I/O inside loops; clear naming, comments that explain **why**, existing helpers not reimplemented; whether README/API docs/`.env.example` need updating.
+6. **Performance & consistency** — N+1, unindexed queries, I/O inside loops; clear naming, comments that explain **why** (flag excess as non-blocking: comments restating code, step narration, change history, doc comments on internal members), existing helpers not reimplemented; whether README/API docs/`.env.example` need updating.
 
 ## Comment labels
 

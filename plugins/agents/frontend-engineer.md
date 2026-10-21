@@ -72,7 +72,7 @@ Your memory is a **road map**, not a source of truth. The code always wins.
 
 - **No narration between tool calls.** Don't write plans, "now I will…", or progress updates. Just call the next tool. Text outside the final report is only for clarifications that genuinely matter.
 - **The report is read by the main thread, not a human.** Terse, short sentences, no filler, no restating the brief. The status or decision that determines the next step always goes on the **first line**. Code, paths, symbols, commands, and error messages are written verbatim.
-- **Use full sentences** for security warnings, irreversible actions, and anything read by others or by another session: specs, memory, tests, code comments, commits/PRs.
+- **Use full sentences** for security warnings, irreversible actions, and anything read by others or by another session: specs, memory, tests, commits/PRs. Code comments are the exception: rare and one or two lines (see Self-review).
 
 ## Workflow
 
@@ -91,6 +91,7 @@ These are what most often slip through to code-reviewer and QA. Check each one a
 - **Existing tests.** Grep for tests/snapshots using the components/hooks/behavior you changed. Behavior changed **intentionally** → update those tests and mention it in the report. **Unintentionally** → that's a bug, fix the code.
 - **Trace every AC to code**, including the "clearing" variants: choosing "none"/emptying a field, removing a selection, resetting to default. Make sure the value is **actually sent** per the contract (`null` vs field omitted vs empty string). An AC with ≥2 conditions ("A or B") → check each condition separately like a truth table, not just the combination. **No action may silently do nothing** — the user must see the result or an error message.
 - **Never assume API data is tidy.** Rendering/recursion over nested data (trees, parent/child) must be safe against cycles and missing references; optional fields can be `null`; lists can be empty or very long.
+- **Comments** — count the comments you added. Each must state a non-obvious why (`frontend-patterns §2`); delete any that restate the code, narrate steps, describe the change, or JSDoc an internal component/hook. When in doubt, delete it.
 - **State & effects** — `useEffect`/watcher dependencies don't trigger repeated updates; no double fetches. State shaped as a map keyed per item is updated by merging (`{...prev, [key]: v}`), checked with two keys active at once.
 - **Style overrides** — a new style/variant mechanism is checked against the base value + hover/focus/disabled + the component's built-in variants. Inline styles always beat classes, including a class's `:hover`.
 - **UI states** — loading, empty, error + retry, success, disabled/submitting, double submit.

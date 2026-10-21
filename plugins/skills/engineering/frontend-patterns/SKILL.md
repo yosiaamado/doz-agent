@@ -28,6 +28,7 @@ Dependency direction: `app` → `features` → `components/ui` / `lib`. Generic 
 - Props are small and specific (don't pass a whole object for two fields). Variants via composition (`<Card><Card.Footer/></Card>`), not a pile of boolean props. Prop drilling deeper than 2 levels → composition or context.
 - **The YAGNI brake:** a generic component is created once there are **≥2 real usages**. Project uses Storybook → generic UI components are documented there.
 - Every data view handles loading (skeleton), empty (with a call to action), error (a human message + retry), success, and disabled/submitting, plus long text, large data sets, and images that fail to load.
+- **Comments: few, and only for why.** Default to none — names, types, and props carry the what. Comment only a non-obvious reason, constraint, workaround (link the issue), or browser quirk, in one or two lines. No JSDoc/TSDoc on internal components, hooks, or self-explanatory props; only on a published library surface or where the project already requires it. Never restate the JSX, narrate steps, record change history, add section banners, or leave commented-out code. Match the comment density of the surrounding file.
 
 ## 3. State
 
