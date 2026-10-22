@@ -9,6 +9,19 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [2.2.0] - 2026-10-22
+
+Source: a user request for a finance & accounting skill that researches what senior finance/accounting people do, searches the web for current rules and trusted formulas, and acts as a supervisor/product owner for engineers.
+
+- `skills/consultant/finance-accounting/SKILL.md` (new): role as finance supervisor/PO for engineers; the questions each senior role asks; a 6-step workflow (business events → standards → journals → formulas & rounding → spec → acceptance); a research protocol with tiered trusted sources, two-source verification, effective-date checks and a `⚠ NEEDS VERIFICATION` fallback when no web tool is available; the finance spec template; a review checklist; red flags.
+- `skills/consultant/finance-accounting/references/senior-roles.md` (new): controller, senior accountant, revenue, tax, FP&A, treasury, cost accounting and internal audit work mapped to system requirements.
+- `skills/consultant/finance-accounting/references/indonesia-regulations.md` (new): dated snapshot (2026-10-22) with sources — SAK EP, PSAK renumbering, PSAK 118, PPN under PMK 131/2024, Coretax NSFP, PPh 21 TER, final MSME tax under PP 20/2026, 10-year retention — plus a list of topics not yet researched.
+- `skills/consultant/finance-accounting/references/formulas.md` (new): TVM, PMT, NPV/IRR, depreciation, effective interest, leases, FX, break-even, variances, ratios, WACC and rounding, each with a worked example recomputed in Python `Decimal`.
+- `skills/consultant/finance-accounting/references/ledger-design.md` (new): double-entry invariants, data model, money/date/period rules, subledgers, multi-currency, controls, reconciliation, retention and required tests.
+- `agents/product-owner.md`: `WebSearch`/`WebFetch` added (3 searches + 2 fetches max, inside the existing budget); money features load `finance-accounting`, acceptance criteria use real numbers, and every rule a decision depends on is cited with source + access date or marked `⚠ NEEDS VERIFICATION`.
+- `agents/system-analyst.md`: `WebSearch`/`WebFetch` added (4 searches + 3 fetches max); money features load `finance-accounting` (plus `ledger-design.md` when writing to a ledger), and the spec template gains an optional **Finance** section — journals, formulas & rounding, golden test cases, invariants. Never invent a rate or rounding rule.
+- `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `README.md`: register the skill.
+
 ## [2.1.0] - 2026-10-21
 
 Source: a user request — engineer agents were writing too many documentation comments.

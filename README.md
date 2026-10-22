@@ -35,6 +35,7 @@ Skills are grouped by area. The area folder name doesn't affect how they're invo
 | `business-thinking` | product | Idea validation, PRDs, RICE/WSJF, unit economics, pricing, OKRs, A/B tests, build vs buy, UU PDP |
 | `ui-design-taste` | design | Visual taste: hierarchy from space, the 4/8 scale, one accent, KPI/chart/table anatomy, states, motion, template anti-patterns + case studies in `references/` |
 | `rab-kontraktor-advisor` | consultant | Product context for an RAB generator for small contractors: the AHSP/HSPK/SNI standards, BOQ/AACE, and the data & UX patterns of estimating software |
+| `finance-accounting` | consultant | Finance & accounting supervisor/PO for engineers: turns money features into specs (accounting treatment, debit/credit journals, rounding, golden test cases), with a research protocol for current Indonesian rules (PSAK, PPN, PPh, Coretax) and trusted formulas |
 
 ## Structure
 
@@ -55,7 +56,7 @@ doz-agent/
         ├── product/             # product-ownership, business-thinking
         ├── design/              # ui-design-taste
         ├── thinking/            # analytical-thinking
-        └── consultant/          # rab-kontraktor-advisor (domain skills per product/client)
+        └── consultant/          # rab-kontraktor-advisor, finance-accounting (domain skills per product/client)
 ```
 
 ## The feature workflow
