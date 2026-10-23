@@ -1,6 +1,6 @@
-"""Test untuk plugins/skills/engineering/token-audit/scripts/token_audit.py.
+"""Tests for plugins/skills/engineering/token-audit/scripts/token_audit.py.
 
-Jalankan dari root repo: python3 -m unittest discover -s tests
+Run from the repo root: python3 -m unittest discover -s tests
 """
 import json
 import os
@@ -22,28 +22,28 @@ def cr(text):
 
 
 class CategoryTest(unittest.TestCase):
-    def test_label_blocking_tidak_dianggap_lock(self):
-        self.assertEqual(cr("tombol simpan memakai warna yang salah."), "lain")
+    def test_blocking_label_not_read_as_lock(self):
+        self.assertEqual(cr("tombol simpan memakai warna yang salah."), "other")
 
-    def test_trace_tidak_dianggap_race(self):
-        self.assertEqual(cr("traceId tidak ikut di response."), "kontrak")
+    def test_trace_not_read_as_race(self):
+        self.assertEqual(cr("traceId tidak ikut di response."), "contract")
 
-    def test_state_map_tertimpa(self):
+    def test_state_map_overwritten(self):
         self.assertEqual(cr("setExpanded menimpa state map; expand modul kedua menghapus data modul pertama. "
                             "Saran: spread prev."), "state-update")
 
     def test_css_cascade(self):
         self.assertEqual(cr("warna hover tidak pernah terlihat karena inline style mengalahkan class."), "css-cascade")
 
-    def test_authz_agregat_menang_atas_idor(self):
-        self.assertEqual(cr("endpoint tree menampilkan item draft ke role tanpa permission modul asal."), "authz-agregat")
+    def test_aggregate_authz_wins_over_idor(self):
+        self.assertEqual(cr("endpoint tree menampilkan item draft ke role tanpa permission modul asal."), "aggregate-authz")
 
-    def test_idor_biasa_tetap_idor(self):
+    def test_plain_idor_stays_idor(self):
         self.assertEqual(cr("GET /orders/{id} tanpa cek kepemilikan, user bisa membaca order milik user lain (IDOR)."),
                          "authorization/IDOR")
 
-    def test_transaksi_tetap_terdeteksi(self):
-        self.assertEqual(cr("dua update saldo tidak atomic, race saat request paralel."), "transaksi/concurrency")
+    def test_transaction_still_detected(self):
+        self.assertEqual(cr("dua update saldo tidak atomic, race saat request paralel."), "transaction/concurrency")
 
 
 def notification(agent_id, status, result=None):
@@ -74,10 +74,10 @@ def labels(entries):
 
 
 class LabelTest(unittest.TestCase):
-    def test_status_partial_dikenali(self):
+    def test_partial_status_recognised(self):
         self.assertEqual(ta.STATUS.search("Status: partial: slice S2 belum").group(1), "partial")
 
-    def test_lanjutan_setelah_maxturns_bukan_dikembalikan(self):
+    def test_continuation_after_maxturns_not_returned(self):
         entries = agent_call("t1", "fe-x", "Kerjakan slice S1", "a1") + [
             notification("a1", "completed", "Status: done\n## Ringkasan\nslice S1"),
             send("t2", "fe-x", "Kerjakan slice S2 di spec yang sama."),
@@ -86,28 +86,28 @@ class LabelTest(unittest.TestCase):
             notification("a1", "completed", "Status: done\n## Ringkasan\nslice S2"),
         ]
         f, sts = labels(entries)
-        self.assertEqual(sts, [("done", ""), (ta.MAXTURNS, "slice berikutnya"), ("done", "lanjutan-maxTurns")])
+        self.assertEqual(sts, [("done", ""), (ta.MAXTURNS, "next slice"), ("done", "continued-maxTurns")])
         self.assertEqual(f["returned"]["frontend-engineer"], 0)
         self.assertEqual(f["limit"]["frontend-engineer"], 1)
 
-    def test_dipanggil_ulang_setelah_done_tetap_dikembalikan(self):
+    def test_reinvoked_after_done_still_returned(self):
         entries = agent_call("t1", "fe-x", "Kerjakan slice S1", "a1") + [
             notification("a1", "completed", "Status: done\n## Ringkasan\npertama"),
             send("t2", "fe-x", "Peta AC → test belum ada, lengkapi laporanmu."),
             notification("a1", "completed", "Status: done\n## Ringkasan\nkedua"),
         ]
         f, sts = labels(entries)
-        self.assertEqual(sts[1], ("done", "dikembalikan"))
+        self.assertEqual(sts[1], ("done", "returned"))
         self.assertEqual(f["returned"]["frontend-engineer"], 1)
 
-    def test_turn_di_batas_tanpa_status_dianggap_maxturns(self):
+    def test_turn_at_limit_without_status_counts_as_maxturns(self):
         c = {"type": "frontend-engineer", "prompt": "Kerjakan slice S1", "report": "sedang mengedit...", "run_turns": 50}
         f = ta.analyse_failures([(c, None)])
         self.assertEqual(f["status"]["frontend-engineer"], [(ta.MAXTURNS, "")])
 
 
 class WindowsConsoleTest(unittest.TestCase):
-    def test_output_cp1252_tidak_crash(self):
+    def test_cp1252_output_does_not_crash(self):
         entries = [
             {"type": "user", "timestamp": "2026-09-25T01:00:00Z", "cwd": "/x/proj",
              "message": {"role": "user", "content": "kerjain fitur"}},
