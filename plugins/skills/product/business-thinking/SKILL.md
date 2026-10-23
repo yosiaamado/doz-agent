@@ -1,6 +1,6 @@
 ---
 name: business-thinking
-description: Professional business and product thinking frameworks. Covers discovery & idea validation, PRDs/one-pagers, feature prioritisation (RICE, WSJF), business models & unit economics, pricing, metrics (North Star, OKR, AARRR), experiments/A-B tests, build vs buy, market & competition, and compliance (Indonesia's UU PDP). Use when the user discusses a business/startup idea, which feature to build first, an MVP, monetisation, target market, go-to-market, a roadmap, or "is this worth it".
+description: Use when the user discusses a business or startup idea, which feature to build first, an MVP, pricing or monetisation, unit economics, target market, go-to-market, a roadmap, metrics or OKRs, build vs buy, or asks whether something is worth it ("worth ga").
 effort: high
 ---
 

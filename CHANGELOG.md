@@ -9,6 +9,23 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [2.3.0] - 2026-10-23
+
+Source: a user request to learn from [obra/superpowers](https://github.com/obra/superpowers) and make agents more efficient. Every change maps to a measured finding there or in `agent-usage/2026-09-25.md`.
+
+- `skills/engineering/ship-feature/SKILL.md` §3: the brief records **decisions, not code** — a five-part recipe per slice (files + pattern, exact interfaces, spec values, tests by name with assertions, Review focus items); code bodies only for algorithms those don't determine. New `Interfaces`, `Tests` and `Review focus` sections in the spec template. Superpowers measured plans written this way at ¼ the time and ⅓ the tokens with the same execution quality.
+- `skills/engineering/ship-feature/SKILL.md` §3–5: **Review focus** (≤5 items) — inputs or failure modes the requirement implies but no AC names, each owned by a slice and pinned by a named test. The checklist starts with the five bugs that slipped past self-review in the 2026-09-25 audit. Passed to engineers, `code-reviewer` and `qa-tester`.
+- `agents/system-analyst.md`: the same decisions-not-code rule and Review focus, plus `Interfaces`, `Tests` and `Review focus` in its spec template.
+- `agents/backend-engineer.md`, `agents/frontend-engineer.md`: every Review focus item of the slice needs a test that would fail; the report's map becomes **AC/RF → test map**.
+- `agents/qa-tester.md`: starts from untested ACs **and** Review focus items, including one-branch "A or B" tests.
+- `agents/code-reviewer.md`: checks each Review focus item first; one with no failing-capable test is `issue (blocking)`.
+- All 8 agents and 12 skills: **descriptions rewritten as triggers only**, starting "Use when", ≤400 characters, with a few Indonesian trigger phrases. Superpowers found that a description summarizing the workflow makes the model follow the description and skip the body. Total description text: 10,505 → 5,644 characters, resident in every session.
+- `tests/test_plugin_structure.py` (new): fails when a `SKILL.md` reaches 20,000 characters (Claude Code truncates skills there after compaction), a description doesn't start with "Use when", exceeds 400 characters or isn't YAML-safe, a skill area folder isn't registered in `plugin.json`, `agents/` has subfolders, or an agent has no `maxTurns`.
+- `CLAUDE.md` (new, repo root): authoring rules for agents and skills — where cost comes from, repo facts, description style, frontmatter defaults, size limits, phrasing that measurably works, evidence before changing tuned behavior, and a pre-commit checklist.
+- `README.md`: Review focus in "Reducing review rounds", the brief recipe in "Saving tokens", and a pointer to `CLAUDE.md`.
+
+Known, not fixed here: 6 tests in `tests/test_token_audit.py` were already failing before this release — they still expect the Indonesian category labels that 2.0.0 replaced with English.
+
 ## [2.2.0] - 2026-10-22
 
 Source: a user request for a finance & accounting skill that researches what senior finance/accounting people do, searches the web for current rules and trusted formulas, and acts as a supervisor/product owner for engineers.

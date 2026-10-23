@@ -1,6 +1,6 @@
 ---
 name: devops-patterns
-description: Professional DevOps/SRE rules and best practices. Covers Docker, GitHub Actions CI/CD, supply chain security (SHA pinning, SBOM, scanning), deployment & rollback, config/secrets, Nginx, Kubernetes, Terraform/IaC, observability, SLOs & error budgets, incident response, and backup/DR. Use when creating or changing a Dockerfile, a CI/CD pipeline, deploy configuration, infrastructure, monitoring, or when debugging a build/deploy.
+description: Use when creating or changing a Dockerfile, CI/CD pipeline, deploy configuration, infrastructure as code, secrets handling, monitoring or alerting, or when debugging a failed build or deploy.
 ---
 
 # DevOps Patterns

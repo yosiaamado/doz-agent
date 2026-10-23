@@ -1,6 +1,6 @@
 ---
 name: analytical-thinking
-description: Analytical thinking frameworks for breaking down complex problems, systematic debugging, root cause analysis, estimation, comparing options/trade-offs, and making evidence-based decisions (including pre-mortems and ADRs). Use when the user asks for "analysis", "why is this happening", "compare the options", "which is better", "an estimate", when a bug is hard to track down, or when a technical decision has many factors.
+description: Use when the user asks for analysis, why something is happening, a comparison of options, which choice is better, or an estimate; when a bug is hard to track down; or when a technical decision has many factors.
 effort: high
 ---
 

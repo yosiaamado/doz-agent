@@ -1,6 +1,6 @@
 ---
 name: ship-feature
-description: The main entry point for taking a feature, change, or bugfix from start to finish with one command, using doz-agent agents economically. Sizes the work (small/medium/large), then runs only the agents needed (product-owner → API contract → backend-engineer ∥ frontend-engineer → code-reviewer ∥ qa-tester ∥ security-tester → acceptance), including the fix loop, and stops only for business decisions. Use when the user says "build/add/do feature X", "ship it", "until it's done", "end-to-end", or invokes /ship-feature. Do not use if the user only wants discussion, analysis, or a review without implementation.
+description: Use when the user wants a feature, change or bugfix built end to end — "build/add feature X", "kerjain sampai selesai", "ship it", "end-to-end" — or invokes /ship-feature. Don't use when the user only wants discussion, analysis or a review without implementation.
 argument-hint: "[--engineer-model opus|sonnet] <feature/change description>"
 effort: high
 ---
@@ -68,6 +68,12 @@ A single `docs/specs/<slug>.md` file is the reference for every agent, so nobody
 ## File map
 ### Backend / ### Frontend
 - [S1] <path> — <create/change> — <what> (follow the pattern at: <path:line>)
+## Interfaces
+- [S1] <path> · `<exact signature / type / props / event payload>` — what the other side or a later slice relies on
+## Tests
+- [S1] <test name> — asserts <exact condition and value>
+## Review focus
+- RF-1 [S1] <input or failure mode the spec implies but no AC names> → test: <name>
 ## Decisions & assumptions
 ```
 
@@ -80,6 +86,10 @@ Who writes it:
 | The response shape can't be pinned down yet, or the FE portion is tiny | **Skip the up-front contract.** `backend-engineer` first, take the final contract from its report, then `frontend-engineer` |
 | Only one layer (FE only or BE only) | No contract. "Repo context" + "Requirement" + "File map" is enough |
 
+**A brief records decisions, not code.** For each slice it contains: (1) the files to create or change, with a pattern to follow; (2) the exact interfaces other code depends on — signatures, types, props, payloads; (3) the values from the spec — limits, constants, error codes, formats; (4) each test by name with the condition and value it asserts; (5) the Review focus items the slice owns. Write a code body only for an algorithm those five don't determine. If code blocks make up most of the spec, replace the bodies with signatures and assertions.
+
+**Review focus: up to 5 items.** Inputs or failure modes the requirement implies but no AC names, each owned by one slice and pinned by one named test. Look first where bugs have actually slipped past self-review: an "A or B" AC (one test per branch), a lookup by id from a paginated or filtered list, a list/aggregate endpoint that must respect the underlying resource's permission, clearing a value (`null`, empty, back to default), existing records that predate the change, and style precedence (inline style vs class). No such risk → write "Review focus: none".
+
 **The file map is mandatory** — it's what bounds the engineers' scope and prevents re-exploration. More than 1 engineer per layer → write the owner of each file/folder; a file must never have two owners. Open questions affecting the contract are handled like step 2.
 
 ## 4. Execution
@@ -87,8 +97,8 @@ Who writes it:
 - The contract exists → invoke `backend-engineer` and `frontend-engineer` **in parallel, in one message**.
 - **One engineer call = one slice.** The next slice is sent once the previous one is `done`: same area → `SendMessage` to the same engineer; a different area → a new call. Engineers may run in parallel only if their file maps don't overlap.
 - Give each engineer a unique `name` when invoking it (e.g. `be-<slug>`, `fe-<slug>`) so it can be continued later.
-- The prompt to an engineer stays short: the project path, the spec path, the part to work on, the build/test commands, and "don't read the other side's code; don't re-explore areas the spec already describes; don't edit the spec file".
-- Engineers must run **self-review** and include an **AC → test map** in their report. A report missing that map, or with a full suite that hasn't been run → send it back to the engineer first, don't proceed to verification.
+- The prompt to an engineer stays short: the project path, the spec path, the slice to work on (its Interfaces, Tests and Review focus items are in the spec), the build/test commands, and "don't read the other side's code; don't re-explore areas the spec already describes; don't edit the spec file".
+- Engineers must run **self-review** and include an **AC/RF → test map** in their report (every AC and every Review focus item of the slice). A report missing that map, or with a full suite that hasn't been run → send it back to the engineer first, don't proceed to verification.
 - **Read the first line of the engineer's report (`Status:`) first:** `done` → continue · `partial` → continue with the remaining work · `needs-decision` → decide yourself, or ask the user if it's a business matter · `blocked` → clear the blocker or report it to the user · `too-big` → split it as proposed.
 - **Continue the same engineer, don't invoke a new one,** after a `needs-decision` is answered, a `blocked` is cleared, the first piece of a `too-big` split is decided, on `partial` or a stop from `maxTurns`, or when its report was sent back. Send it via `SendMessage` to its `name` (or its agentId). Its context (exploration, decisions, code already written) is still intact, and within the hour its cache is reused too, so the engineer doesn't start from zero.
 - Engineers keep a per-project memory of the code map, so a feature in an area they've touched before is much faster. Still write the file map — that memory is a pointer, not a substitute for the brief.
@@ -97,7 +107,7 @@ Who writes it:
 
 ## 5. Verification (parallel, one message)
 
-Each agent's scope: the changed files + the acceptance criteria + the spec path + **the Verification line from the engineer's report** (build/test results), so the reviewer and QA don't rerun a suite that's already green. To `qa-tester`, also include the **AC → test map** from the engineer's report, so QA tests the gaps instead of repeating existing tests.
+Each agent's scope: the changed files + the acceptance criteria + the spec path + **the Verification line from the engineer's report** (build/test results), so the reviewer and QA don't rerun a suite that's already green. To `qa-tester`, also include the **AC/RF → test map** from the engineer's report, so QA tests the gaps instead of repeating existing tests. To both `code-reviewer` and `qa-tester`, include the spec's **Review focus** list: each item must have a test that would fail if the code got it wrong.
 
 | Agent | When |
 |---|---|

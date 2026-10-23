@@ -149,7 +149,7 @@ An agent's report enters the main thread's context in full and is resent on ever
 
 ## Reducing review rounds
 
-Engineers must **self-review** their own diff before reporting: existing tests affected, every AC traced to code (including the "clearing" variants such as setting to `null` — no path may silently no-op), loops over existing data that could be corrupt, basic security, and conformance to the contract. The report includes an **AC → test map**, which is passed to QA so QA tests the gaps instead of repeating existing tests. Its Verification line (build result + full suite) is passed to the reviewer and QA too, so a suite that's already green isn't rerun: the reviewer focuses on design and correctness, and QA only runs the new tests + the affected module.
+Engineers must **self-review** their own diff before reporting: existing tests affected, every AC traced to code (including the "clearing" variants such as setting to `null` — no path may silently no-op), loops over existing data that could be corrupt, basic security, and conformance to the contract. The report includes an **AC → test map**, which is passed to QA so QA tests the gaps instead of repeating existing tests. The spec also carries a **Review focus** list: up to 5 inputs or failure modes the requirement implies but no AC names (an "A or B" AC, a lookup from a paginated list, an aggregate endpoint that must respect the underlying permission, clearing a value), each pinned by a named test in the slice that owns it. Engineers map them in an **AC/RF → test map**, and the reviewer treats a Review focus item with no test as blocking. Its Verification line (build result + full suite) is passed to the reviewer and QA too, so a suite that's already green isn't rerun: the reviewer focuses on design and correctness, and QA only runs the new tests + the affected module.
 
 ## Saving tokens
 
@@ -179,7 +179,7 @@ Run 3–5 features of comparable size for each model (no flag = the model in the
 
 **What saves the most, largest first:**
 
-1. **The file map in the brief.** Engineers may only touch the files listed there (+ 3 context files max). This is what cuts out exploring from scratch — the single biggest cost in the whole flow.
+1. **A brief that records decisions, not code.** Per slice: the files (with a pattern to follow), the exact interfaces, the spec's values, each test by name with its assertion, and the Review focus items. Engineers may only touch the listed files (+ 3 context files max). This is what cuts out exploring from scratch — the single biggest cost in the whole flow.
 2. **The code-flow memory** in BE/FE, for areas already touched.
 3. **Not invoking an agent for something the main thread can do.** `ship-feature` writes the contract itself for 1–2 endpoints, and handles Small changes with no agents at all.
 4. **A single-pass PO.** 3 questions max, all with defaults, so there's never a second call.
@@ -247,8 +247,10 @@ Edit the files, then commit & push. On a machine that already has it installed, 
 
 ## Adding a new agent / skill
 
+Full authoring rules (cost model, description style, size limits, phrasing that works, checklist) are in [`CLAUDE.md`](CLAUDE.md), which Claude Code loads automatically when working in this repo.
+
 - Agent: create `plugins/agents/<name>.md` (frontmatter: `name`, `description`, `tools`, `model`, `effort`, `maxTurns`, `color`, optionally `skills`, `memory`, `experimental.cacheTtl` — set `1h` only if the agent runs builds/tests that can take more than 5 minutes)
-- Skill: create `plugins/skills/<area>/<name>/SKILL.md` (frontmatter: `name`, `description`, optionally `effort`, `model`, `argument-hint`). A new area just needs a new folder; the invocation name stays `doz-agent:<name>` because it comes from the `name` frontmatter, not from the path
+- Skill: create `plugins/skills/<area>/<name>/SKILL.md` (frontmatter: `name`, `description`, optionally `effort`, `model`, `argument-hint`). A new area needs a new folder **and** an entry in the `skills` array of `plugins/.claude-plugin/plugin.json`; the invocation name stays `doz-agent:<name>` because it comes from the `name` frontmatter, not from the path
 - Backend rules for a new language (e.g. Go, Node): create `plugins/skills/engineering/backend-patterns/references/<language>.md`, then add its row to the "Per-language rules" table in `backend-patterns/SKILL.md`
 - Bump `version` in `plugin.json`, write the entry in `CHANGELOG.md`, then push (the commit is tagged `vX.Y.Z`).
 

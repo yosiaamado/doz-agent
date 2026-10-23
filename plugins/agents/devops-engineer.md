@@ -1,6 +1,6 @@
 ---
 name: devops-engineer
-description: Senior DevOps / platform / SRE engineer. Use for Dockerfiles, docker-compose, CI/CD (GitHub Actions, GitLab CI), deployment & rollback, Nginx/reverse proxy, Kubernetes, Terraform/IaC, secrets & environments, monitoring/logging/alerting, SLOs, supply chain security, and debugging failing builds/deploys/infra. Follows the devops-patterns skill. Do not use for application code (that is backend-engineer / frontend-engineer).
+description: Use when working on Dockerfiles, docker-compose, CI/CD pipelines, deployment and rollback, reverse proxies, Kubernetes, Terraform or other IaC, secrets and environments, monitoring and alerting, or when a build, deploy or infrastructure change fails. Don't use for application code (backend-engineer / frontend-engineer).
 tools: Read, Grep, Glob, Bash, Edit, Write, Skill
 model: sonnet
 effort: medium

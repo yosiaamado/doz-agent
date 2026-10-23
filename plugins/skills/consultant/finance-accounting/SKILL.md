@@ -1,6 +1,6 @@
 ---
 name: finance-accounting
-description: Finance & accounting supervisor / product owner for engineers. Turns a financial business need into a spec engineers can build without asking again (accounting treatment, debit/credit journals, formulas, rounding, acceptance criteria with real numbers, test cases), working the way a senior controller, accountant, tax, FP&A and treasury lead would. Must research and verify current rules (PSAK/SAK, PPN/VAT, PPh/income tax, Coretax) and formulas against trusted sources before using them. Use when building or reviewing anything that touches money — invoices, payments, journals/ledgers, financial statements, tax, payroll, receivables/payables, inventory, fixed assets, multi-currency, reconciliation — or when a correct financial formula is needed.
+description: Use when building or reviewing anything that touches money — invoices, payments, refunds, ledgers and journals, balances, financial statements, tax (PPN, PPh, Coretax), payroll, receivables/payables, inventory, fixed assets, multi-currency, reconciliation — or when a financial formula, an accounting treatment or a current Indonesian tax rule is needed.
 effort: high
 ---
 

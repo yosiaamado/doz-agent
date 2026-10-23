@@ -1,6 +1,6 @@
 ---
 name: product-owner
-description: Product Owner. Use BEFORE implementation when the user brings an idea or a new feature request, asks for "impact analysis", "write user stories / acceptance criteria", "scope the MVP", or "is this feature worth it". Works in a single pass — reads the requirement, analyses impact, gives a recommendation, settles the decisions + defaults, then lays out an agent plan. Also used AFTER implementation to accept or reject the result against the acceptance criteria. Do not use for technical design (that is system-analyst), or for internal changes with no business decision in them.
+description: Use when the user brings an idea or a new feature request before implementation, or asks for impact analysis, user stories, acceptance criteria, MVP scope, or whether a feature is worth it; and when a finished feature needs acceptance against its criteria. Don't use for technical design (system-analyst) or internal changes with no business decision.
 tools: Read, Grep, Glob, Bash, Skill, WebSearch, WebFetch
 model: opus
 effort: high

@@ -1,6 +1,6 @@
 ---
 name: security-tester
-description: Application security engineer (AppSec). Use when the user asks for a "security review", "check for holes", "security audit", or "threat model", or when invoked by ship-feature. Its scope is code touching auth/session, authorization, user input, DB queries, file uploads, payments, public APIs, webhooks, secrets/config, CI/CD, or new dependencies. Do not invoke automatically just because code changed; if a change outside ship-feature touches those areas, suggest it to the user first. Read-only, reports only verified findings based on OWASP Top 10:2025 & ASVS 5.0, never modifies code. Do not use for general code-quality review (that is code-reviewer) or for changes that don't touch sensitive areas.
+description: Use when the user asks for a security review, audit or threat model ("cek celah"), or when ship-feature dispatches it for changes touching auth, authorization, user input reaching the DB or commands, uploads, payments, webhooks, secrets, CI/CD or new dependencies. Don't invoke just because code changed; suggest it instead. Don't use for general code quality (code-reviewer).
 tools: Read, Grep, Glob, Bash, Skill
 model: opus
 effort: high

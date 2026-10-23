@@ -1,6 +1,6 @@
 ---
 name: token-audit
-description: Audits the token usage and failures of a single Claude Code workflow from the session transcript — tokens and estimated cost per agent, the biggest gaps (large files read whole, long command output, long exploration, cache misses, narration, long reports, fix rounds), agent failures (blocked/missing status, blocking findings per category, failing tests/builds, findings that came back), recurring failure patterns across workflows, and suggested fixes per agent file. Invoked automatically at the end of a Medium/Large ship-feature. Also use when the user says "token audit", "how many tokens did that use", "why is this so expensive", "which agent costs the most", or invokes /token-audit.
+description: Use when the user asks for a token audit, how many tokens a workflow used, why it was so expensive, which agent cost the most, or invokes /token-audit; and at the end of a Medium or Large ship-feature.
 argument-hint: "[--workflow NAME | --all | --since ISO-TIME | --transcript PATH | --compare]"
 ---
 

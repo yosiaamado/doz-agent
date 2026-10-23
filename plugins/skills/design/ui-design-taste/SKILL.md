@@ -1,6 +1,6 @@
 ---
 name: ui-design-taste
-description: Visual design taste for product UI and admin dashboards — not code rules. Covers hierarchy, 8pt spacing, the type scale, a 1-accent palette, cards & elevation, KPI/chart/table anatomy, empty & loading states, motion, and a list of anti-patterns. Use when building or fixing how something looks: a new page, a dashboard, a landing page, a component, "make it look good", "it looks messy", "make it not look like a template", or when choosing colors, sizes, and spacing.
+description: Use when building or fixing how something looks — a new page, dashboard, landing page or component — when choosing colors, sizes or spacing, or when the user says it looks messy, cramped or like a template ("bikin bagus", "kurang rapi"). For code structure, see frontend-patterns.
 ---
 
 # UI Design Taste

@@ -1,6 +1,6 @@
 ---
 name: engineering-workflow
-description: How a professional software team works (SDLC). Covers Definition of Ready/Done, branching, Conventional Commits, PR size & description, code review etiquette, SemVer & releases, ADRs, tech debt, and incidents & postmortems. Use when starting or finishing a task, creating a commit/branch/PR, writing a PR description or changelog, recording an architecture decision, or handling an incident.
+description: Use when starting or finishing a task, creating a branch, commit or PR, writing a PR description or changelog, recording an architecture decision, releasing a version, or handling an incident or postmortem.
 ---
 
 # Engineering Workflow

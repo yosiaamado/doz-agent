@@ -1,6 +1,6 @@
 ---
 name: backend-patterns
-description: Professional backend coding and architecture rules. Covers layering, REST + OpenAPI API design, RFC 9457 errors, validation, database & zero-downtime migrations, auth & security (OWASP), resiliency, caching, async jobs, observability (OpenTelemetry), and testing, plus per-language/framework rules (.NET/C#, etc.). Use when writing, changing, or designing backend/API/service/database code.
+description: Use when writing, changing, designing or reviewing backend, API, service or database code — endpoints, error responses, validation, migrations, auth, caching, background jobs, logging — including .NET/C# projects.
 ---
 
 # Backend Patterns

@@ -1,6 +1,6 @@
 ---
 name: run-workflow
-description: Runs a doz-agent workflow stored as a file (plugins/workflows/<name>.md, created in doz studio or written by hand) step by step with subagents, including condition branches, fix loops, and approvals. Progress is written to .doz-studio/runs/ so it can be watched live in doz studio. Use when the user invokes /run-workflow, or says "run workflow <name>". Do not use for a feature with no stored workflow (that is ship-feature).
+description: Use when the user invokes /run-workflow or says "run workflow <name>" for a workflow stored in plugins/workflows/ (made in doz studio or by hand). Don't use for a feature with no stored workflow (ship-feature).
 argument-hint: "<workflow-name> <request>"
 ---
 

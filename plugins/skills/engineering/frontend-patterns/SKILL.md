@@ -1,6 +1,6 @@
 ---
 name: frontend-patterns
-description: Professional frontend coding and architecture rules. Covers structure, components & design systems, state management, data fetching, forms, WCAG 2.2 AA accessibility, Core Web Vitals performance, security (XSS/CSP), i18n, error monitoring, and testing. Use when writing, changing, or designing web UI/components/pages (React/Next.js/Vue/Svelte).
+description: Use when writing, changing, designing or reviewing web UI code — components, pages, state, data fetching, forms, accessibility, performance, client-side security, tests — in React, Next.js, Vue or Svelte. For visual look and feel, see ui-design-taste.
 ---
 
 # Frontend Patterns

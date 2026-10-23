@@ -1,6 +1,6 @@
 ---
 name: product-ownership
-description: Professional Product Owner techniques (Scrum Guide 2020 + industry practice) - impact analysis dimensions, INVEST user stories, Given/When/Then acceptance criteria, vertical story splitting, Definition of Ready, backlog prioritisation, and accepting delivered work. Use when discussing a new feature, or when asked "what's the impact", "write user stories", "acceptance criteria", "refinement", or "scope the MVP". This is a technique reference; the workflow and report format are set by the product-owner agent.
+description: Use when discussing a new feature's scope or impact, or when asked for user stories, acceptance criteria, refinement, story splitting or MVP scope. A technique reference; the product-owner agent owns the workflow and report format.
 effort: high
 ---
 
