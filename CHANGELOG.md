@@ -9,6 +9,13 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [2.6.0] - 2026-10-25
+
+Source: user review of the 2.5.0 dashboards — the patterns are good beyond dashboards, so the general ones move into `ui-design-taste` (preloaded by `frontend-engineer`, so every screen gets them) and `dashboard-craft` keeps only dashboard specifics, pointing back instead of repeating.
+
+- `skills/design/ui-design-taste/SKILL.md`: §1 card radius 16–24px on a gapped canvas; §3 smaller decimals on headline figures; §4 one accent-filled hero surface per view and dark floating elements on light pages; §5 bordered vs gapped surface styles and bento spans; §8 still chrome on navigation, reading-order entrances once per mount, fast flat exits, blur-in for headings, tween from the old value, hover lift only on clickable cards, circular theme reveal, reduced motion in JS too; §9 realistic dummy data; §10 two new anti-patterns; §11 two checklist lines.
+- `skills/design/dashboard-craft/SKILL.md`: canvas, numbers and interaction sections now reference those `ui-design-taste` rules and keep only the dashboard-specific parts.
+
 ## [2.5.0] - 2026-10-25
 
 Source: a user request to turn the dashboard reels of [@code.xr](https://www.instagram.com/code.xr/) into a skill for `frontend-engineer`. Reviewed by stepping through frames of Dashboard V14, V15 (Ember and Fluentis), V16, V18 and 3D Dashboard + AI; V1–V13 and V17 need an Instagram login and weren't reviewed. The source code isn't public, so nothing is copied and timings are team decisions fitted to the frames. No `claude plugin eval` run yet: additive, on-demand skill.

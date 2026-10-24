@@ -5,7 +5,7 @@ description: Use when building or polishing a dashboard, admin panel or analytic
 
 # Dashboard Craft
 
-`ui-design-taste` owns the tokens (spacing, radii, palette, type scale) and the anatomy of a single KPI card, chart and table. `apple-design` owns anything the user can grab. This file owns the two things that make a dashboard feel premium rather than templated: **how the screen is composed** and **how it moves** — first load, route change, theme switch, live data.
+`ui-design-taste` owns the tokens (spacing, radii, palette, type scale), surface styles, the anatomy of a single KPI card, chart and table, and the general motion rules (§8). `apple-design` owns anything the user can grab. This file owns the two things that make a dashboard feel premium rather than templated: **how the screen is composed** and **how it moves** — first load, route change, theme switch, live data.
 
 The through-line: **the shell never moves, content arrives in reading order, every number and chart has an entrance exactly once, and nothing blocks input.**
 
@@ -22,17 +22,13 @@ Pick one shell per product and keep it mounted across routes. It never replays a
 
 ### The canvas
 
-- **Light grey canvas, white cards, no borders between them** — separation comes from the canvas showing through 12–16px gaps. Cards 16–24px radius on this layout (still one card radius per product).
-- **A bento grid, not equal tiles.** 12 columns; cards span 3/4/5/6/8 so rows have rhythm. A tall card next to two stacked short ones reads designed; four identical KPI tiles read generated.
-- **One hero surface per view, filled with the accent** — a revenue card, a "Manage quotes" call-to-action, a welcome banner. Everything else neutral. A second filled card halves the effect of both.
+The general rules live in `ui-design-taste`: the *gapped* surface style and bento spans (§5), one accent-filled hero surface and dark floating elements (§4), smaller decimals (§3), real-feeling dummy data (§9). For dashboards specifically:
+
+- **Gapped is the default** for overview dashboards; switch to *bordered* only for table-heavy admin screens.
+- **The hero surface is the screen's main job:** a revenue card, a "Manage quotes" call-to-action, a welcome banner.
 - **Page header carries weight:** a 28–40px title (or a headline-sized search field) on the left, period/filter pills and one primary action on the right. A KPI trio can sit inline in the header row instead of in cards.
-- **Dark floating surfaces on a light page** for things that sit above content: a "next meeting" popover, chart tooltips, a bottom-centre switcher pill. One dark element per region at most.
-- **Real-feeling content:** avatars with names, specific labels ("Q4 revenue", "Breakthrough brainstorm 12:45"), not "Item 1". Dummy data that looks real is part of the design.
-
-### Numbers
-
-- Big figure with **cents/decimals one step smaller and lighter** (`$4,857` `.16`), `tabular-nums`, delta pill right beside it, comparison text under it.
-- Abbreviate in tiles (`$49.6K`), full precision in tooltips and tables.
+- **Dark floating elements** here: a "next meeting" popover, chart tooltips, a bottom-centre switcher pill.
+- **Numbers:** delta pill right beside the figure, comparison under it; abbreviate in tiles (`$49.6K`), full precision in tooltips and tables.
 
 ### Charts that read premium
 
@@ -89,9 +85,10 @@ Code: [references/recipes.md](references/recipes.md) §4.
 
 ## 5. Interaction and live data
 
-- **Hover lift only on clickable cards:** `y: -4px` + slightly deeper shadow, 150–200ms. A lift on a non-clickable card promises an action that doesn't exist.
+Hover lift and tweening from the old value are general rules (`ui-design-taste` §8). Dashboard specifics:
+
 - **Chart hover:** the hovered bar/point takes the accent, the rest dim to ~40%; tooltip snaps to the data point, not the cursor.
-- **Live or refetched numbers tween from the previous value** to the new one (300–500ms), never from 0. Optionally tint the delta green/red for ~1s.
+- **Live or refetched numbers** tween over 300–500ms; optionally tint the delta green/red for ~1s.
 - **Filter/period change:** charts morph from the old data to the new (bars change height, line interpolates), no re-entrance, no flash of empty.
 - **Tooltips on the rail:** appear after ~300ms hover, instantly on keyboard focus, and hide on leave without delay.
 
