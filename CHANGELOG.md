@@ -9,6 +9,20 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [2.4.0] - 2026-10-25
+
+Source: a user request to give `frontend-engineer` an Apple-style design skill built from [emilkowalski/skills — apple-design](https://github.com/emilkowalski/skills/tree/main/skills/apple-design), its [ui-skills.com mirror](https://www.ui-skills.com/skills/emilkowalski/apple-design), and [dickwu/apple-design-skill](https://github.com/dickwu/apple-design-skill), merged into one skill with no duplicate content. Emil's repo is MIT; dickwu's has no license and its `references/hig/` is Apple's HIG text, so everything is rewritten and Apple's text is linked, not copied.
+
+- `skills/design/apple-design/SKILL.md` (new): the eight HIG principles as review questions (merged from both sources); response and direct manipulation; springs and interruptibility with damping/response values; spatial consistency; materials and depth with accessibility fallbacks; type tracking and Apple's size minimums; control-size targets; reduced motion and vestibular rules; feedback, alerts, undo and data entry; wayfinding and wording; a craft lens with the generated-default looks to avoid. Topics already owned by `ui-design-taste` (spacing, palette, type scale, contrast, states, motion timing) are referenced, not repeated — checked line by line.
+- `skills/design/apple-design/references/motion-physics.md` (new): drag tracking with velocity, Motion springs, velocity handoff, momentum projection, rubber-banding, translucent chrome CSS with fallbacks, reduced motion, and how to review motion.
+- `skills/design/apple-design/references/platform.md` (new): framework vocabulary, mobile and desktop conventions, glass/blur in Electron, Tauri and React Native, Apple Pay on the web, and HIG pages by topic.
+- `skills/design/apple-design/references/review.md` (new): the five-lens review method, severities, report format, and the plan-then-critique improvement mode.
+- `skills/design/apple-design/references/LICENSE-emilkowalski.md` (new): the MIT notice for the adapted material.
+- `agents/frontend-engineer.md`: loads `apple-design` on demand for drag/swipe/sheets/drawers/carousels, grabbable transitions, glass chrome, or Electron/Tauri app chrome — not preloaded, per `CLAUDE.md`; adds a "Feel" self-review item.
+- `agents/code-reviewer.md`: loads `apple-design` when the diff has gestures, springs, sheets, glass or desktop chrome.
+- `skills/design/ui-design-taste/SKILL.md` §8: grabbable motion follows `apple-design` instead of fixed durations.
+- `plugin.json`, `marketplace.json`, `README.md`: register the skill.
+
 ## [2.3.0] - 2026-10-23
 
 Source: a user request to learn from [obra/superpowers](https://github.com/obra/superpowers) and make agents more efficient. Every change maps to a measured finding there or in `agent-usage/2026-09-25.md`.

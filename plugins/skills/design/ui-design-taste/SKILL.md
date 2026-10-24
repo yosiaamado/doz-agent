@@ -123,6 +123,7 @@ TOTAL VISITS              ← label 12px, grey, uppercase optional
 - Animate only `transform` and `opacity`. Don't animate `width`, `height`, or `top`.
 - Motion explains origin: a dropdown grows out of its trigger, a modal rises slightly, rather than popping into existence in the middle.
 - Respect `prefers-reduced-motion: reduce`.
+- Anything the user can drag, swipe or throw follows `apple-design` (springs, velocity, interruptibility) instead of these fixed durations.
 
 ## 9. The touches that make it look "expensive"
 
