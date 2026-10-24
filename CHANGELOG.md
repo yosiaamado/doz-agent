@@ -9,6 +9,18 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [2.5.0] - 2026-10-25
+
+Source: a user request to turn the dashboard reels of [@code.xr](https://www.instagram.com/code.xr/) into a skill for `frontend-engineer`. Reviewed by stepping through frames of Dashboard V14, V15 (Ember and Fluentis), V16, V18 and 3D Dashboard + AI; V1–V13 and V17 need an Instagram login and weren't reviewed. The source code isn't public, so nothing is copied and timings are team decisions fitted to the frames. No `claude plugin eval` run yet: additive, on-demand skill.
+
+- `skills/design/dashboard-craft/SKILL.md` (new): persistent shell (floating rail / sliding pill nav), bento canvas with one accent hero card, number styling, six chart patterns with one focal point each, first-load choreography with timings, route change, circular theme reveal and workspace wipe, hover and live-data rules, a traps table (count-up replay, animating height, blur cost, table stagger, screen readers, hydration, reduced motion), 3D scene dashboards, checklist.
+- `skills/design/dashboard-craft/references/recipes.md` (new): Motion variants for the entrance, a count-up that tweens from the previous value, SVG bar/line/ring/gauge draws, hatched bars, Recharts props, `layoutId` nav pill with a persistent shell, View Transitions circular reveal and wipe, hover lift, reduced-motion summary.
+- `skills/design/dashboard-craft/references/source-dashboards.md` (new): what each observed dashboard does well, with links, dated.
+- `agents/frontend-engineer.md`: loads `dashboard-craft` on demand for dashboard/admin/analytics screens; not preloaded, per `CLAUDE.md`.
+- `agents/code-reviewer.md`: loads `dashboard-craft` when the diff has dashboard entrance, chart, route or theme-switch animation.
+- `skills/design/ui-design-taste/SKILL.md` §6: points to `dashboard-craft` for composition and choreography.
+- `plugin.json`, `marketplace.json`, `README.md`: register the skill.
+
 ## [2.4.0] - 2026-10-25
 
 Source: a user request to give `frontend-engineer` an Apple-style design skill built from [emilkowalski/skills — apple-design](https://github.com/emilkowalski/skills/tree/main/skills/apple-design), its [ui-skills.com mirror](https://www.ui-skills.com/skills/emilkowalski/apple-design), and [dickwu/apple-design-skill](https://github.com/dickwu/apple-design-skill), merged into one skill with no duplicate content. Emil's repo is MIT; dickwu's has no license and its `references/hig/` is Apple's HIG text, so everything is rewritten and Apple's text is linked, not copied.

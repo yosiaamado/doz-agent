@@ -70,6 +70,8 @@ A scale you can use straight away (ratio ~1.25):
 
 ## 6. Dashboards: the right anatomy
 
+Single-component anatomy is here. Screen composition (shell, bento grid, hero card, premium chart patterns) and load/route/theme choreography are in `dashboard-craft`.
+
 ### KPI cards
 
 The order is **label → number → change → context**:

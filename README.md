@@ -35,6 +35,7 @@ Skills are grouped by area. The area folder name doesn't affect how they're invo
 | `business-thinking` | product | Idea validation, PRDs, RICE/WSJF, unit economics, pricing, OKRs, A/B tests, build vs buy, UU PDP |
 | `ui-design-taste` | design | Visual taste: hierarchy from space, the 4/8 scale, one accent, KPI/chart/table anatomy, states, motion, template anti-patterns + case studies in `references/` |
 | `apple-design` | design | Apple-grade feel for web, desktop and mobile apps: pointer-down feedback, 1:1 drags, interruptible springs, velocity handoff, momentum projection, rubber-banding, glass on floating chrome only, type tracking, platform conventions, Apple Pay on the web, and an HIG review method. Loaded by `frontend-engineer` only for interactive or native-feeling UI |
+| `dashboard-craft` | design | Dashboards that feel premium: persistent shell (floating rail or sliding pill nav), bento grid with one hero card, spotlight-bar/spline/gauge/ring chart patterns, first-load choreography (shell → surfaces → blur-in text → count-up → chart draw), route change, circular dark-mode reveal, live-data tweening, traps, and Motion recipes in `references/`. Loaded by `frontend-engineer` for dashboard and analytics screens |
 | `rab-kontraktor-advisor` | consultant | Product context for an RAB generator for small contractors: the AHSP/HSPK/SNI standards, BOQ/AACE, and the data & UX patterns of estimating software |
 | `finance-accounting` | consultant | Finance & accounting supervisor/PO for engineers: turns money features into specs (accounting treatment, debit/credit journals, rounding, golden test cases), with a research protocol for current Indonesian rules (PSAK, PPN, PPh, Coretax) and trusted formulas |
 
@@ -55,7 +56,7 @@ doz-agent/
     └── skills/
         ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature, token-audit, run-workflow
         ├── product/             # product-ownership, business-thinking
-        ├── design/              # ui-design-taste, apple-design
+        ├── design/              # ui-design-taste, apple-design, dashboard-craft
         ├── thinking/            # analytical-thinking
         └── consultant/          # rab-kontraktor-advisor, finance-accounting (domain skills per product/client)
 ```
