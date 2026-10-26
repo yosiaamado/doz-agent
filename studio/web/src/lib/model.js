@@ -1,6 +1,7 @@
 // UI logic without React: node type meta, workflow ⇄ React Flow conversion, the run event reducer, and edge colors.
 // Text shown to the user is an i18n key, translated at the render site. The formatters take `t`/`intl` from useI18n().
 import { translate } from '../i18n/index.js';
+import { emptyActivity, reduceActivity } from './activity.js';
 
 const tEn = (key, vars) => translate('en', key, vars);
 
@@ -199,7 +200,10 @@ export function reduceRun(run, ev) {
     }
     case 'activity': {
       const prev = run.nodes[ev.node] ?? { history: [] };
-      next.nodes[ev.node] = { ...prev, activity: ev.text, activityCode: ev.code ?? null, activityParams: ev.params ?? null, model: ev.model ?? prev.model };
+      next.nodes[ev.node] = {
+        ...prev, activity: ev.text, activityCode: ev.code ?? null, activityParams: ev.params ?? null, model: ev.model ?? prev.model,
+        stream: reduceActivity(prev.stream ?? emptyActivity(), ev),
+      };
       if (ev.code) logMsg(`logs.code.${ev.code.toLowerCase().replace(/_/g, '-')}`, ev.params, ev.kind ?? 'activity', ev.text);
       else logItem(ev.text, ev.kind ?? 'activity');
       break;

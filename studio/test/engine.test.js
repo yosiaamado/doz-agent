@@ -149,7 +149,7 @@ test('claude-cli arguments: read-only drops the write tools, the prompt is not i
   assert.equal(args[args.indexOf('--agents') + 1], '/tmp/a.json');
   assert.ok(!args.includes('--permission-mode'));
   assert.ok(!args.join(' ').includes('secret'));
-  assert.match(args[args.indexOf('--allowedTools') + 1], /Bash\(git diff:\*\)/);
+  assert.equal(args[args.indexOf('--allowedTools') + 1], 'Read');
   assert.equal(args[args.indexOf('--model') + 1], 'opus');
   assert.equal(args[args.indexOf('--plugin-dir') + 1], '/p');
 });

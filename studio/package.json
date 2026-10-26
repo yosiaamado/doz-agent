@@ -1,7 +1,7 @@
 {
   "name": "doz-studio",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Visual editor and local runner for doz-agent workflows (plugins/workflows/*.md)",
   "type": "module",
   "engines": {

@@ -1,0 +1,5 @@
+## Office view + restyle  (commit: 84a6042, uncommitted work)
+Flow:  App view 'office' → OfficeView → deriveOffice(lib/office.js) over lib.agentsByName + run (useRuns) + chatsState (useChats); embedded ChatPanel for agent's latest chat
+Files: web/src/lib/office.js · features/office/{OfficeView,AgentCard}.jsx · components/ui/ReconnectBanner.jsx · styles/{tokens,office}.css · test/{web-office,design-tokens}.test.js
+Reuses: ActivityTree (stream), ChatPanel, Segmented (now sets --n/--i for the sliding indicator), events.js subscribeStatus
+Traps: ChatView/ChatList deleted (Office replaced them). Text tokens must stay >= 4.5:1 (test) — use --primary-text for coral text, --on-primary on --primary fills. Keyframes only in tokens/base/canvas.css. Topbar scrolls itself (overflow-x) so the page never scrolls sideways at 360px. Theme reveal = View Transitions in ThemeToggle (flushSync + dataset.theme set inside the callback). Bash heredocs with apostrophes/backticks broke twice: use the Write tool for files.

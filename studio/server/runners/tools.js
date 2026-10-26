@@ -123,8 +123,8 @@ const DEFS = {
     write: true,
     description: 'Run a shell command in the workdir (2 minute timeout).',
     input_schema: { type: 'object', properties: { command: { type: 'string' } }, required: ['command'] },
-    run: async ({ command }, wd) => {
-      const res = await runCommand({ command, workdir: wd, signal: AbortSignal.timeout(BASH_TIMEOUT_MS) });
+    run: async ({ command }, wd, ctx) => {
+      const res = await runCommand({ command, workdir: wd, env: ctx?.shellEnv ?? process.env, signal: AbortSignal.timeout(BASH_TIMEOUT_MS) });
       return `exit ${res.code}\n${clip(res.output)}`;
     },
   },

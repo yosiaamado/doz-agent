@@ -9,7 +9,7 @@
     {
       "name": "doz-agent",
       "source": "./plugins",
-      "description": "9 subagent (product owner, system analyst, QA, security, code review, backend, frontend, devops, demo video) + 17 skills (ship-feature, run-workflow, token-audit, product ownership, engineering workflow, backend/frontend/devops patterns, fe-base, fe-native-feel, fe-dashboard, fe-scroll, demo-video, analytical & business thinking, rab-kontraktor-advisor, finance-accounting)"
+      "description": "10 subagent (technical lead, product owner, system analyst, QA, security, code review, backend, frontend, devops, demo video) + 17 skills (ship-feature, run-workflow, token-audit, product ownership, engineering workflow, backend/frontend/devops patterns, fe-base, fe-native-feel, fe-dashboard, fe-scroll, demo-video, analytical & business thinking, rab-kontraktor-advisor, finance-accounting)"
     }
   ]
 }

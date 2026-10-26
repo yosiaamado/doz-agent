@@ -1,4 +1,4 @@
-.logs { flex: none; display: flex; flex-direction: column; background: var(--panel); border-top: 1px solid var(--border); transition: height .2s var(--ease); }
+.logs { flex: none; display: flex; flex-direction: column; background: var(--panel); border-top: 1px solid var(--border); transition: height var(--dur) var(--ease); }
 .logs.open { height: 320px; }
 .logs-bar { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid var(--border); user-select: none; min-height: 40px; }
 .logs-title { font-weight: 650; }
@@ -18,14 +18,14 @@
 .detail { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .detail-head { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 .detail-title { font-weight: 650; }
-.tabs { margin-left: auto; display: flex; gap: 2px; background: var(--panel-3); border-radius: 8px; padding: 2px; }
+.tabs { margin-left: auto; display: flex; gap: 2px; background: var(--panel-3); border-radius: var(--radius-sm); padding: 2px; }
 .tabs button { border: 0; background: none; padding: 3px 10px; border-radius: 6px; color: var(--muted); font-size: 12px; }
 .tabs button.active { background: var(--panel); color: var(--text); box-shadow: var(--shadow-sm); }
 .detail-body { flex: 1; overflow: auto; padding: 10px 12px; min-height: 0; }
 .subhead { display: flex; align-items: center; gap: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); font-weight: 650; margin: 4px 0 8px; }
-.code-block { margin: 0; font-family: var(--mono); font-size: 12px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; word-break: break-word; }
+.code-block { margin: 0; font-family: var(--mono); font-size: 12px; background: var(--code-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; white-space: pre-wrap; word-break: break-word; }
 .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 14px; }
-.stat { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+.stat { background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; min-width: 0; }
 .stat-label { font-size: 11px; color: var(--muted); }
 .stat-value { font-size: 15px; font-weight: 650; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stat-sub { font-size: 11px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
@@ -45,7 +45,7 @@ button.file-row:hover { background: var(--hover); }
 .fs-added { color: var(--ok); }
 .fs-deleted { color: var(--fail); }
 .fs-modified, .fs-renamed { color: var(--warn); }
-.file-diff { overflow: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--code-bg); min-height: 0; }
+.file-diff { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--code-bg); min-height: 0; }
 .file-diff > .empty { padding: 12px; }
 .diff { font-family: var(--mono); font-size: 12px; min-width: max-content; }
 .diff-file { padding: 6px 10px; background: var(--panel-3); font-weight: 650; position: sticky; top: 0; }
@@ -62,7 +62,7 @@ button.file-row:hover { background: var(--hover); }
 .run-log { padding: 8px 12px; overflow-y: auto; flex: 1; }
 .log-line { display: flex; gap: 10px; padding: 1px 0; }
 .log-time { color: var(--muted); flex: none; opacity: .8; }
-.log-node { color: var(--primary); flex: none; width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-node { color: var(--primary-text); flex: none; width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .log-text { white-space: pre-wrap; word-break: break-word; color: var(--text-2); }
 .k-tool .log-text { color: var(--run-text); }
 .k-status .log-text { color: var(--text); font-weight: 650; }
@@ -71,3 +71,30 @@ button.file-row:hover { background: var(--hover); }
   .logs-body { grid-template-columns: 1fr; }
   .tree { display: none; }
 }
+
+/* Activity tree (runs and chats) */
+.act-tree { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; font-size: 12px; }
+.act-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.act-line { display: flex; gap: 8px; align-items: baseline; font-family: var(--mono); }
+.act-text { min-width: 0; overflow-wrap: anywhere; }
+.act-tag { display: inline-flex; align-items: center; gap: 4px; color: var(--fail-text); font-weight: 600; flex: none; }
+.act-blocked .act-text { color: var(--fail-text); }
+.act-group { border-left: 2px solid var(--border-2); padding-left: 10px; margin: 4px 0; }
+.act-group > .act-list { padding-left: 8px; }
+.act-group-head { display: flex; align-items: center; gap: 6px; width: 100%; border: 0; background: transparent; color: var(--text); text-align: left; padding: 3px 0; min-width: 0; }
+.act-group-head .act-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.act-status { display: inline-flex; align-items: center; gap: 4px; flex: none; color: var(--text-2); }
+.act-running > .act-group-head .act-status { color: var(--run-text); }
+.act-done > .act-group-head .act-status { color: var(--ok-text); }
+.act-failed > .act-group-head .act-status { color: var(--fail-text); }
+.act-todos { border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel-2); padding: 8px 10px; }
+.act-todos-head { font-weight: 600; margin-bottom: 4px; }
+.act-todo { display: flex; align-items: center; gap: 6px; color: var(--text-2); }
+.act-todo-in_progress { color: var(--run-text); font-weight: 600; }
+.act-todo-completed { color: var(--muted); text-decoration: line-through; }
+.act-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.act-chip { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: var(--radius-pill); background: var(--panel-3); color: var(--text-2); }
+.act-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.act-mcp-bad .act-dot { background: var(--fail); }
+.act-mcp-bad { color: var(--fail-text); }
+.act-ratelimit { display: flex; align-items: center; gap: 6px; color: var(--warn-text); }

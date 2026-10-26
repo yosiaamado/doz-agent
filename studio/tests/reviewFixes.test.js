@@ -12,7 +12,9 @@ import { normalize } from '../server/domain/workflow.js';
 import { buildNodePrompt, buildJudgePrompt, truncate, VERDICT_INSTRUCTION } from '../server/domain/prompt.js';
 import { createRunService } from '../server/services/runService.js';
 import { snapshot } from '../server/infra/gitdiff.js';
-import { setInjectedApiKey } from '../server/lib/secretEnv.js';
+import { createConfigStore } from '../server/infra/configStore.js';
+import { createProfileStore, migrateProfiles } from '../server/infra/profileStore.js';
+import { createProfileService } from '../server/services/profileService.js';
 import { buildManifest, makeEnvironment, startPayloadServer, rejectsWith } from './updateFixture.js';
 
 const quiet = { info() {}, warn() {}, error() {} };
@@ -84,7 +86,7 @@ test('CR-3: hasActive counts a terminal run that is still fresh, and ignores sta
 });
 
 // ---- CR-4
-test('CR-4: the git snapshot does not carry the studio API key into the user repo hooks', { skip: process.platform === 'win32' && !fs.existsSync('C:\\Program Files\\Git\\bin\\sh.exe') && 'needs sh to run the hook' }, async () => {
+test('CR-4: a key saved in the studio never reaches the git hooks of the user repo', { skip: process.platform === 'win32' && !fs.existsSync('C:\\Program Files\\Git\\bin\\sh.exe') && 'needs sh to run the hook' }, async () => {
   const dir = tempDir();
   execFileSync('git', ['init', '-q'], { cwd: dir });
   execFileSync('git', ['-c', 'user.name=a', '-c', 'user.email=a@b', 'commit', '--allow-empty', '-qm', 'x'], { cwd: dir });
@@ -92,15 +94,15 @@ test('CR-4: the git snapshot does not carry the studio API key into the user rep
   const seen = path.join(dir, 'seen.txt');
   const out = seen.split(path.sep).join('/');
   fs.writeFileSync(path.join(dir, '.git', 'hooks', 'post-index-change'), `#!/bin/sh\necho "KEY=$ANTHROPIC_API_KEY" >> "${out}"\n`, { mode: 0o755 });
+  const store = createConfigStore(path.join(tempDir(), 'config.json'));
+  migrateProfiles(store);
+  createProfileService({ store: createProfileStore({ store, codec: null, logger: quiet }) }).setKey('default', { key: 'sk-ant-SECRET-0123456789', remember: true });
   const previous = process.env.ANTHROPIC_API_KEY;
-  process.env.ANTHROPIC_API_KEY = 'sk-ant-SECRET';
-  setInjectedApiKey('sk-ant-SECRET');
+  delete process.env.ANTHROPIC_API_KEY;
   try {
     await snapshot(dir);
   } finally {
-    setInjectedApiKey(null);
-    if (previous === undefined) delete process.env.ANTHROPIC_API_KEY;
-    else process.env.ANTHROPIC_API_KEY = previous;
+    if (previous !== undefined) process.env.ANTHROPIC_API_KEY = previous;
   }
   if (!fs.existsSync(seen)) return; // an older git without the post-index-change hook: nothing to observe
   const text = fs.readFileSync(seen, 'utf8');

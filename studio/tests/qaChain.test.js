@@ -26,11 +26,11 @@ function fx() {
 test('chain: .local.json plain → app-data plain (no codec) → encrypted (codec), repeated twice, the rest of the contents intact', () => {
   const f = fx();
   fs.writeFileSync(path.join(f.studio, '.local.json'), JSON.stringify({ workdir: path.join(f.root, 'work'), anthropicApiKey: KEY, setup: { done: true } }));
-  assert.equal(f.mk(null).savedApiKey(), KEY);
+  assert.equal(f.mk(null).profiles.getKey('default'), KEY);
   assert.ok(f.cfgRaw().includes(KEY), 'without a codec it is still plain (a known limitation)');
   for (let i = 0; i < 2; i++) {
     const c = f.mk(codec);
-    assert.equal(c.savedApiKey(), KEY, `round ${i}`);
+    assert.equal(c.profiles.getKey('default'), KEY, `round ${i}`);
     assert.ok(!f.cfgRaw().includes(KEY), `round ${i}: the plain text is gone from config.json`);
     assert.equal(JSON.parse(f.cfgRaw()).setup.done, true);
   }
@@ -39,7 +39,7 @@ test('chain: .local.json plain → app-data plain (no codec) → encrypted (code
 test('chain: a plain key in the legacy .local.json is not left on disk after the encrypted migration', () => {
   const f = fx();
   fs.writeFileSync(path.join(f.studio, '.local.json'), JSON.stringify({ anthropicApiKey: KEY }));
-  f.mk(codec).savedApiKey();
+  f.mk(codec).profiles.getKey('default');
   const legacy = fs.readFileSync(path.join(f.studio, '.local.json'), 'utf8');
   assert.ok(!legacy.includes(KEY), 'the plain key is still in studio/.local.json');
 });
@@ -47,10 +47,10 @@ test('chain: a plain key in the legacy .local.json is not left on disk after the
 test('chain: an encrypted key opened without a codec does not crash and does not delete the ciphertext', () => {
   const f = fx();
   const c = f.mk(codec);
-  c.saveApiKey(KEY);
+  c.profiles.setKey('default', KEY);
   const plainMode = f.mk(null);
-  assert.equal(plainMode.savedApiKey(), null);
-  assert.equal(f.mk(codec).savedApiKey(), KEY);
+  assert.equal(plainMode.profiles.getKey('default'), null);
+  assert.equal(f.mk(codec).profiles.getKey('default'), KEY);
 });
 
 // --- run history in the legacy format ---

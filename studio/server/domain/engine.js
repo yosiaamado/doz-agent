@@ -5,7 +5,7 @@
 //   Every incoming edge inactive → the node is skipped (the branch the condition did not pick).
 // - condition/approval picks the `when: true` or `when: false` edge.
 // - An edge with `loop: N` replays the target node plus every node below it, at most N times.
-import { BRANCHING_TYPES, WORK_TYPES, ancestors, chosenEdges, downstream, incoming, readyNodes } from './graph.js';
+import { BRANCHING_TYPES, WORK_TYPES, ancestors, chosenEdges, downstream, incoming, outgoing, readyNodes } from './graph.js';
 import { EXECUTORS } from './executors.js';
 import { CodedError, codeOf } from '../lib/errors.js';
 
@@ -18,12 +18,14 @@ const RESET_FIELDS = {
 
 export class WorkflowRun {
   // tracker: { snapshot(workdir), changes(workdir, base, head) } used to compute the files each node changed.
-  constructor({ id, wf, agents, actions = [], input, workdir, runners, emit, tracker = null }) {
+  constructor({ id, wf, agents, actions = [], input, workdir, runners, emit, tracker = null, spawn = null }) {
     this.id = id;
     this.wf = wf;
     this.agents = Object.fromEntries(agents.map((a) => [a.name, a]));
     this.actions = Object.fromEntries(actions.map((a) => [a.name, a]));
     this.tracker = tracker;
+    // SpawnContext (child-process environments, may hold a key): kept off every emitted event.
+    this.spawn = spawn;
     this.input = input;
     this.workdir = workdir;
     this.runners = runners;
@@ -176,7 +178,9 @@ export class WorkflowRun {
 
   async execute(node, signal) {
     const startedAt = Date.now();
-    this.setNode(node.id, { ...RESET_FIELDS, status: 'running', startedAt });
+    const next = [...new Map(outgoing(this.wf, node.id).filter((e) => this.nodes[e.to])
+      .map((e) => [e.to, { id: e.to, label: this.nodes[e.to].label || e.to }])).values()];
+    this.setNode(node.id, { ...RESET_FIELDS, status: 'running', startedAt, agent: node.agent ?? null, label: node.label || node.id, next });
     this.touched = { ...this.touched, [node.id]: [] };
     const tracked = WORK_TYPES.has(node.type) && this.tracker;
     const base = tracked ? await this.tracker.snapshot(this.workdir).catch(() => null) : null;

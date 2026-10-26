@@ -9,13 +9,16 @@ export function assertLocalRequest(req) {
   if (!LOCAL_HOSTS.has(host)) throw forbidden('Only localhost may access this server', { code: 'LOCAL_ONLY' });
   const origin = req.headers.origin;
   if (!origin) return;
-  let hostname;
+  let parsed;
   try {
-    hostname = new URL(origin).hostname;
+    parsed = new URL(origin);
   } catch {
     throw forbidden('Invalid origin', { code: 'ORIGIN_INVALID' });
   }
-  if (!LOCAL_HOSTS.has(hostname)) throw forbidden('Origin not allowed', { code: 'ORIGIN_FORBIDDEN' });
+  // Another local program on a different port is a different origin, so only this server's own port (or the Vite dev port) passes.
+  const port = Number(parsed.port || (parsed.protocol === 'https:' ? 443 : 80));
+  const allowed = [req.socket?.localPort, Number(process.env.DOZ_STUDIO_DEV_PORT) || null];
+  if (!LOCAL_HOSTS.has(parsed.hostname) || !allowed.includes(port)) throw forbidden('Origin not allowed', { code: 'ORIGIN_FORBIDDEN' });
 }
 
 export function isLocalRequest(req) {

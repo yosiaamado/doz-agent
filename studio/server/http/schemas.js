@@ -68,6 +68,20 @@ export const gitIdentityBody = z.object({
 
 export const claudeLoginBody = z.object({ console: z.boolean().default(false) });
 
+// --- Profiles (S1) ---
+const profileName = z.string().trim().min(1).max(40);
+const profileConfigDir = z.string().min(1).max(4096);
+export const profileCreateBody = z.object({ name: profileName, configDir: profileConfigDir });
+export const profileUpdateBody = z.object({ name: profileName.optional(), configDir: profileConfigDir.optional() })
+  .refine((b) => b.name !== undefined || b.configDir !== undefined, 'nothing to update');
+export const profileActiveBody = z.object({ id: z.string().min(1).max(64) });
+export const profileLoginBody = claudeLoginBody;
+
+// --- Chat (S3) ---
+export const chatCreateBody = z.object({ agent: z.string().min(1).max(64), allowEdits: z.boolean().default(false) });
+export const chatMessageBody = z.object({ text: z.string().max(100_000) });
+export const chatUpdateBody = z.object({ allowEdits: z.boolean() });
+
 // slot S5 (filled): the update schemas live in the "One-click update" block below
 
 // --- One-click update (S5) ---

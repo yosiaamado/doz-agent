@@ -6,7 +6,7 @@ import { badRequest } from '../lib/errors.js';
 import { logger as defaultLogger } from '../lib/logger.js';
 import { detectRuntimePaths, resolveWebDist, seedPlugins } from './runtimePaths.js';
 import { createConfigStore, migrateLegacyFiles } from './configStore.js';
-import { createApiKeyStore } from './apiKeyStore.js';
+import { createProfileStore, migrateProfiles } from './profileStore.js';
 
 export const SOURCE_KINDS = Object.freeze(['agents', 'skills', 'actions', 'workflows']);
 
@@ -58,8 +58,9 @@ export function createConfig({ argv = process.argv, env = process.env, localFile
 
   const store = createConfigStore(configFile);
   const saved = store.read();
-  const apiKeys = createApiKeyStore({ store, codec: secretCodec, logger });
-  if (secretCodec) apiKeys.get(); // a legacy plain-text key is encrypted immediately on first open under Electron
+  migrateProfiles(store, logger);
+  const profiles = createProfileStore({ store, codec: secretCodec, logger });
+  if (secretCodec) for (const p of profiles.list()) profiles.getKey(p.id); // a plain-text key is encrypted immediately on first open under Electron
   let workdir = path.resolve(argValue(argv, '--workdir') ?? env.DOZ_WORKDIR ?? saved.workdir ?? env.INIT_CWD ?? process.cwd());
   let sources = normalizeSources({ ...DEFAULT_SOURCES, ...(saved.sources ?? {}) });
 
@@ -93,11 +94,8 @@ export function createConfig({ argv = process.argv, env = process.env, localFile
       store.merge({ workdir: abs });
       return abs;
     },
-    // The API key from the Setup wizard: encrypted through secretCodec when available, otherwise plain text (see apiKeyStore.js).
-    savedApiKey: () => apiKeys.get(),
-    saveApiKey: (key) => apiKeys.set(key),
-    // 'none' | 'saved' | 'unreadable' (ciphertext exists but cannot be decrypted in this session; never deleted automatically)
-    apiKeyState: () => apiKeys.state(),
+    // Claude account profiles and their API keys: encrypted through secretCodec when available, otherwise plain text (see apiKeyStore.js).
+    profiles,
     setupState: () => store.read().setup ?? {},
     saveSetupState: (state) => store.merge({ setup: { ...(store.read().setup ?? {}), ...state } }),
     // Raw config.json access for other modules (e.g. update.endpoint).
@@ -122,6 +120,7 @@ export function createConfig({ argv = process.argv, env = process.env, localFile
       return resolveSource(first);
     },
     runsDir: () => path.join(workdir, '.doz-studio', 'runs'),
+    chatsDir: () => path.join(workdir, '.doz-studio', 'chats'),
     attachmentsDir: () => path.join(workdir, '.doz-studio', 'attachments'),
     usageFile,
   };

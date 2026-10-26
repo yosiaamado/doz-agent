@@ -5,7 +5,7 @@ import { shortName } from '../lib/paths.js';
 import { workdirBody, sourcesBody, folderQuery } from '../http/schemas.js';
 import fs from 'node:fs';
 
-export function registerSystemRoutes(router, { config, runLog, runnerStatus, folders, usage, contentVersion }) {
+export function registerSystemRoutes(router, { config, runLog, chatRepo, runnerStatus, folders, usage, contentVersion }) {
   const status = async () => ({
     workdir: config.getWorkdir(),
     workdirName: shortName(config.getWorkdir()),
@@ -31,6 +31,7 @@ export function registerSystemRoutes(router, { config, runLog, runnerStatus, fol
     .post('/api/workdir', async ({ body }) => {
       const dir = config.setWorkdir(workdirBody.parse(body).path);
       runLog.watch(config.runsDir());
+      chatRepo.watch(config.chatsDir());
       return { ...(await status()), workdir: dir };
     })
     .get('/api/sources', () => sourcesInfo())

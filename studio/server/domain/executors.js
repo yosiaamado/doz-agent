@@ -37,7 +37,7 @@ export async function runAgent(ctx, node, signal) {
     infos: ctx.infoFor(node.id),
     feedback: ctx.feedback[node.id] ?? null,
   });
-  const opts = { node, agent, settings, prompt, workdir: ctx.workdir };
+  const opts = { node, agent, settings, prompt, workdir: ctx.workdir, env: ctx.spawn?.cliEnv, shellEnv: ctx.spawn?.shellEnv, profileId: ctx.spawn?.profileId };
   const command = runner.describe?.(opts);
   const attempts = Math.max(0, Number(settings.retry) || 0) + 1;
   let lastErr = null;
@@ -64,7 +64,7 @@ export async function runAction(ctx, node, signal) {
   ctx.setNode(node.id, { command });
   ctx.emit({ type: 'activity', node: node.id, kind: 'tool', tool: 'Shell', text: `$ ${command}` });
   const res = await withTimeout(timeout, signal, (s) => runCommand({
-    command, workdir: ctx.workdir, signal: s,
+    command, workdir: ctx.workdir, signal: s, env: ctx.spawn?.shellEnv ?? process.env,
     onLine: (line) => ctx.emit({ type: 'activity', node: node.id, kind: 'text', text: line }),
   }));
   return { output: `$ ${command}\n(exit ${res.code})\n\n${res.output}`, verdict: res.code === 0, exitCode: res.code };
@@ -89,7 +89,7 @@ export async function evaluateCondition(ctx, node, signal) {
   const runner = requireRunner(ctx, settings.runner);
   ctx.emit({ type: 'activity', node: node.id, kind: 'text', text: `Judging: ${node.check}`, code: 'ACTIVITY_JUDGING', params: { check: node.check } });
   const prompt = buildJudgePrompt({ question: node.check, subject: ctx.state[sourceId]?.output ?? '' });
-  const res = await withTimeout(settings.timeout_min, signal, (s) => runner.judge({ prompt, settings, workdir: ctx.workdir, signal: s }));
+  const res = await withTimeout(settings.timeout_min, signal, (s) => runner.judge({ prompt, settings, workdir: ctx.workdir, signal: s, env: ctx.spawn?.cliEnv, profileId: ctx.spawn?.profileId }));
   ctx.addCost(res.cost);
   const verdict = parseVerdict(res.output);
   if (verdict === null) throw new CodedError('The judge did not return a VERDICT', 'JUDGE_NO_VERDICT');

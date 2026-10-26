@@ -11,7 +11,7 @@ function newRunId() {
 
 const EXTERNAL_RUN_FRESH_MS = 10 * 60 * 1000;
 
-export function createRunService({ config, components, workflows, attachments, runLog, runners, tracker }) {
+export function createRunService({ config, components, workflows, attachments, runLog, runners, tracker, profiles = null }) {
   const activeRun = (id) => {
     const run = runLog.runs.get(id)?.run;
     if (!run) throw notFound('The run is not active in this studio', { code: 'RUN_NOT_ACTIVE' });
@@ -25,6 +25,8 @@ export function createRunService({ config, components, workflows, attachments, r
     // so a run that crashed without a run_end does not block updates forever.
     hasActive: (now = Date.now()) => [...runLog.runs.values()].some((r) => r.status === 'running'
       && (r.run || now - (r.events.at(-1)?.ts ?? r.started) < EXTERNAL_RUN_FRESH_MS)),
+    // Runs started by this studio (not terminal runs): these hold a profile's environment, so switching profiles must wait.
+    hasStudioActive: () => [...runLog.runs.values()].some((r) => r.status === 'running' && r.run),
     events(id) {
       const events = runLog.events(id);
       if (!events) throw notFound('Run not found', { code: 'RUN_NOT_FOUND' });
@@ -43,6 +45,7 @@ export function createRunService({ config, components, workflows, attachments, r
         workdir: config.getWorkdir(),
         runners,
         tracker,
+        spawn: profiles?.spawnContext() ?? null,
         emit: (ev) => runLog.record({ source: 'studio', ...ev }),
       });
       runLog.create(id, wf.name, run);

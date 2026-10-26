@@ -11,6 +11,9 @@ import { createStaticHandler } from './http/static.js';
 import { createSocketHub } from './http/socket.js';
 import { createComponentRepository } from './repositories/componentRepository.js';
 import { RunRegistry } from './repositories/runLogRepository.js';
+import { ChatRegistry } from './repositories/chatRepository.js';
+import { createChatService } from './services/chatService.js';
+import { registerChatRoutes } from './routes/chatRoutes.js';
 import { createWorkflowService } from './services/workflowService.js';
 import { createRunService } from './services/runService.js';
 import { createUsageService } from './services/usageService.js';
@@ -18,7 +21,7 @@ import { createFolderService } from './services/folderService.js';
 import { createAttachmentService } from './services/attachmentService.js';
 import { createGitService } from './services/gitService.js';
 import { logger } from './lib/logger.js';
-import { setInjectedApiKey } from './lib/secretEnv.js';
+import { createProfileService } from './services/profileService.js';
 import { createSetupService } from './services/setupService.js';
 import { createClaudeCliRunner, claudeVersion } from './runners/claude-cli.js';
 import { createApiRunner, apiAvailable, testApiConnection, resetClient } from './runners/api.js';
@@ -27,61 +30,68 @@ import { registerLibraryRoutes } from './routes/libraryRoutes.js';
 import { registerRunRoutes } from './routes/runRoutes.js';
 import { registerGitRoutes } from './routes/gitRoutes.js';
 import { registerSetupRoutes } from './routes/setupRoutes.js';
+import { registerProfileRoutes } from './routes/profileRoutes.js';
 import { registerUpdateRoutes } from './routes/updateRoutes.js';
 import { createUpdateService } from './services/updateService.js';
 
 function createRunners({ config, components, usage }) {
-  const cli = createClaudeCliRunner({ pluginDir: config.pluginDir, onRateLimit: (info) => usage.recordRateLimit(info) });
+  const cli = createClaudeCliRunner({ pluginDir: config.pluginDir, onRateLimit: (info, profileId) => usage.recordRateLimit(info, profileId) });
   const api = createApiRunner({ listSkills: () => components.list('skills').filter((s) => !s.shadowed) });
   return { 'claude-cli': cli, api };
 }
 
-function createRunnerStatus() {
+function createRunnerStatus(profiles) {
   const version = claudeVersion();
-  return () => ({
-    'claude-cli': { available: Boolean(version), detail: version ?? 'the `claude` command was not found in PATH', ...(version ? {} : { code: 'CLAUDE_CLI_MISSING' }) },
-    api: { available: apiAvailable(), detail: apiAvailable() ? 'ANTHROPIC_API_KEY is set' : 'set ANTHROPIC_API_KEY before starting studio', code: apiAvailable() ? 'API_KEY_PRESENT' : 'API_KEY_NOT_SET' },
-  });
+  return () => {
+    const available = apiAvailable(profiles.spawnContext().cliEnv);
+    return {
+      'claude-cli': { available: Boolean(version), detail: version ?? 'the `claude` command was not found in PATH', ...(version ? {} : { code: 'CLAUDE_CLI_MISSING' }) },
+      api: { available, detail: available ? 'ANTHROPIC_API_KEY is set' : 'set ANTHROPIC_API_KEY before starting studio', code: available ? 'API_KEY_PRESENT' : 'API_KEY_NOT_SET' },
+    };
+  };
 }
 
 export function createApp(options = {}) {
   // secretCodec: { encrypt(plain) → string, decrypt(cipher) → string } from Electron safeStorage; absent under `npm start`.
   const config = options.config ?? createConfig({ secretCodec: options.secretCodec });
-  // The API key saved through the wizard is used when the environment does not already provide one.
-  if (!process.env.ANTHROPIC_API_KEY) {
-    const saved = config.savedApiKey();
-    if (saved) {
-      process.env.ANTHROPIC_API_KEY = saved;
-      setInjectedApiKey(saved);
-    }
-  }
   const components = createComponentRepository(config);
+  const server = http.createServer();
+  const hub = createSocketHub(server);
+  // The studio's own runs hold a profile's environment, so a switch has to wait for them (`runs` is assigned below).
+  const profiles = createProfileService({ store: config.profiles, broadcast: hub.broadcast, isBusy: () => runs.hasStudioActive() || chats.hasActive(), isInUse: (id) => chatRepo.references(id) });
   // probe is called when the user hits refresh, after `runners` has been built.
   const usage = createUsageService({
     usageFile: config.usageFile,
-    probe: () => runners['claude-cli'].judge({ prompt: 'Reply: ok', settings: { model: 'haiku' }, workdir: config.getWorkdir(), signal: new AbortController().signal }),
+    profiles,
+    probe: () => {
+      const spawn = profiles.spawnContext();
+      return runners['claude-cli'].judge({ prompt: 'Reply: ok', settings: { model: 'haiku' }, workdir: config.getWorkdir(), signal: new AbortController().signal, env: spawn.cliEnv, profileId: spawn.profileId });
+    },
   });
   const runners = options.runners ?? createRunners({ config, components, usage });
 
-  const server = http.createServer();
-  const hub = createSocketHub(server);
   const runLog = new RunRegistry({ broadcast: hub.broadcast });
   runLog.watch(config.runsDir());
 
   const workflows = createWorkflowService({ config, components });
   const attachments = createAttachmentService(config);
-  const runs = createRunService({ config, components, workflows, attachments, runLog, runners, tracker: { snapshot, changes } });
+  const runs = createRunService({ config, components, workflows, attachments, runLog, runners, tracker: { snapshot, changes }, profiles });
+  const chatRepo = new ChatRegistry({ broadcast: hub.broadcast, isActive: (id) => chats.isActive(id), hasProfile: (id) => Boolean(config.profiles.get(id)) });
+  chatRepo.watch(config.chatsDir());
+  const chats = createChatService({ config, components, profiles, chatRepo, runner: runners['claude-cli'] });
   const folders = createFolderService(config);
 
   const router = new Router();
-  const update = createUpdateService({ config, isRunActive: () => runs.hasActive() });
-  registerSystemRoutes(router, { config, runLog, runnerStatus: options.runnerStatus ?? createRunnerStatus(), folders, usage, contentVersion: update.contentVersion });
+  const update = createUpdateService({ config, isRunActive: () => runs.hasActive() || chats.hasActive() });
+  registerSystemRoutes(router, { config, runLog, chatRepo, runnerStatus: options.runnerStatus ?? createRunnerStatus(profiles), folders, usage, contentVersion: update.contentVersion });
   registerLibraryRoutes(router, { components, workflows });
   registerRunRoutes(router, { config, runs, attachments });
   registerGitRoutes(router, { git: createGitService(config) });
   registerSetupRoutes(router, {
-    setup: createSetupService({ config, apiRunner: { testApiConnection, resetClient }, claudeRunner: runners['claude-cli'] }),
+    setup: createSetupService({ config, apiRunner: { testApiConnection, resetClient }, claudeRunner: runners['claude-cli'], profiles }),
   });
+  registerProfileRoutes(router, { profiles });
+  registerChatRoutes(router, { chats });
   registerUpdateRoutes(router, { update });
 
   // The web update overlay (S5) is checked per request, so new assets are served immediately without a restart.

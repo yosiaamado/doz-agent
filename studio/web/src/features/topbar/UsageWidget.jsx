@@ -71,7 +71,7 @@ function UsagePopover({ data, refreshing, onRefresh }) {
   );
 }
 
-export default function UsageWidget() {
+export default function UsageWidget({ profileKey = null }) {
   const { t } = useI18n();
   const [data, setData] = useState(null);
   const [open, setOpen] = useState(false);
@@ -89,6 +89,8 @@ export default function UsageWidget() {
     return () => clearInterval(timer);
   }, [load]);
   useEffect(() => { if (open) load(); }, [open, load]);
+  // Usage belongs to the active profile: reload as soon as it changes.
+  useEffect(() => { if (profileKey) load(); }, [profileKey, load]);
 
   const refresh = async () => {
     setRefreshing(true);

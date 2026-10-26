@@ -1,7 +1,6 @@
 // Claude Code usage: the 5-hour / 7-day limits (from the rate_limit_event that `claude -p` emits) and
 // the local token totals (from the transcripts in ~/.claude/projects/**/*.jsonl).
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
 
@@ -57,33 +56,39 @@ export function summarizeRows(rows, now = Date.now()) {
   }));
 }
 
-export function createUsageService({ usageFile, projectsDir = path.join(os.homedir(), '.claude', 'projects'), probe } = {}) {
-  let cache = { at: 0, local: null };
+// Legacy usage.json was `{ updatedAt, info }` for the single account; it is read as the default profile.
+const byProfileOf = (saved) => saved?.byProfile ?? (saved?.info ? { default: { updatedAt: saved.updatedAt, info: saved.info } } : {});
 
-  const localUsage = async () => {
-    if (cache.local && Date.now() - cache.at < CACHE_MS) return cache.local;
+export function createUsageService({ usageFile, profiles, probe } = {}) {
+  const cache = new Map();
+
+  const localUsage = async (profileId, projectsDir) => {
+    const hit = cache.get(profileId);
+    if (hit && hit.projectsDir === projectsDir && Date.now() - hit.at < CACHE_MS) return hit.local;
     const since = Date.now() - WINDOWS.seven_day;
     const seen = new Set();
     const rows = (await Promise.all(transcriptFiles(projectsDir, since).map((f) => scanTranscript(f, since, seen)))).flat();
     const local = summarizeRows(rows);
-    cache = { at: Date.now(), local };
+    cache.set(profileId, { at: Date.now(), local, projectsDir });
     return local;
   };
 
   return {
-    // Called by the runner every time Claude Code sends rate limit information.
-    recordRateLimit(info) {
-      fs.writeFileSync(usageFile, JSON.stringify({ updatedAt: Date.now(), info }, null, 2));
+    // Called by the runner every time Claude Code sends rate limit information; the limits belong to the account that was used.
+    recordRateLimit(info, profileId = 'default') {
+      const byProfile = { ...byProfileOf(readJson(usageFile)), [profileId]: { updatedAt: Date.now(), info } };
+      fs.writeFileSync(usageFile, JSON.stringify({ byProfile }, null, 2));
     },
     async summary() {
-      const saved = readJson(usageFile);
-      return { limits: saved?.info ?? null, limitsUpdatedAt: saved?.updatedAt ?? null, local: await localUsage(), projectsDir };
+      const { profileId, projectsDir } = profiles.spawnContext();
+      const saved = byProfileOf(readJson(usageFile))[profileId];
+      return { limits: saved?.info ?? null, limitsUpdatedAt: saved?.updatedAt ?? null, local: await localUsage(profileId, projectsDir), projectsDir, profileId };
     },
     // A small call to Claude Code (haiku, 1 turn) purely to obtain the latest rate_limit_event.
     async refresh() {
       if (!probe) throw new Error('refresh is not available');
       await probe();
-      cache = { at: 0, local: null };
+      cache.clear();
       return this.summary();
     },
   };

@@ -8,6 +8,7 @@ import { WorkflowRun } from '../server/domain/engine.js';
 import { normalize } from '../server/domain/workflow.js';
 import { createConfig } from '../server/infra/config.js';
 import { createSetupService } from '../server/services/setupService.js';
+import { createProfileService } from '../server/services/profileService.js';
 import { createFolderService } from '../server/services/folderService.js';
 import { startServer } from '../server/app.js';
 
@@ -29,7 +30,7 @@ const fakeApiRunner = { testApiConnection: async () => ({ model: 'm', reply: 'ok
 test('/api/setup: every item carries English text; the items we author carry a code, and repo uses target', async () => {
   const tmp = tempDir('doz-msg-');
   const config = packagedConfig(tmp);
-  const setup = createSetupService({ config, apiRunner: fakeApiRunner, claudeRunner: {} });
+  const setup = createSetupService({ config, apiRunner: fakeApiRunner, claudeRunner: {}, profiles: createProfileService({ store: config.profiles }) });
   const res = await setup.check();
   for (const key of ['node', 'claude', 'claudeAuth', 'plugin', 'apiKey', 'git', 'repo', 'project']) {
     const item = res[key];
@@ -50,7 +51,7 @@ test('setup.test: both the success and the error results carry code + params', a
   const previous = process.env.ANTHROPIC_API_KEY;
   process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
   try {
-    const setup = createSetupService({ config, apiRunner: fakeApiRunner, claudeRunner: { judge: async () => ({ output: 'ok', cost: 0 }) } });
+    const setup = createSetupService({ config, apiRunner: fakeApiRunner, claudeRunner: { judge: async () => ({ output: 'ok', cost: 0 }) }, profiles: createProfileService({ store: config.profiles }) });
     const api = await setup.test('api');
     assert.deepEqual([api.code, api.params.model, api.params.ms], ['TEST_API_OK', 'm', 1]);
     const cli = await setup.test('claude-cli');

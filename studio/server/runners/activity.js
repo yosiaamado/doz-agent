@@ -14,3 +14,12 @@ export function touchedFile(name, input = {}, workdir = '') {
   if (!p) return undefined;
   return String(p).startsWith(`${workdir}/`) ? String(p).slice(workdir.length + 1) : String(p);
 }
+
+export const SUBAGENT_TOOLS = new Set(['Task', 'Agent']);
+
+export const describeSkill = (input = {}) => input.skill ?? input.command ?? null;
+
+export const todoSummary = (todos = []) => `Todo ${todos.filter((t) => t?.status === 'completed').length}/${todos.length}`;
+
+// In -p mode an unapproved tool call comes back as an is_error tool_result worded like this.
+export const isPermissionDenial = (text) => /permission|haven't granted|not allowed|denied/i.test(String(text ?? ''));

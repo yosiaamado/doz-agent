@@ -9,6 +9,25 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [3.1.0] - 2026-10-26
+
+Source: a user request (via `ship-feature`) to rework studio's look with the fe skills, add a `technical-lead` agent that supervises and breaks down work (based on research into what tech leads do: staffeng.com archetypes, Thoughtworks on first-time tech leads and *Talking with Tech Leads*, Google eng-practices review standard, PostHog on tech-lead failure modes), make studio a "virtual office" where any agent can be chatted with and each agent's live activity is visible, visualize Claude Code's own features, support several Claude accounts as switchable profiles, and ship it all in the desktop app. Spec: `docs/specs/studio-office.md`. Verified by code review (BE and FE), security review and QA with an integration test against a fake `claude`; two fix rounds. Studio goes to 2.1.0.
+
+### Plugin
+
+- `agents/technical-lead.md` (new): opus/high, read-only, `maxTurns` 25 with a 17-call checkpoint. Three modes: breakdown (vertical slices with owner agent, files, interfaces, tests, order, checkpoints, risks with intervene signals), supervise (approach review, blocker/nit labels, next step), and questions about how the agents and skills fit together. Holds the team roster table. Doesn't delegate on its own.
+- `plugin.json` (3.1.0), `marketplace.json`, `README.md`: list `technical-lead` (10 subagents).
+
+### Studio 2.1.0
+
+- Profiles (`server/infra/profileStore.js`, `server/lib/spawnEnv.js`, `server/services/profileService.js`, `server/routes/profileRoutes.js`, `web/src/features/profiles/`, `features/topbar/ProfileSwitcher.jsx`, `hooks/useProfiles.js`): each profile is its own `CLAUDE_CONFIG_DIR` with an optional encrypted API key; every child process gets an env built for its profile, and non-default profiles drop every inherited account variable. `process.env` is no longer written (`server/lib/secretEnv.js` removed). Usage and limits are per profile. Switching is blocked while work runs (409), and a folder can't be re-pointed while chats use it (`PROFILE_IN_USE`). The legacy single key migrates into the default profile; **downgrading to 2.0.0 loses the saved key**. A saved default-profile key now wins over a shell `ANTHROPIC_API_KEY`.
+- Stream visibility (`server/runners/stream.js`, `web/src/lib/activity.js`, `features/logs/ActivityTree.jsx`): subagent calls are no longer dropped; they nest under their parent with their own tools, alongside Skill loads, todos, blocked tools, rate limits and session init (model, MCP servers, key source).
+- Chat (`server/repositories/chatRepository.js`, `server/services/chatService.js`, `server/routes/chatRoutes.js`, `web/src/hooks/useChats.js`, `features/chat/`): chat with any agent, continued with `--resume`. Read-only by default (`--permission-mode dontAsk`, `--setting-sources user`, `--strict-mcp-config`, write/Bash/web/Task tools disallowed); "Allow edits" adds file edits only. Planted chat files in a cloned workdir can't grant edits or inject session ids. Deleting a chat keeps the Claude transcript.
+- Office (`web/src/features/office/`, `web/src/lib/office.js`, `components/ui/ReconnectBanner.jsx`): agent roster with live status, activity, next node, todos, nested subagents, per-agent chat history.
+- Restyle (`web/src/styles/*`): tokenized 4/8 spacing, 6/12/16 radii, one accent with ≥ 4.5:1 contrast in both themes, glass only on floating chrome with fallbacks, CSS-only entrance and theme-reveal motion with reduced-motion support; no new dependency.
+- Hardening found in review: the server's Origin check is pinned to its own port (`scripts/dev.js` allows Vite's 5317); read-only pipeline agents no longer get git Bash prefixes (`git log --output` could write files); the api runner's bash tool runs with the profile env.
+- `studio/package.json` 2.1.0; `studio/README.md`: Office, Chat, Activity and Profiles sections, architecture tree.
+
 ## [3.0.0] - 2026-10-26
 
 Source: a user request to rename `ui-design-taste` to `fe-base` and give the skills adapted from other repos the plugin's own names, while keeping their source references. Major version because invocation names change: `doz-agent:<old-name>` no longer resolves. Content is unchanged; source links, license notices in `references/`, and upstream engine paths (`~/.video-demo/`, the `video-demo` npm package name, `scrollcraft` workspace) are kept as they were, since the engines depend on them.

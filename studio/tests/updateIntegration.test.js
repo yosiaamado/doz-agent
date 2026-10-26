@@ -145,7 +145,7 @@ test('a config produced by the .local.json migration stays intact through check 
     await api.updateCheck();
     await api.updateApply({ contentVersion: '1.21.0' });
     const saved = JSON.parse(fs.readFileSync(path.join(config.userDataDir, 'config.json'), 'utf8'));
-    assert.equal(saved.anthropicApiKey, 'sk-test');
+    assert.equal(saved.profiles[0].apiKey, 'sk-test');
     assert.deepEqual(saved.setup, { completed: true });
     assert.equal(saved.sources.length, 1);
     assert.equal(saved.update.endpoint, ENDPOINT());

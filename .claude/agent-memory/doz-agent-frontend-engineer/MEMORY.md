@@ -16,3 +16,8 @@ Baseline test gagal di Windows (bukan FE): engine.test 'tool api' (path POSIX), 
 - Script inline dilarang (CSP script-src 'self'): pakai file di web/public.
 - Tampilan yang butuh JSX tidak bisa diuji Node tanpa jsdom: ekstrak logika ke lib/*.js agar bisa dites.
 - Variabel loop/callback jangan bernama `t` di komponen yang memakai t() dari useI18n (membayangi terjemahan -> "t is not a function" saat render). Bug ini lolos karena tidak ada test render; sekarang scripts/ui-smoke.js (jsdom + vite ssrLoadModule) dijalankan test/ui-smoke.test.js untuk en dan id.
+- Profiles (S1 FE): lihat profiles.md
+- Activity stream (S2 FE): lihat activity.md
+- Chat (S3 FE): lihat chat.md
+- [Office view + restyle](office.md)
+- Browser check without a browser tool: DOZ_STUDIO_PORT=4391 node server/index.js, then headless Chrome via remote-debugging + ws (set localStorage doz-studio:view/theme).

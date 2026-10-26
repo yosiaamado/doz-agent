@@ -6,10 +6,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { createConfigStore, tightenPermissions } from '../server/infra/configStore.js';
 import { createApiKeyStore } from '../server/infra/apiKeyStore.js';
+import { createProfileStore, migrateProfiles } from '../server/infra/profileStore.js';
 import { createConfig } from '../server/infra/config.js';
 import { runCommand } from '../server/runners/shell.js';
 import { createSetupService } from '../server/services/setupService.js';
-import { childEnv, setInjectedApiKey } from '../server/lib/secretEnv.js';
+import { createProfileService } from '../server/services/profileService.js';
 
 const KEY = 'sk-ant-api03-SECRET-1234567890';
 const tempDir = () => fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'doz-sec-')));
@@ -65,7 +66,7 @@ test('createConfig with a secretCodec migrates a legacy .local.json holding a pl
   fs.writeFileSync(path.join(studio, '.local.json'), JSON.stringify({ anthropicApiKey: KEY }));
   const ud = path.join(root, 'ud');
   const config = createConfig({ argv: ['node', 'x', '--workdir', root], env: { DOZ_USER_DATA_DIR: ud }, here: path.join(studio, 'server', 'infra'), logger: spyLogger(), secretCodec: codec });
-  assert.equal(config.savedApiKey(), KEY);
+  assert.equal(config.profiles.getKey('default'), KEY);
   const raw = fs.readFileSync(path.join(ud, 'config.json'), 'utf8');
   assert.ok(!raw.includes(KEY));
 });
@@ -115,26 +116,25 @@ test('POSIX: a legacy config with loose permissions is tightened to 0600 when op
   assert.doesNotThrow(() => tightenPermissions(path.join(tempDir(), 'does-not-exist.json')));
 });
 
-test('the key the studio injects is not passed on to an action child process; the user own key is', async () => {
-  const previous = process.env.ANTHROPIC_API_KEY;
+test('a key saved in the studio is not passed to an action child process; the user own shell key is', async () => {
   const probe = path.join(tempDir(), 'probe.js');
   fs.writeFileSync(probe, "console.log(process.env.ANTHROPIC_API_KEY || 'none');");
-    const command = `node ${probe}`; // no quoting: quoting cmd.exe through spawn breaks it (the temp path has no spaces)
-  try {
-    process.env.ANTHROPIC_API_KEY = KEY;
-    setInjectedApiKey(KEY);
-    assert.equal(childEnv().ANTHROPIC_API_KEY, undefined);
-    assert.equal(childEnv({ X: '1' }).X, '1');
-    const injected = await runCommand({ command, workdir: '.' });
-    assert.equal(injected.output.trim(), 'none');
-    setInjectedApiKey(null); // the key comes from the user environment
-    const own = await runCommand({ command, workdir: '.' });
-    assert.equal(own.output.trim(), KEY);
-  } finally {
-    setInjectedApiKey(null);
-    if (previous === undefined) delete process.env.ANTHROPIC_API_KEY;
-    else process.env.ANTHROPIC_API_KEY = previous;
-  }
+  const command = `node ${probe}`; // no quoting: quoting cmd.exe through spawn breaks it (the temp path has no spaces)
+  const serviceWith = (env) => {
+    const store = createConfigStore(path.join(tempDir(), 'config.json'));
+    migrateProfiles(store);
+    return createProfileService({ store: createProfileStore({ store, codec: null, logger: spyLogger() }), env });
+  };
+  const none = { ...process.env };
+  delete none.ANTHROPIC_API_KEY;
+  const withSaved = serviceWith(none);
+  withSaved.setKey('default', { key: KEY, remember: true });
+  const saved = withSaved.spawnContext();
+  assert.equal(saved.cliEnv.ANTHROPIC_API_KEY, KEY);
+  assert.equal(saved.shellEnv.ANTHROPIC_API_KEY, undefined);
+  assert.equal((await runCommand({ command, workdir: '.', env: saved.shellEnv })).output.trim(), 'none');
+  const own = serviceWith({ ...none, ANTHROPIC_API_KEY: 'sk-ant-api03-FROM-THE-SHELL' }).spawnContext();
+  assert.equal((await runCommand({ command, workdir: '.', env: own.shellEnv })).output.trim(), 'sk-ant-api03-FROM-THE-SHELL');
 });
 
 // ---- ciphertext that cannot be opened must be visible to the user (not reported as "no key yet") and must not be deleted
@@ -165,19 +165,19 @@ test('/api/setup: a stored key that cannot be opened → API_KEY_UNREADABLE; no 
     fs.mkdirSync(here, { recursive: true });
     const env = { DOZ_USER_DATA_DIR: path.join(tmp, 'ud'), DOZ_PLUGIN_DIR: tmp, DOZ_RESOURCES_DIR: path.join(tmp, 'res') };
     const mk = (secretCodec) => createConfig({ argv: ['node', 'x', '--workdir', tmp], env, here, logger: spyLogger(), secretCodec });
-    const check = (config) => createSetupService({ config, apiRunner: { resetClient() {} }, claudeRunner: {} }).check();
+    const check = (config) => createSetupService({ config, apiRunner: { resetClient() {} }, claudeRunner: {}, profiles: createProfileService({ store: config.profiles }) }).check();
     assert.equal((await check(mk(codec))).apiKey.code, 'API_KEY_MISSING_OPTIONAL');
-    mk(codec).saveApiKey(KEY);
-    const cipher = JSON.parse(fs.readFileSync(path.join(tmp, 'ud', 'config.json'), 'utf8')).anthropicApiKeyEnc;
+    mk(codec).profiles.setKey('default', KEY);
+    const cipher = JSON.parse(fs.readFileSync(path.join(tmp, 'ud', 'config.json'), 'utf8')).profiles[0].apiKeyEnc;
     const unreadable = (await check(mk({ encrypt: codec.encrypt, decrypt() { throw new Error('x'); } }))).apiKey;
     assert.equal(unreadable.code, 'API_KEY_UNREADABLE');
     assert.equal(unreadable.status, 'warn');
     assert.equal(unreadable.action, 'api-key');
     assert.doesNotMatch(unreadable.detail, /No API key yet/);
-  assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, 'ud', 'config.json'), 'utf8')).anthropicApiKeyEnc, cipher, 'the ciphertext is still there');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, 'ud', 'config.json'), 'utf8')).profiles[0].apiKeyEnc, cipher, 'the ciphertext is still there');
     const readable = mk(codec);
-  assert.equal(readable.apiKeyState(), 'saved', 'as soon as it can be opened again, the status is back to normal');
-    assert.equal(readable.savedApiKey(), KEY);
+  assert.equal(readable.profiles.keyState('default'), 'saved', 'as soon as it can be opened again, the status is back to normal');
+    assert.equal(readable.profiles.getKey('default'), KEY);
   } finally {
     if (previous === undefined) delete process.env.ANTHROPIC_API_KEY;
     else process.env.ANTHROPIC_API_KEY = previous;

@@ -1,10 +1,11 @@
 // Storage for the Anthropic API key in config.json. With a `codec` (injected by the Electron main process from
 // safeStorage: DPAPI on Windows, Keychain on macOS) only base64 ciphertext is stored.
 // Without a codec (e.g. `npm start`) the key is stored as plain text; it is then protected only by the file permissions / the user's OS profile.
-const ENCRYPTED_FIELD = 'anthropicApiKeyEnc';
-const PLAIN_FIELD = 'anthropicApiKey';
-
-export function createApiKeyStore({ store, codec = null, logger }) {
+// `store` is anything with read()/merge(patch) over one record; `fields` names the two keys inside it
+// (the top-level config.json fields by default, `apiKeyEnc` / `apiKey` inside a profile record).
+export function createApiKeyStore({ store, codec = null, logger, fields = {} }) {
+  const ENCRYPTED_FIELD = fields.enc ?? 'anthropicApiKeyEnc';
+  const PLAIN_FIELD = fields.plain ?? 'anthropicApiKey';
   let warnedPlain = false;
   const warnPlainOnce = () => {
     if (warnedPlain) return;

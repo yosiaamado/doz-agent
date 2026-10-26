@@ -27,26 +27,31 @@ export function estimateCost(model, usage) {
   return ((usage.input * inp) + (usage.cacheRead * inp * 0.1) + (usage.cacheWrite * inp * 1.25) + (usage.output * out)) / 1e6;
 }
 
-export function apiAvailable() {
-  return Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+export function apiAvailable(env = process.env) {
+  return Boolean(env.ANTHROPIC_API_KEY || env.ANTHROPIC_AUTH_TOKEN);
 }
 
-let client;
-function getClient() {
-  client ??= new Anthropic();
-  return client;
+// One client per credential. Both fields are passed explicitly (null, not undefined) so the SDK never falls back to process.env.
+const clients = new Map();
+function getClient(env) {
+  const apiKey = env?.ANTHROPIC_API_KEY ?? null;
+  const authToken = env?.ANTHROPIC_AUTH_TOKEN ?? null;
+  if (!apiKey && !authToken) throw new CodedError('Enter an API key first', 'API_KEY_REQUIRED');
+  const cacheKey = `${apiKey}
+${authToken}`;
+  if (!clients.has(cacheKey)) clients.set(cacheKey, new Anthropic({ apiKey, authToken }));
+  return clients.get(cacheKey);
 }
 
-// Called after the API key is changed from the UI so the next client uses the new key.
 export function resetClient() {
-  client = undefined;
+  clients.clear();
 }
 
 // The smallest possible call that proves the API key works.
-export async function testApiConnection() {
+export async function testApiConnection(env = process.env) {
   const model = resolveModel('haiku');
   const started = Date.now();
-  const response = await getClient().messages.create({ model, max_tokens: 16, messages: [{ role: 'user', content: 'Reply with one word: ok' }] });
+  const response = await getClient(env).messages.create({ model, max_tokens: 16, messages: [{ role: 'user', content: 'Reply with one word: ok' }] });
   const text = response.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
   return { model: response.model, reply: text, ms: Date.now() - started };
 }
@@ -58,7 +63,7 @@ function requestParams(model, settings) {
   return params;
 }
 
-async function agentLoop({ system, prompt, tools, settings, workdir, signal, onActivity, onUsage, toolContext }) {
+async function agentLoop({ system, prompt, tools, settings, workdir, signal, onActivity, onUsage, toolContext, env = process.env }) {
   const model = resolveModel(settings.model);
   const maxTurns = Number(settings.max_turns) || 30;
   const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
@@ -72,7 +77,7 @@ async function agentLoop({ system, prompt, tools, settings, workdir, signal, onA
   while (true) {
     if (turns >= maxTurns) { warning = 'stopped at max_turns, the result may be incomplete'; warningCode = 'MAX_TURNS_REACHED'; break; }
     turns++;
-    const response = await getClient().messages.create({
+    const response = await getClient(env).messages.create({
       ...requestParams(model, settings),
       system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
       tools: tools.map(({ name, def }) => ({ name, description: def.description, input_schema: def.input_schema })),
@@ -137,16 +142,16 @@ export function createApiRunner({ listSkills = () => [] } = {}) {
   return {
     name: 'api',
     describe: describeRequest,
-    run({ node, agent, settings, prompt, workdir, signal, onActivity, onUsage }) {
+    run({ node, agent, settings, prompt, workdir, signal, onActivity, onUsage, env, shellEnv }) {
       if (node.type === 'skill') throw new CodedError('skill nodes can only run with the claude-cli runner', 'SKILL_NEEDS_CLAUDE_CLI');
       const tools = toolsFor(agent?.tools, settings.permission);
       return agentLoop({
-        system: systemPrompt(agent, tools, workdir), prompt, tools, settings, workdir, signal, onActivity, onUsage,
-        toolContext: { listSkills },
+        system: systemPrompt(agent, tools, workdir), prompt, tools, settings, workdir, signal, onActivity, onUsage, env,
+        toolContext: { listSkills, shellEnv },
       });
     },
-    judge({ prompt, settings, workdir, signal }) {
-      return agentLoop({ system: 'You are a concise judge.', prompt, tools: [], settings: { ...settings, max_turns: 1 }, workdir, signal });
+    judge({ prompt, settings, workdir, signal, env }) {
+      return agentLoop({ system: 'You are a concise judge.', prompt, tools: [], settings: { ...settings, max_turns: 1 }, workdir, signal, env });
     },
   };
 }

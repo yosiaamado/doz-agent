@@ -1,6 +1,6 @@
 // The Setup wizard: language first, then the requirements before the studio can be used (Node, git, Claude Code / API key, project folder, GitHub).
 import { useCallback, useEffect, useState } from 'react';
-import { ClipboardCheck, FolderOpen, KeyRound, LogIn, PlayCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { ClipboardCheck, FolderOpen, KeyRound, LogIn, PlayCircle, RefreshCw, Trash2, UsersRound } from 'lucide-react';
 import Modal from '../../components/ui/Modal.jsx';
 import Segmented from '../../components/ui/Segmented.jsx';
 import { useToast } from '../../components/ui/Toast.jsx';
@@ -79,7 +79,7 @@ function GitIdentityForm({ onSaved }) {
   );
 }
 
-export default function SetupWizard({ workdir, onClose, onPickWorkdir, onDone }) {
+export default function SetupWizard({ workdir, profileId, profileName, onManageProfiles, onClose, onPickWorkdir, onDone }) {
   const { t } = useI18n();
   const [checks, setChecks] = useState(null);
   const [tests, setTests] = useState({});
@@ -94,7 +94,7 @@ export default function SetupWizard({ workdir, onClose, onPickWorkdir, onDone })
     }
   }, [notify, t]);
   // Reload when the project folder is changed from the wizard too.
-  useEffect(() => { load(); }, [load, workdir]);
+  useEffect(() => { load(); }, [load, workdir, profileId]);
 
   const runTest = async (key, name, target) => {
     setTests((prev) => ({ ...prev, [key]: { status: 'loading', detail: t('setup.testing') } }));
@@ -154,6 +154,10 @@ export default function SetupWizard({ workdir, onClose, onPickWorkdir, onDone })
 
       <Step n={2} title={t('setup.step.brain.title')} hint={t('setup.step.brain.hint')}>
         <CheckRow title={t('setup.check.claude')} check={checks?.claude} />
+        <div className="setup-profile">
+          <span>{t('setup.profile', { name: profileName ?? '…' })}</span>
+          <button type="button" className="btn btn-sm btn-ghost" onClick={onManageProfiles}><UsersRound size={13} /> {t('setup.profile.manage')}</button>
+        </div>
         <CheckRow title={t('setup.check.claude-auth')} check={checks?.claudeAuth} test={tests.cli}>
           <div className="setup-actions">
             {checks?.claudeAuth?.status !== 'ok' && (

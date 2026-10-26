@@ -1,17 +1,17 @@
 .canvas { flex: 1; position: relative; min-height: 0; background: var(--canvas); }
 .react-flow { --xy-background-color: var(--canvas); --xy-node-border-radius: var(--radius); --xy-selection-background-color: var(--primary-soft); --xy-selection-border: 1px dashed var(--primary); }
-.react-flow__minimap { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow-sm); }
+.react-flow__minimap { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); }
 .react-flow__pane { cursor: grab; }
 .react-flow__pane.dragging { cursor: grabbing; }
 .zoom-bar { display: flex; gap: 6px; }
-.zoom-bar button { width: 34px; height: 34px; display: grid; place-items: center; background: var(--panel); border: 1px solid var(--border-2); border-radius: 8px; color: var(--text-2); box-shadow: var(--shadow-sm); }
+.zoom-bar button { width: 34px; height: 34px; display: grid; place-items: center; background: var(--panel); border: 1px solid var(--border-2); border-radius: var(--radius-sm); color: var(--text-2); box-shadow: var(--shadow-sm); }
 .zoom-bar button:hover { color: var(--text); border-color: var(--muted); }
 .run-bar { margin-bottom: 18px; }
-.btn-run { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 650; padding: 10px 20px; border-radius: 10px; box-shadow: 0 8px 22px color-mix(in srgb, var(--primary) 35%, transparent); }
+.btn-run { background: var(--primary); border-color: var(--primary); color: var(--on-primary); font-weight: 650; padding: 10px 20px; border-radius: var(--radius); box-shadow: 0 8px 22px color-mix(in srgb, var(--primary) 35%, transparent); }
 .btn-run:hover:not(:disabled) { background: var(--primary-2); border-color: var(--primary-2); }
-.btn-stop { background: color-mix(in srgb, var(--fail) 14%, var(--panel)); border-color: var(--fail); color: var(--fail-text); font-weight: 650; padding: 10px 20px; border-radius: 10px; }
+.btn-stop { background: color-mix(in srgb, var(--fail) 14%, var(--panel)); border-color: var(--fail); color: var(--fail-text); font-weight: 650; padding: 10px 20px; border-radius: var(--radius); }
 .canvas-hint { font-size: 11px; color: var(--muted); }
-.canvas-empty { display: flex; align-items: center; gap: 8px; color: var(--text-2); background: var(--panel); border: 1px dashed var(--border-2); padding: 10px 16px; border-radius: 10px; margin-top: 70px; }
+.canvas-empty { display: flex; align-items: center; gap: 8px; color: var(--text-2); background: var(--panel); border: 1px dashed var(--border-2); padding: 10px 16px; border-radius: var(--radius); margin-top: 70px; }
 
 .fhandle { width: 11px !important; height: 11px !important; background: var(--node-border) !important; border: 2px solid var(--canvas) !important; }
 .fhandle:hover { background: var(--primary) !important; }
@@ -21,8 +21,8 @@
 .fnode { position: relative; display: flex; flex-direction: column; align-items: center; }
 .fnode-box {
   --accent: var(--text-2); --ring: var(--node-border);
-  position: relative; background: var(--node); border: 2px solid var(--ring); border-radius: 14px;
-  display: flex; align-items: center; transition: border-color .2s, box-shadow .2s; box-shadow: var(--shadow-sm);
+  position: relative; background: var(--node); border: 2px solid var(--ring); border-radius: var(--radius-lg);
+  display: flex; align-items: center; transition: border-color var(--dur), box-shadow var(--dur); box-shadow: var(--shadow-sm);
 }
 .fnode-square .fnode-box { width: 92px; height: 92px; justify-content: center; }
 .fnode-wide .fnode-box { width: 250px; height: 84px; padding: 0 16px 0 14px; gap: 12px; }
@@ -33,8 +33,8 @@
 .t-action .fnode-icon { color: #2aa3d6; }
 .t-condition .fnode-icon { color: var(--ok); }
 .t-approval .fnode-icon { color: var(--warn); }
-.t-start .fnode-icon { color: var(--primary); }
-.trigger-bolt { position: absolute; left: -22px; top: 50%; transform: translateY(-50%); color: var(--primary); }
+.t-start .fnode-icon { color: var(--primary-text); }
+.trigger-bolt { position: absolute; left: -22px; top: 50%; transform: translateY(-50%); color: var(--primary-text); }
 .fnode-inner { display: flex; flex-direction: column; min-width: 0; }
 .fnode-inner .fnode-title { font-weight: 650; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fnode-inner .fnode-caption { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -71,14 +71,14 @@
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.note { width: 100%; height: 100%; background: var(--note); border: 1px solid var(--note-border); border-radius: 10px; padding: 10px 12px; overflow: hidden; }
+.note { width: 100%; height: 100%; background: var(--note); border: 1px solid var(--note-border); border-radius: var(--radius); padding: 10px 12px; overflow: hidden; }
 .note.selected { border-color: var(--warn); }
 .note-title { font-weight: 700; font-size: 15px; color: var(--note-title); margin-bottom: 4px; }
 .note-text { font-family: var(--mono); font-size: 11.5px; color: var(--note-text); white-space: pre-wrap; }
 .note-resize-line { border-color: var(--warn) !important; }
 .note-resize-handle { background: var(--warn) !important; border: 0 !important; width: 8px !important; height: 8px !important; }
 
-.sedge { stroke: var(--node-border); stroke-width: 2; fill: none; transition: stroke .2s; }
+.sedge { stroke: var(--node-border); stroke-width: 2; fill: none; transition: stroke var(--dur); }
 .sedge.e-done { stroke: var(--ok); }
 .sedge.e-active { stroke: var(--run); stroke-width: 2.5; stroke-dasharray: 7 6; animation: flow .7s linear infinite; }
 .sedge.e-dim { stroke: var(--border-2); }

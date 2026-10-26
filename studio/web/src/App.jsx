@@ -9,6 +9,8 @@ import { useLibrary } from './hooks/useLibrary.js';
 import { useRuns } from './hooks/useRuns.js';
 import { useWorkflowEditor } from './hooks/useWorkflowEditor.js';
 import { useUpdate } from './hooks/useUpdate.js';
+import { useProfiles } from './hooks/useProfiles.js';
+import { useChats } from './hooks/useChats.js';
 import { useToast } from './components/ui/Toast.jsx';
 import { useDialog } from './components/ui/Dialogs.jsx';
 import { StudioContext } from './state/studioContext.js';
@@ -17,6 +19,8 @@ import Sidebar from './features/sidebar/Sidebar.jsx';
 import FlowCanvas, { GRID } from './features/canvas/FlowCanvas.jsx';
 import LogsPanel from './features/logs/LogsPanel.jsx';
 import SettingsPanel from './features/settings/SettingsPanel.jsx';
+import OfficeView from './features/office/OfficeView.jsx';
+import ReconnectBanner from './components/ui/ReconnectBanner.jsx';
 
 const ComponentEditor = lazy(() => import('./features/dialogs/ComponentEditor.jsx'));
 const SourcesDialog = lazy(() => import('./features/dialogs/SourcesDialog.jsx'));
@@ -25,9 +29,12 @@ const RunDialog = lazy(() => import('./features/dialogs/RunDialog.jsx'));
 const NewWorkflowDialog = lazy(() => import('./features/dialogs/NewWorkflowDialog.jsx'));
 const GitDialog = lazy(() => import('./features/dialogs/GitDialog.jsx'));
 const SetupWizard = lazy(() => import('./features/setup/SetupWizard.jsx'));
+const ProfilesDialog = lazy(() => import('./features/profiles/ProfilesDialog.jsx'));
 const UpdateDialog = lazy(() => import('./features/update/UpdateDialog.jsx'));
 
 const LAST_KEY = 'doz-studio:last-workflow';
+const VIEW_KEY = 'doz-studio:view';
+const VIEWS = ['canvas', 'office'];
 const snap = (v) => Math.round(v / GRID) * GRID;
 
 export default function App() {
@@ -38,8 +45,13 @@ export default function App() {
   const { fitView, screenToFlowPosition } = useReactFlow();
   const lib = useLibrary();
   const update = useUpdate();
+  const profilesState = useProfiles();
+  const [view, setViewState] = useState(() => { const v = readStorage(VIEW_KEY); return VIEWS.includes(v) ? v : v === 'chat' ? 'office' : 'canvas'; });
+  const setView = (v) => { setViewState(v); writeStorage(VIEW_KEY, v); };
   const editor = useWorkflowEditor({ agentNames: useMemo(() => Object.keys(lib.agentsByName), [lib.agentsByName]), notify });
   const [status, setStatus] = useState(null);
+  const [officeAgent, setOfficeAgent] = useState(null);
+  const chatsState = useChats({ workdir: status?.workdir ?? null });
   const [selection, setSelection] = useState(null);
   const [rightOpen, setRightOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(true);
@@ -169,6 +181,8 @@ export default function App() {
     [lib.agentsByName, editor.meta, run, onApprove, onEditComponent, nodeTypesById],
   );
 
+  const officeAgents = Object.values(lib.agentsByName);
+
   if (!editor.meta) return <div className="loading">{t('app.loading')}</div>;
 
   const selected = selection?.kind === 'node' && editor.nodesById[selection.id]
@@ -190,8 +204,17 @@ export default function App() {
           gitChanges={gitChanges} onGit={() => setModal({ kind: 'git' })}
           setupPending={setupPending} onSetup={() => setSetupOpen(true)}
           updateAvailable={update.available} onUpdate={() => setModal({ kind: 'update' })}
+          view={view} onViewChange={setView}
+          profiles={profilesState} onManageProfiles={() => setModal({ kind: 'profiles' })}
         />
-        <div className="workspace">
+        <ReconnectBanner />
+        {view === 'office' && (
+          <OfficeView
+            agents={officeAgents} run={run} chats={chatsState} profiles={profilesState.profiles} pick={officeAgent} onPick={setOfficeAgent}
+            onOpenRun={async (id) => { setView('canvas'); await selectRun(id); }}
+          />
+        )}
+        <div className="workspace" hidden={view === 'office'}>
           <Sidebar
             tab={tab} setTab={(name) => { setTab(name); if (name === 'executions') runsState.refresh(); }}
             library={lib.library} onAdd={addNode} onEdit={onEditComponent}
@@ -225,9 +248,11 @@ export default function App() {
         <Suspense fallback={null}>
           {modal?.kind === 'run' && <RunDialog workflowName={editor.meta.name} workdir={status?.workdirName} onStart={startRun} onClose={closeModal} />}
           {setupOpen && (
-            <SetupWizard workdir={status?.workdir} onClose={() => setSetupOpen(false)} onPickWorkdir={() => setModal({ kind: 'workdir' })}
+            <SetupWizard workdir={status?.workdir} profileId={profilesState.activeProfileId} profileName={profilesState.active?.name}
+              onManageProfiles={() => { setSetupOpen(false); setModal({ kind: 'profiles' }); }} onClose={() => setSetupOpen(false)} onPickWorkdir={() => setModal({ kind: 'workdir' })}
               onDone={async () => { setSetupPending(false); setStatus(await api.status()); }} />
           )}
+          {modal?.kind === 'profiles' && <ProfilesDialog onClose={closeModal} />}
           {modal?.kind === 'update' && <UpdateDialog update={update} onClose={closeModal} />}
           {modal?.kind === 'git' && (
             <GitDialog onClose={() => { closeModal(); refreshGit(); }}

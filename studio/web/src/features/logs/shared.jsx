@@ -5,7 +5,7 @@ import { statusLabel } from '../../lib/model.js';
 import { errorMessage } from '../../lib/errorMessage.js';
 
 export const FILE_ICON = { added: FilePlus2, deleted: FileMinus2, modified: FilePen, renamed: FilePen };
-export const KIND_CLASS = { tool: 'k-tool', text: 'k-text', status: 'k-status', tool_error: 'k-err', retry: 'k-err', init: 'k-muted' };
+export const KIND_CLASS = { tool: 'k-tool', text: 'k-text', status: 'k-status', tool_error: 'k-err', blocked: 'k-err', rate_limit: 'k-err', skill: 'k-tool', subagent_start: 'k-tool', subagent_end: 'k-muted', retry: 'k-err', init: 'k-muted' };
 
 export function copy(text) {
   navigator.clipboard?.writeText(text).catch(() => {});

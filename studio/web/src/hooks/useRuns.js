@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, connectEvents } from '../lib/api.js';
+import { api } from '../lib/api.js';
+import { subscribe } from '../lib/events.js';
 import { emptyRun, reduceRun } from '../lib/model.js';
 
 // The state of the run being displayed plus the run list. WebSocket events are reduced into the same run.
@@ -32,7 +33,7 @@ export function useRuns({ onRunStarted } = {}) {
     return state;
   }, [show]);
 
-  useEffect(() => connectEvents((msg) => {
+  useEffect(() => subscribe((msg) => {
     if (msg.type !== 'event') return;
     const ev = msg.event;
     if (ev.type === 'run_start' || ev.type === 'run_end') refresh();

@@ -24,7 +24,7 @@ test('the migration copies .local.json and .usage.json, leaving the old files pl
   fs.writeFileSync(path.join(f.studio, '.local.json'), JSON.stringify({ workdir: f.root, anthropicApiKey: 'sk-ant-x' }));
   fs.writeFileSync(path.join(f.studio, '.usage.json'), JSON.stringify({ updatedAt: 1 }));
   const config = createConfig({ argv: ['node', 'x'], env: f.env, here: f.here, logger: quiet });
-  assert.equal(config.savedApiKey(), 'sk-ant-x');
+  assert.equal(config.profiles.getKey('default'), 'sk-ant-x');
   assert.equal(config.getWorkdir(), f.root);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.ud, 'usage.json'), 'utf8')), { updatedAt: 1 });
   assert.ok(fs.existsSync(path.join(f.studio, '.local.json')), 'the old file is not deleted');
@@ -39,19 +39,19 @@ test('idempotent, and does not overwrite an existing new config', () => {
   fs.writeFileSync(path.join(f.studio, '.local.json'), JSON.stringify({ anthropicApiKey: 'sk-ant-old' }));
   assert.deepEqual(migrateLegacyFiles({ studioDir: f.studio, userDataDir: f.ud, logger: quiet }), []);
   const config = createConfig({ argv: ['node', 'x'], env: f.env, here: f.here, logger: quiet });
-  assert.equal(config.savedApiKey(), 'sk-ant-new');
+  assert.equal(config.profiles.getKey('default'), 'sk-ant-new');
   assert.ok(!fs.existsSync(path.join(f.studio, '.local.json.migrated')));
   createConfig({ argv: ['node', 'x'], env: f.env, here: f.here, logger: quiet });
-  assert.equal(JSON.parse(fs.readFileSync(path.join(f.ud, 'config.json'), 'utf8')).anthropicApiKey, 'sk-ant-new');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(f.ud, 'config.json'), 'utf8')).profiles[0].apiKey, 'sk-ant-new');
 });
 
-test('without an old file: nothing is created until the first save', () => {
+test('without an old file: only the default profile (no key) exists until the first save', () => {
   const f = fixture();
   const config = createConfig({ argv: ['node', 'x', '--workdir', f.root], env: f.env, here: f.here, logger: quiet });
-  assert.equal(config.savedApiKey(), null);
-  assert.ok(!fs.existsSync(path.join(f.ud, 'config.json')));
-  config.saveApiKey('sk-ant-y');
-  assert.equal(JSON.parse(fs.readFileSync(path.join(f.ud, 'config.json'), 'utf8')).anthropicApiKey, 'sk-ant-y');
+  assert.equal(config.profiles.getKey('default'), null);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.ud, 'config.json'), 'utf8')).profiles, [{ id: 'default', name: 'Default', configDir: null }]);
+  config.profiles.setKey('default', 'sk-ant-y');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(f.ud, 'config.json'), 'utf8')).profiles[0].apiKey, 'sk-ant-y');
   if (process.platform !== 'win32') assert.equal(fs.statSync(path.join(f.ud, 'config.json')).mode & 0o777, 0o600);
 });
 

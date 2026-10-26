@@ -3,7 +3,7 @@
 // Never force-pushes; pull uses rebase + autostash so local changes are not lost.
 import { execFile } from 'node:child_process';
 import { badRequest } from '../lib/errors.js';
-import { childEnv } from '../lib/secretEnv.js';
+import { gitEnv } from '../lib/spawnEnv.js';
 
 const TIMEOUT_MS = 120_000;
 const STATUS_CODES = { M: 'modified', A: 'added', D: 'deleted', R: 'renamed', C: 'copied', '?': 'untracked', U: 'conflict' };
@@ -13,7 +13,7 @@ function git(cwd, args) {
     execFile('git', args, {
       cwd, timeout: TIMEOUT_MS, maxBuffer: 16 * 1024 * 1024,
       // Never wait for a password prompt in the server's terminal; credentials must already be stored (ssh key / credential helper).
-      env: childEnv({ GIT_TERMINAL_PROMPT: '0' }),
+      env: gitEnv({ GIT_TERMINAL_PROMPT: '0' }),
     }, (err, stdout, stderr) => {
       if (err) reject(badRequest(redactText((stderr || stdout || err.message).trim().split('\n').slice(-6).join('\n'))));
       else resolve(redactText(`${stdout}${stderr}`.trim()));

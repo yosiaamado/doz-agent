@@ -6,10 +6,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { describeTool, touchedFile } from './activity.js';
+import { reduceStreamEvent, toRunResult, emptyStreamState } from './stream.js';
+
+export { reduceStreamEvent, toRunResult };
 
 const WRITE_TOOLS = new Set(['Edit', 'Write', 'NotebookEdit', 'MultiEdit']);
-const READONLY_BASH = ['Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git status:*)', 'Bash(git show:*)', 'Bash(ls:*)'];
+const WEB_TOOLS = new Set(['WebFetch', 'WebSearch']);
 const IS_WINDOWS = process.platform === 'win32';
 
 export function claudeVersion(bin = 'claude') {
@@ -28,10 +30,11 @@ function agentTools(agent, permission) {
 
 function permissionArgs(agent, settings) {
   const readOnly = settings.permission === 'read-only';
-  if (!agent) return readOnly ? ['--disallowedTools', [...WRITE_TOOLS].join(',')] : ['--permission-mode', 'acceptEdits'];
+  if (!agent) return readOnly ? ['--disallowedTools', [...WRITE_TOOLS, 'Bash'].join(',')] : ['--permission-mode', 'acceptEdits'];
   const tools = agentTools(agent, settings.permission);
   // In -p mode there is no way to ask for permission, so the agent's tools are allowed up front.
-  const allowed = readOnly ? tools.filter((t) => t !== 'Bash').concat(tools.includes('Bash') ? READONLY_BASH : []) : tools;
+  // Read-only gets no Bash: even `git log --output=<file>` can write a file.
+  const allowed = readOnly ? tools.filter((t) => t !== 'Bash') : tools;
   return ['--allowedTools', allowed.join(','), ...(readOnly ? [] : ['--permission-mode', 'acceptEdits'])];
 }
 
@@ -53,6 +56,30 @@ export function buildArgs({ agent, settings }, { pluginDir, agentsFile } = {}) {
   return args;
 }
 
+const SUBAGENT_NAMES = new Set(['Task', 'Agent']);
+
+// Chats never get Bash or web tools (Read plus WebFetch could send files out): allow-edits means the file edit tools only.
+function chatTools(agent, allowEdits) {
+  const tools = agent.tools.length ? agent.tools : ['Read', 'Grep', 'Glob'];
+  return tools.filter((t) => !SUBAGENT_NAMES.has(t) && t !== 'Bash' && !WEB_TOOLS.has(t) && (allowEdits || !WRITE_TOOLS.has(t)));
+}
+
+export function chatAgentDefinition(agent, allowEdits = false) {
+  return { [agent.name]: { description: agent.description, prompt: agent.prompt, tools: chatTools(agent, allowEdits) } };
+}
+
+// A first turn passes a fresh --session-id; later turns resume the stored one. The permission mode is always explicit and
+// only the user settings are loaded, so a cloned repo's .claude/settings.json cannot widen what the chat may do.
+export function buildChatArgs({ agent, sessionId, resume, allowEdits }, { pluginDir, agentsFile } = {}) {
+  const args = ['-p', '--output-format', 'stream-json', '--verbose', '--agents', agentsFile ?? '<agents.json>', '--agent', agent.name];
+  args.push(...(resume && sessionId ? ['--resume', sessionId] : ['--session-id', crypto.randomUUID()]));
+  const denied = ['Task', 'Agent', 'Bash', ...WEB_TOOLS, ...(allowEdits ? [] : [...WRITE_TOOLS])];
+  args.push('--disallowedTools', denied.join(','), '--allowedTools', chatTools(agent, allowEdits).join(','));
+  args.push('--permission-mode', allowEdits ? 'acceptEdits' : 'dontAsk', '--setting-sources', 'user', '--strict-mcp-config');
+  if (pluginDir) args.push('--plugin-dir', pluginDir);
+  return args;
+}
+
 export function stdinPrompt({ node, prompt }) {
   return node.type === 'skill' ? `/${node.skill} ${prompt}` : prompt;
 }
@@ -68,86 +95,32 @@ export function describeCommand(opts, { pluginDir } = {}) {
   return `claude ${args.map(shellQuote).join(' ')} < prompt.md${agentNote}`;
 }
 
+// cmd.exe expands %VAR% even inside double quotes and there is no way to escape it on a command line.
 function winQuote(arg) {
+  if (String(arg).includes('%')) throw new Error(`argument contains "%", which cmd.exe would expand: ${String(arg).slice(0, 80)}`);
   return /^[\w@%+=:,./\\-]+$/.test(arg) ? arg : `"${String(arg).replace(/"/g, '""')}"`;
 }
 
-function spawnClaude(bin, args, workdir) {
-  if (!IS_WINDOWS) return spawn(bin, args, { cwd: workdir, env: process.env, stdio: ['pipe', 'pipe', 'pipe'] });
-  return spawn([bin, ...args].map(winQuote).join(' '), { cwd: workdir, env: process.env, stdio: ['pipe', 'pipe', 'pipe'], shell: true });
+function spawnClaude(bin, args, workdir, env = process.env) {
+  if (!IS_WINDOWS) return spawn(bin, args, { cwd: workdir, env, stdio: ['pipe', 'pipe', 'pipe'] });
+  return spawn([bin, ...args].map(winQuote).join(' '), { cwd: workdir, env, stdio: ['pipe', 'pipe', 'pipe'], shell: true });
 }
 
-function toUsage(u) {
-  return {
-    input: u?.input_tokens ?? 0,
-    output: u?.output_tokens ?? 0,
-    cacheRead: u?.cache_read_input_tokens ?? 0,
-    cacheWrite: u?.cache_creation_input_tokens ?? 0,
-  };
-}
-
-function sumUsage(list) {
-  return list.reduce((acc, u) => ({
-    input: acc.input + u.input, output: acc.output + u.output, cacheRead: acc.cacheRead + u.cacheRead, cacheWrite: acc.cacheWrite + u.cacheWrite,
-  }), { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
-}
-
-// Reads one stream-json event and forwards it to the callback. Returns the new state.
-export function reduceStreamEvent(state, ev, { workdir, onActivity, onUsage, onRateLimit }) {
-  if (ev.type === 'result' || (ev.total_cost_usd !== undefined && ev.usage)) return { ...state, result: ev };
-  if (ev.type === 'rate_limit_event' && ev.rate_limit_info) onRateLimit?.(ev.rate_limit_info);
-  if (ev.type === 'system' && ev.subtype === 'init') onActivity?.({ kind: 'init', text: `model ${ev.model}`, model: ev.model, session: ev.session_id });
-  if (ev.type === 'user' && Array.isArray(ev.message?.content)) {
-    ev.message.content.filter((b) => b.type === 'tool_result' && b.is_error).forEach((b) => onActivity?.({
-      kind: 'tool_error', text: String(typeof b.content === 'string' ? b.content : JSON.stringify(b.content)).slice(0, 300),
-    }));
-  }
-  if (ev.type !== 'assistant' || !ev.message) return state;
-  let next = state;
-  if (ev.message.usage && ev.message.id) {
-    const usageById = { ...state.usageById, [ev.message.id]: toUsage(ev.message.usage) };
-    next = { ...next, usageById };
-    onUsage?.(sumUsage(Object.values(usageById)));
-  }
-  if (ev.parent_tool_use_id) return next;
-  for (const block of ev.message.content ?? []) {
-    if (block.type === 'tool_use') {
-      onActivity?.({
-        kind: 'tool', tool: block.name,
-        text: describeTool(block.name, block.input).replaceAll(`${workdir}/`, ''),
-        file: touchedFile(block.name, block.input, workdir),
-      });
-    }
-    if (block.type === 'text' && block.text.trim()) {
-      next = { ...next, lastText: block.text };
-      onActivity?.({ kind: 'text', text: block.text.slice(0, 400) });
-    }
-  }
-  return next;
-}
-
-export function toRunResult(state) {
-  const result = state.result;
-  const maxTurns = result.subtype === 'error_max_turns';
-  if (result.is_error && !maxTurns) throw new Error(String(result.result ?? result.subtype ?? 'error').slice(0, 500));
-  return {
-    output: result.result ?? state.lastText,
-    cost: result.total_cost_usd ?? 0,
-    usage: result.usage ? toUsage(result.usage) : null,
-    turns: result.num_turns,
-    warning: maxTurns ? 'stopped at max_turns, the result may be incomplete' : undefined,
-    warningCode: maxTurns ? 'MAX_TURNS_REACHED' : undefined,
-  };
-}
-
-function runClaude({ bin, args, input, workdir, signal, callbacks, cleanup }) {
+function runClaude({ bin, args, input, workdir, env, signal, callbacks, cleanup }) {
   return new Promise((resolve, reject) => {
-    const child = spawnClaude(bin, args, workdir);
+    let child;
+    try {
+      child = spawnClaude(bin, args, workdir, env);
+    } catch (err) {
+      cleanup?.();
+      reject(err);
+      return;
+    }
     const onAbort = () => child.kill('SIGTERM');
     signal?.addEventListener('abort', onAbort);
     let buffer = '';
     let stderr = '';
-    let state = { result: null, lastText: '', usageById: {} };
+    let state = emptyStreamState();
     child.stdout.on('data', (chunk) => {
       buffer += chunk;
       const lines = buffer.split('\n');
@@ -185,6 +158,20 @@ export function createClaudeCliRunner({ pluginDir, onRateLimit, bin = 'claude' }
   return {
     name: 'claude-cli',
     describe: (opts) => describeCommand(opts, { pluginDir }),
+    chat({ agent, text, sessionId, resume, allowEdits, workdir, env, profileId, signal, onActivity, onUsage }) {
+      const agentsFile = path.join(os.tmpdir(), `doz-agents-${crypto.randomBytes(6).toString('hex')}.json`);
+      fs.writeFileSync(agentsFile, JSON.stringify(chatAgentDefinition(agent, allowEdits)));
+      return runClaude({
+        bin,
+        args: buildChatArgs({ agent, sessionId, resume, allowEdits }, { pluginDir, agentsFile }),
+        input: text,
+        workdir,
+        env: env ?? process.env,
+        signal,
+        callbacks: { onActivity, onUsage, onRateLimit: (info) => onRateLimit?.(info, profileId) },
+        cleanup: () => fs.rmSync(agentsFile, { force: true }),
+      });
+    },
     run(opts) {
       const agentsFile = opts.agent ? writeAgentsFile(opts.agent, opts.settings.permission) : null;
       return runClaude({
@@ -192,15 +179,16 @@ export function createClaudeCliRunner({ pluginDir, onRateLimit, bin = 'claude' }
         args: buildArgs(opts, { pluginDir, agentsFile }),
         input: stdinPrompt(opts),
         workdir: opts.workdir,
+        env: opts.env ?? process.env,
         signal: opts.signal,
-        callbacks: { onActivity: opts.onActivity, onUsage: opts.onUsage, onRateLimit },
+        callbacks: { onActivity: opts.onActivity, onUsage: opts.onUsage, onRateLimit: (info) => onRateLimit?.(info, opts.profileId) },
         cleanup: () => agentsFile && fs.rmSync(agentsFile, { force: true }),
       });
     },
-    judge({ prompt, settings, workdir, signal }) {
+    judge({ prompt, settings, workdir, signal, env, profileId }) {
       const args = ['-p', '--output-format', 'stream-json', '--verbose', '--max-turns', '1', '--tools', ''];
       if (settings.model) args.push('--model', String(settings.model));
-      return runClaude({ bin, args, input: prompt, workdir, signal, callbacks: { onRateLimit } });
+      return runClaude({ bin, args, input: prompt, workdir, env: env ?? process.env, signal, callbacks: { onRateLimit: (info) => onRateLimit?.(info, profileId) } });
     },
   };
 }

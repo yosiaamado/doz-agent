@@ -8,6 +8,7 @@ A personal collection of Claude Code subagents + skills. Upload it to GitHub onc
 
 | Agent | Role | Can edit files? |
 |---|---|---|
+| `technical-lead` | Breaks a goal into vertical-slice tasks per agent (owner, files, interfaces, tests, order, checkpoints), supervises an agent's approach or report, and answers how the agents and skills fit together. Default chat target in studio's Office | ❌ read-only |
 | `product-owner` | **Single pass:** impact analysis, scope, INVEST user stories + acceptance criteria, decisions + defaults, the agent plan, and accepting/rejecting the result | ❌ read-only |
 | `system-analyst` | API contract, data model, BE/FE file map in one spec file (`docs/specs/<slug>.md`). **Optional** — only for large designs (≥3 endpoints, migrations, complex domains) | 📝 spec file only |
 | `qa-tester` | Risk-based test strategy, test design techniques (BVA, decision tables), bug reports with severity + priority | ✅ |
@@ -55,7 +56,7 @@ doz-agent/
 ├── studio/                      # doz studio: visual editor + workflow runner (not installed)
 └── plugins/
     ├── .claude-plugin/plugin.json
-    ├── agents/                  # 9 subagents (flat files, no subfolders)
+    ├── agents/                  # 10 subagents (flat files, no subfolders)
     ├── workflows/               # stored workflows (.md): a graph of nodes + edges, read by studio & run-workflow
     ├── actions/                 # stored shell commands for action nodes (tests, checking changes)
     └── skills/

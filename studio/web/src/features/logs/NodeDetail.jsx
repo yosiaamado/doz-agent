@@ -3,6 +3,8 @@ import { TypeIcon } from '../../components/icons.jsx';
 import { KIND_CLASS, CopyBtn, logText } from './shared.jsx';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { InfoTab, FilesTab, CommandTab } from './NodeTabs.jsx';
+import ActivityTree from './ActivityTree.jsx';
+import { hasActivity } from '../../lib/activity.js';
 import { formatCost, formatDuration, formatTime, formatTokens, statusLabel, totalTokens } from '../../lib/model.js';
 
 export default function NodeDetail({ nodeId, node, st, log, git, label }) {
@@ -43,6 +45,7 @@ export default function NodeDetail({ nodeId, node, st, log, git, label }) {
           : <div className="empty">{st.status === 'running' ? t('logs.detail.output-running') : t('logs.detail.no-output')}</div>)}
         {tab === 'files' && <FilesTab st={st} git={git} />}
         {tab === 'command' && <CommandTab st={st} node={node} />}
+        {tab === 'activity' && hasActivity(st.stream) && <ActivityTree stream={st.stream} />}
         {tab === 'activity' && (
           <div className="log">
             {lines.length === 0 && <div className="empty">{t('logs.no-activity')}</div>}

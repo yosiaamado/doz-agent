@@ -59,6 +59,22 @@ export const api = {
   clearApiKey: () => request('DELETE', '/api/setup/api-key'),
   setGitIdentity: (name, email) => request('PUT', '/api/setup/git-identity', { name, email }),
   claudeLogin: (useConsole) => request('POST', '/api/setup/claude-login', { console: useConsole }),
+  profiles: () => request('GET', '/api/profiles'),
+  createProfile: (body) => request('POST', '/api/profiles', body),
+  updateProfile: (id, body) => request('PUT', `/api/profiles/${enc(id)}`, body),
+  deleteProfile: (id) => request('DELETE', `/api/profiles/${enc(id)}`),
+  switchProfile: (id) => request('POST', '/api/profiles/active', { id }),
+  setProfileKey: (id, key, remember) => request('PUT', `/api/profiles/${enc(id)}/api-key`, { key, remember }),
+  clearProfileKey: (id) => request('DELETE', `/api/profiles/${enc(id)}/api-key`),
+  profileAuth: (id) => request('GET', `/api/profiles/${enc(id)}/auth`),
+  profileLogin: (id, useConsole) => request('POST', `/api/profiles/${enc(id)}/login`, { console: Boolean(useConsole) }),
+  chats: () => request('GET', '/api/chats'),
+  chat: (id) => request('GET', `/api/chats/${enc(id)}`),
+  createChat: (agent, allowEdits = false) => request('POST', '/api/chats', { agent, allowEdits }),
+  sendChat: (id, text) => request('POST', `/api/chats/${enc(id)}/messages`, { text }),
+  retryChat: (id) => request('POST', `/api/chats/${enc(id)}/retry`),
+  updateChat: (id, body) => request('PUT', `/api/chats/${enc(id)}`, body),
+  deleteChat: (id) => request('DELETE', `/api/chats/${enc(id)}`),
   completeSetup: () => request('POST', '/api/setup/complete'),
   updateStatus: () => request('GET', '/api/update/status'),
   updateCheck: (endpoint) => request('POST', '/api/update/check', endpoint ? { endpoint } : {}),
@@ -69,15 +85,22 @@ export const api = {
 };
 
 // A WebSocket with automatic reconnect.
-export function connectEvents(onMessage) {
+// `onStatus('open' | 'reconnecting')` reports the connection state.
+export function connectEvents(onMessage, onStatus) {
   let ws;
   let closed = false;
   const open = () => {
+    if (closed) return;
     ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
     ws.onmessage = (m) => {
       try { onMessage(JSON.parse(m.data)); } catch { /* a malformed message is ignored */ }
     };
-    ws.onclose = () => { if (!closed) setTimeout(open, 1500); };
+    ws.onopen = () => onStatus?.('open');
+    ws.onclose = () => {
+      if (closed) return;
+      onStatus?.('reconnecting');
+      setTimeout(open, 1500);
+    };
   };
   open();
   return () => { closed = true; ws?.close(); };
