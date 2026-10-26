@@ -55,6 +55,7 @@ Your memory is a **road map**, not a source of truth. The code always wins.
 - **Don't read backend code, and don't redesign the API.** Contract changes are decided by the main thread.
 - **Interactive or native-feeling UI** — drag, swipe, sheets, drawers, carousels, transitions the user can grab or reverse, translucent/glass chrome, or Electron/Tauri app chrome and menus → load `doz-agent:apple-design` via the `Skill` tool before the first edit, then read its `references/motion-physics.md` or `references/platform.md` at the step that needs it. Static pages and forms don't need it.
 - **Dashboard, admin panel or analytics screen** — new screen, KPI cards, charts, app shell, route/theme transitions, or "make it feel alive" → load `doz-agent:dashboard-craft` via the `Skill` tool before the first edit, then read its `references/recipes.md` at the step that writes animation or chart code.
+- **Scroll-driven or cinematic landing/marketing page** — scrollytelling, layered or parallax hero, video scrubbed by scroll, "Apple-style" product page → load `doz-agent:scroll-craft` via the `Skill` tool before planning; its brief (Step 0) comes before any markup.
 - Hard bug → call `doz-agent:analytical-thinking` via the `Skill` tool.
 - **Ambiguity.** You cannot ask the user, and stopping midway throws away work already done. So check **before your first edit**:
   - Design, copy, or interaction behavior for an important flow is still ambiguous → stop with `Status: needs-decision: <one question + your recommendation>`. Don't invent UX.

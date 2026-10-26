@@ -1,0 +1,7 @@
+node_modules/
+demo-out*/
+.demo-frames/
+template/demo/.build/
+test-results/
+playwright-report/
+*.log

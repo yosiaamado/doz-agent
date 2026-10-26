@@ -21,6 +21,8 @@ Before writing a component, lock these five down. Put them in a comment or a tok
 | **Typography** | 1 font family (2 max), 3 weights: 400 / 500–600 / 700 |
 | **Density** | Pick one: *comfortable* (table rows 48–56px) or *compact* (36–40px). Consistent across the whole app |
 
+No brand or design system yet → read [references/design-database.md](references/design-database.md) and query the bundled database for a product-appropriate palette and font pairing, then cut its output down to these five.
+
 ## 2. Layout & space
 
 - **Whitespace is a feature, not leftovers.** If a screen feels cramped, remove elements or add spacing — don't shrink the font.
@@ -178,6 +180,8 @@ Pick **one or two**, not all of them:
 - [ ] One surface style and at most one accent-filled hero surface per view.
 - [ ] Hover and transitions ≤ 200ms, chrome stays still on navigation, entrances play once, and `prefers-reduced-motion` respected.
 - [ ] This screen can be described in one sentence: "this page is for ___".
+
+Reviewing or handing over a whole flow (forms, navigation, mobile, a native app) → also run [references/ux-audit.md](references/ux-audit.md). A scroll-driven or cinematic landing page → `scroll-craft`.
 
 ## 12. Visual references
 

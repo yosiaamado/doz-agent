@@ -9,6 +9,22 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [2.7.0] - 2026-10-26
+
+Source: a user request to grow the FE and UI/UX skills from [nateherkai/scroll-craft](https://github.com/nateherkai/scroll-craft) and [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), and to make a `video-demo` agent from [nilbuild/video-demo](https://github.com/nilbuild/video-demo). All three are MIT; license notices are kept in each skill's `references/`. scroll-craft covers a gap (experience-style landing pages), so it is a new skill. ui-ux-pro-max overlaps `ui-design-taste`, so only its offline database and the audit rules not already covered were merged, as on-demand references; its decorative style picks are framed as candidates under the existing taste rules. The bundled scripts were read, not run, here. No `claude plugin eval` run yet: additive, on-demand material.
+
+- `skills/design/scroll-craft/SKILL.md` (new): the upstream skill condensed from 25k to under 12k characters — spine rules, layered-hero requirement, brief with delegation and a subagent `needs-decision` path, bootstrap with explicit consent before paid kie.ai generation, journey, grammar/signature/fingerprint gate/feeling curve/score checks, assets, build, scroll verification, hard rules, report.
+- `skills/design/scroll-craft/{engine,scripts,templates,references}/` (new): upstream engine, doctor/workspace/serve/shoot/encode/kie scripts, fingerprint template and reference files, unchanged; `references/LICENSE-scroll-craft.md`.
+- `skills/media/video-demo/SKILL.md` (new): upstream workflow with a "Use when" description, pointers to the Windows notes, and the plugin-cache caveat (reinstall after a plugin update; durable engine fixes go in this repo).
+- `skills/media/video-demo/{engine,scripts,template,references,package.json,package-lock.json,.gitignore}` (new): upstream engine and scripts, unchanged; `references/LICENSE-video-demo.md`.
+- `skills/media/video-demo/references/windows.md` (new): the engine is POSIX-only (symlinks, `nice`, `.venv/bin/python`), so on Windows it runs from a copy inside WSL2.
+- `agents/video-demo.md` (new): sonnet/medium, `maxTurns` 60 with a 42-call checkpoint, preloads `video-demo`; maps the skill's three user stops to `Status: needs-decision`, treats relayed feedback as a re-film, never touches the filmed repo.
+- `skills/design/ui-design-taste/references/design-database.md` (new) + `scripts/` + `data/`: ui-ux-pro-max's offline search (product palettes and reasoning, font pairings, Google Fonts, styles, landing patterns, charts, UX guidelines, GSAP presets, 22 stacks), with the query contract and a rule that `--persist`/`--force` need the user's OK.
+- `skills/design/ui-design-taste/references/ux-audit.md` (new): the ui-ux-pro-max rules not already in this plugin (WCAG 2.2 focus-not-obscured, drag alternatives, target sizes, error summaries, back-state preservation, chart accessibility, native-app pre-delivery).
+- `skills/design/ui-design-taste/SKILL.md`: §1 points to the database when there is no brand; §11 points to the UX audit and to `scroll-craft`.
+- `agents/frontend-engineer.md`: loads `scroll-craft` on demand for scroll-driven or cinematic marketing pages.
+- `plugin.json`: 2.7.0, registers the new `media` area; `plugin.json`, `marketplace.json`, `README.md`: list the new agent and skills.
+
 ## [2.6.0] - 2026-10-25
 
 Source: user review of the 2.5.0 dashboards — the patterns are good beyond dashboards, so the general ones move into `ui-design-taste` (preloaded by `frontend-engineer`, so every screen gets them) and `dashboard-craft` keeps only dashboard specifics, pointing back instead of repeating.
