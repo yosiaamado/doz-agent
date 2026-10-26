@@ -1,9 +1,9 @@
 ---
-name: ui-design-taste
+name: fe-base
 description: Use when building or fixing how something looks — a new page, dashboard, landing page or component — when choosing colors, sizes or spacing, or when the user says it looks messy, cramped or like a template ("bikin bagus", "kurang rapi"). For code structure, see frontend-patterns.
 ---
 
-# UI Design Taste
+# FE Base — UI design taste
 
 The code rules live in `frontend-patterns`. This file is about **taste**: why one screen looks expensive and another looks like a free template, even with identical content.
 
@@ -78,7 +78,7 @@ A scale you can use straight away (ratio ~1.25):
 
 ## 6. Dashboards: the right anatomy
 
-Single-component anatomy is here. Screen composition (shell, bento grid, hero card, premium chart patterns) and load/route/theme choreography are in `dashboard-craft`.
+Single-component anatomy is here. Screen composition (shell, bento grid, hero card, premium chart patterns) and load/route/theme choreography are in `fe-dashboard`.
 
 ### KPI cards
 
@@ -140,8 +140,8 @@ TOTAL VISITS              ← label 12px, grey, uppercase optional
 - **Numbers that change tween from the old value** to the new one; only the first appearance counts up from 0.
 - **Hover lift (`y: -4px` + deeper shadow) only on clickable cards.** On a static card it promises an action that isn't there.
 - **Theme toggle:** a circular reveal from the toggle button (View Transitions API) feels deliberate; fall back to an instant switch.
-- Exact timings and code for these: `dashboard-craft` §2–4 and its `references/recipes.md`.
-- Anything the user can drag, swipe or throw follows `apple-design` (springs, velocity, interruptibility) instead of these fixed durations.
+- Exact timings and code for these: `fe-dashboard` §2–4 and its `references/recipes.md`.
+- Anything the user can drag, swipe or throw follows `fe-native-feel` (springs, velocity, interruptibility) instead of these fixed durations.
 
 ## 9. The touches that make it look "expensive"
 
@@ -181,7 +181,7 @@ Pick **one or two**, not all of them:
 - [ ] Hover and transitions ≤ 200ms, chrome stays still on navigation, entrances play once, and `prefers-reduced-motion` respected.
 - [ ] This screen can be described in one sentence: "this page is for ___".
 
-Reviewing or handing over a whole flow (forms, navigation, mobile, a native app) → also run [references/ux-audit.md](references/ux-audit.md). A scroll-driven or cinematic landing page → `scroll-craft`.
+Reviewing or handing over a whole flow (forms, navigation, mobile, a native app) → also run [references/ux-audit.md](references/ux-audit.md). A scroll-driven or cinematic landing page → `fe-scroll`.
 
 ## 12. Visual references
 

@@ -6,7 +6,7 @@ Read this when **setting the visual direction for a product with no brand or des
 
 ## Results are candidates, the SKILL.md rules decide
 
-The database leans decorative: it recommends glassmorphism for general SaaS, motion-driven styles for micro-SaaS, several accent colors per palette. Take its **product reasoning, palette hue family and font pairing** as input, then cut it down to `ui-design-taste` §1: one accent, graded neutrals, 3 semantics, one family (two max). An existing design system or brand beats both.
+The database leans decorative: it recommends glassmorphism for general SaaS, motion-driven styles for micro-SaaS, several accent colors per palette. Take its **product reasoning, palette hue family and font pairing** as input, then cut it down to `fe-base` §1: one accent, graded neutrals, 3 semantics, one family (two max). An existing design system or brand beats both.
 
 ## Commands
 

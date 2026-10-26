@@ -1,6 +1,6 @@
 # Visual Case Studies
 
-Reference material for `ui-design-taste`. The color and typography figures below are taken straight from the sites' CSS (inspected September 2026), not estimated.
+Reference material for `fe-base`. The color and typography figures below are taken straight from the sites' CSS (inspected September 2026), not estimated.
 
 ## Part 1: Five admin dashboards
 

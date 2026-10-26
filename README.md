@@ -14,13 +14,15 @@ A personal collection of Claude Code subagents + skills. Upload it to GitHub onc
 | `security-tester` | STRIDE threat model + OWASP Top 10:2025 / ASVS 5.0 audit | ❌ read-only |
 | `code-reviewer` | Review in the style of Google eng practices, comments labelled blocking/non-blocking | ❌ read-only |
 | `backend-engineer` | APIs, services, DB, migrations, queues: requirement → design → code + tests → verification. 🧠 keeps a memory of the code-flow map | ✅ |
-| `frontend-engineer` | UI, components, state, forms, WCAG 2.2 AA, Core Web Vitals. 🎨 has design taste (`ui-design-taste`), 🧠 keeps a memory of the component map | ✅ |
+| `frontend-engineer` | UI, components, state, forms, WCAG 2.2 AA, Core Web Vitals. 🎨 has design taste (`fe-base`), 🧠 keeps a memory of the component map | ✅ |
 | `devops-engineer` | Docker, CI/CD, deploy, IaC, observability, SLOs, with production safety rules | ✅ |
-| `video-demo` | Narrated, cursor-driven demo videos and retina stills of a web app (pinned build, mocked requests) or a public URL, one scene at a time with a review stop; all local, voice included | ✅ demo workspace only |
+| `demo-video` | Narrated, cursor-driven demo videos and retina stills of a web app (pinned build, mocked requests) or a public URL, one scene at a time with a review stop; all local, voice included | ✅ demo workspace only |
 
 **Skills** (`plugins/skills/<area>/<name>/SKILL.md`)
 
 Skills are grouped by area. The area folder name doesn't affect how they're invoked: a skill is still called as `doz-agent:<name>`.
+
+Renamed in 3.0.0 (old names no longer load): `ui-design-taste` → `fe-base`, `apple-design` → `fe-native-feel`, `dashboard-craft` → `fe-dashboard`, `scroll-craft` → `fe-scroll`, `video-demo` → `demo-video` (skill and agent). Each skill still credits its source repo and keeps that repo's license in `references/`.
 
 | Skill | Area | Contents |
 |---|---|---|
@@ -34,11 +36,11 @@ Skills are grouped by area. The area folder name doesn't affect how they're invo
 | `devops-patterns` | engineering | Docker, CI/CD + supply chain, deploy & rollback, K8s, Terraform, SLOs & alerts, backup/DR |
 | `analytical-thinking` | thinking | MECE, hypotheses, root cause, Fermi estimation, decision matrices, pre-mortems |
 | `business-thinking` | product | Idea validation, PRDs, RICE/WSJF, unit economics, pricing, OKRs, A/B tests, build vs buy, UU PDP |
-| `ui-design-taste` | design | Visual taste: hierarchy from space, the 4/8 scale, one accent, KPI/chart/table anatomy, bordered vs gapped surfaces, one hero surface, states, motion choreography (still chrome, reading-order entrances, fast exits, theme reveal), template anti-patterns + case studies in `references/`, a UX audit pass, and a bundled offline database (palettes, font pairings, styles, per-stack notes) for new products |
-| `apple-design` | design | Apple-grade feel for web, desktop and mobile apps: pointer-down feedback, 1:1 drags, interruptible springs, velocity handoff, momentum projection, rubber-banding, glass on floating chrome only, type tracking, platform conventions, Apple Pay on the web, and an HIG review method. Loaded by `frontend-engineer` only for interactive or native-feeling UI |
-| `dashboard-craft` | design | Dashboards that feel premium: persistent shell (floating rail or sliding pill nav), bento grid with one hero card, spotlight-bar/spline/gauge/ring chart patterns, first-load choreography (shell → surfaces → blur-in text → count-up → chart draw), route change, circular dark-mode reveal, live-data tweening, traps, and Motion recipes in `references/`. Loaded by `frontend-engineer` for dashboard and analytics screens |
-| `scroll-craft` | design | Scroll-driven, cinematic landing pages: brief + feeling curve with one peak, page grammars, fingerprint gate against earlier builds, a device per beat, dimensional layered heroes, the bundled scroll engine, scrub-ready encoding, and screenshot verification at every scroll position. Loaded by `frontend-engineer` for experience-style marketing pages |
-| `video-demo` | media | The filming engine and workflow behind the `video-demo` agent: Playwright recorder, camera/cursor actor, local Kokoro voice, stitching, troubleshooting |
+| `fe-base` | design | Visual taste: hierarchy from space, the 4/8 scale, one accent, KPI/chart/table anatomy, bordered vs gapped surfaces, one hero surface, states, motion choreography (still chrome, reading-order entrances, fast exits, theme reveal), template anti-patterns + case studies in `references/`, a UX audit pass, and a bundled offline database (palettes, font pairings, styles, per-stack notes) for new products |
+| `fe-native-feel` | design | Apple-grade feel for web, desktop and mobile apps: pointer-down feedback, 1:1 drags, interruptible springs, velocity handoff, momentum projection, rubber-banding, glass on floating chrome only, type tracking, platform conventions, Apple Pay on the web, and an HIG review method. Loaded by `frontend-engineer` only for interactive or native-feeling UI |
+| `fe-dashboard` | design | Dashboards that feel premium: persistent shell (floating rail or sliding pill nav), bento grid with one hero card, spotlight-bar/spline/gauge/ring chart patterns, first-load choreography (shell → surfaces → blur-in text → count-up → chart draw), route change, circular dark-mode reveal, live-data tweening, traps, and Motion recipes in `references/`. Loaded by `frontend-engineer` for dashboard and analytics screens |
+| `fe-scroll` | design | Scroll-driven, cinematic landing pages: brief + feeling curve with one peak, page grammars, fingerprint gate against earlier builds, a device per beat, dimensional layered heroes, the bundled scroll engine, scrub-ready encoding, and screenshot verification at every scroll position. Loaded by `frontend-engineer` for experience-style marketing pages |
+| `demo-video` | media | The filming engine and workflow behind the `demo-video` agent: Playwright recorder, camera/cursor actor, local Kokoro voice, stitching, troubleshooting |
 | `rab-kontraktor-advisor` | consultant | Product context for an RAB generator for small contractors: the AHSP/HSPK/SNI standards, BOQ/AACE, and the data & UX patterns of estimating software |
 | `finance-accounting` | consultant | Finance & accounting supervisor/PO for engineers: turns money features into specs (accounting treatment, debit/credit journals, rounding, golden test cases), with a research protocol for current Indonesian rules (PSAK, PPN, PPh, Coretax) and trusted formulas |
 
@@ -59,8 +61,8 @@ doz-agent/
     └── skills/
         ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature, token-audit, run-workflow
         ├── product/             # product-ownership, business-thinking
-        ├── design/              # ui-design-taste, apple-design, dashboard-craft, scroll-craft
-        ├── media/               # video-demo
+        ├── design/              # fe-base, fe-native-feel, fe-dashboard, fe-scroll
+        ├── media/               # demo-video
         ├── thinking/            # analytical-thinking
         └── consultant/          # rab-kontraktor-advisor, finance-accounting (domain skills per product/client)
 ```

@@ -1,6 +1,6 @@
 ---
 name: frontend-patterns
-description: Use when writing, changing, designing or reviewing web UI code — components, pages, state, data fetching, forms, accessibility, performance, client-side security, tests — in React, Next.js, Vue or Svelte. For visual look and feel, see ui-design-taste.
+description: Use when writing, changing, designing or reviewing web UI code — components, pages, state, data fetching, forms, accessibility, performance, client-side security, tests — in React, Next.js, Vue or Svelte. For visual look and feel, see fe-base.
 ---
 
 # Frontend Patterns

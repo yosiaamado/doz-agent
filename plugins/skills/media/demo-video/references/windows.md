@@ -6,11 +6,11 @@ The engine assumes a POSIX machine: `doctor.sh` warns that the platform is unsup
 2. Copy the skill into the Linux filesystem once, so the engine never runs off `/mnt/c` (slow, and no real symlinks):
 
    ```bash
-   wsl -- bash -lc 'rm -rf ~/video-demo && cp -r "$(wslpath "<this skill folder>")" ~/video-demo'
+   wsl -- bash -lc 'rm -rf ~/demo-video && cp -r "$(wslpath "<this skill folder>")" ~/demo-video'
    ```
 
    Repeat the copy after a plugin update; it also refreshes the engine.
 3. Inside WSL, Node ≥ 22.18 must exist (`node --version`); if not, pass on the install command, don't run it.
-4. Run everything through `wsl -- bash -lc 'cd ~/video-demo && …'`: `scripts/doctor.sh`, `scripts/install.sh`, `scripts/install-voice.sh`, `scripts/scaffold.mjs`, `scripts/demo`.
+4. Run everything through `wsl -- bash -lc 'cd ~/demo-video && …'`: `scripts/doctor.sh`, `scripts/install.sh`, `scripts/install-voice.sh`, `scripts/scaffold.mjs`, `scripts/demo`.
 5. `build` mode: point the scaffold at the repo through its WSL path (`/mnt/e/...`). The app's build runs inside WSL with Linux `node_modules`; if the repo's own `node_modules` was installed on Windows and contains native binaries, the build fails — say so and ask before reinstalling anything in their repo.
 6. Hand the user Windows paths for the output: `\\wsl$\Ubuntu\home\<user>\.video-demo\<key>\demo-out\` (or `explorer.exe .` from inside the folder).

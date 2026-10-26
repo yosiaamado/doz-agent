@@ -1,9 +1,9 @@
 ---
-name: video-demo
+name: demo-video
 description: Use when the user asks for a demo video, product video, walkthrough, screencast or screen recording of a web app or URL, hero or landing-page footage, app screenshots for a website, "show off this feature", "record a demo of <url>", "bikin video demo", or wants to add, re-film, re-narrate or fix a demo scene.
 ---
 
-# Video demo
+# Demo Video
 
 `scripts/demo` films a web app and writes `demo-out/` into that project's workspace: per scene an mp4 with voice-over, a poster and retina stills, plus `full-tour.mp4`, `manifest.json` and `index.html`. All local. The engine runs from this skill; nothing is installed into the app being filmed.
 

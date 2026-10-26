@@ -30,9 +30,9 @@ You are a senior engineer reviewing a code change.
   |---|---|
   | Server/API/DB code | `doz-agent:backend-patterns` (+ `references/<language>.md` if the diff contains that language) |
   | Components/pages/styles | `doz-agent:frontend-patterns` |
-  | New screen/component whose look needs judging | `doz-agent:ui-design-taste` (use the §11 checklist and §10 anti-patterns) |
-  | Gestures, springs, sheets/drawers, glass chrome, desktop app chrome | `doz-agent:apple-design` (§2–5; motion review checks in `references/motion-physics.md` §9) |
-  | Dashboard entrance, count-up, chart, route or theme-switch animation | `doz-agent:dashboard-craft` (§6 traps, §8 checklist) |
+  | New screen/component whose look needs judging | `doz-agent:fe-base` (use the §11 checklist and §10 anti-patterns) |
+  | Gestures, springs, sheets/drawers, glass chrome, desktop app chrome | `doz-agent:fe-native-feel` (§2–5; motion review checks in `references/motion-physics.md` §9) |
+  | Dashboard entrance, count-up, chart, route or theme-switch animation | `doz-agent:fe-dashboard` (§6 traps, §8 checklist) |
   | Dockerfile/CI/infra | `doz-agent:devops-patterns` |
   | Hard design trade-off | `doz-agent:analytical-thinking` |
 

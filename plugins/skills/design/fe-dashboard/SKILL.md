@@ -1,11 +1,11 @@
 ---
-name: dashboard-craft
+name: fe-dashboard
 description: Use when building or polishing a dashboard, admin panel or analytics screen — KPI cards, charts, sidebar or top-nav shell, page/route transitions, dark-mode toggle, entrance or count-up animations — or when the user wants it to feel premium, alive or "kayak di Dribbble" ("animasinya kurang", "dashboard-nya kaku").
 ---
 
-# Dashboard Craft
+# FE Dashboard — dashboard craft
 
-`ui-design-taste` owns the tokens (spacing, radii, palette, type scale), surface styles, the anatomy of a single KPI card, chart and table, and the general motion rules (§8). `apple-design` owns anything the user can grab. This file owns the two things that make a dashboard feel premium rather than templated: **how the screen is composed** and **how it moves** — first load, route change, theme switch, live data.
+`fe-base` owns the tokens (spacing, radii, palette, type scale), surface styles, the anatomy of a single KPI card, chart and table, and the general motion rules (§8). `fe-native-feel` owns anything the user can grab. This file owns the two things that make a dashboard feel premium rather than templated: **how the screen is composed** and **how it moves** — first load, route change, theme switch, live data.
 
 The through-line: **the shell never moves, content arrives in reading order, every number and chart has an entrance exactly once, and nothing blocks input.**
 
@@ -22,7 +22,7 @@ Pick one shell per product and keep it mounted across routes. It never replays a
 
 ### The canvas
 
-The general rules live in `ui-design-taste`: the *gapped* surface style and bento spans (§5), one accent-filled hero surface and dark floating elements (§4), smaller decimals (§3), real-feeling dummy data (§9). For dashboards specifically:
+The general rules live in `fe-base`: the *gapped* surface style and bento spans (§5), one accent-filled hero surface and dark floating elements (§4), smaller decimals (§3), real-feeling dummy data (§9). For dashboards specifically:
 
 - **Gapped is the default** for overview dashboards; switch to *bordered* only for table-heavy admin screens.
 - **The hero surface is the screen's main job:** a revenue card, a "Manage quotes" call-to-action, a welcome banner.
@@ -80,12 +80,12 @@ Code: [references/recipes.md](references/recipes.md) §4.
 ## 4. Theme and workspace switches
 
 - **Dark-mode toggle = circular reveal from the toggle button.** The new theme grows as a circle centred on the button until it covers the viewport, 450–600ms ease-in-out. Use the View Transitions API; where unsupported or under reduced motion, switch instantly. Code: [references/recipes.md](references/recipes.md) §5.
-- The dark theme is designed, not inverted (`ui-design-taste` §4): surfaces raised by lightness, the hero card keeps its accent, chart gradients re-tuned for dark.
+- The dark theme is designed, not inverted (`fe-base` §4): surfaces raised by lightness, the hero card keeps its accent, chart gradients re-tuned for dark.
 - **Switching between whole products/workspaces** (e.g. a bottom switcher pill between two apps) may use a diagonal wipe (`clip-path` polygon sweeping across, ~500ms). Reserve it for that: a wipe on ordinary navigation is noise.
 
 ## 5. Interaction and live data
 
-Hover lift and tweening from the old value are general rules (`ui-design-taste` §8). Dashboard specifics:
+Hover lift and tweening from the old value are general rules (`fe-base` §8). Dashboard specifics:
 
 - **Chart hover:** the hovered bar/point takes the accent, the rest dim to ~40%; tooltip snaps to the data point, not the cursor.
 - **Live or refetched numbers** tween over 300–500ms; optionally tint the delta green/red for ~1s.
@@ -112,7 +112,7 @@ Only when the product has a real spatial metaphor (a floor, a warehouse, a fleet
 
 - The scene (e.g. React Three Fiber) is the **content layer**; KPIs, greetings and actions stay as DOM cards floating over it.
 - Labels pinned to objects ("Jake $54.5k") are DOM overlays positioned from the 3D coordinates, so they stay crisp and accessible.
-- Floating HUD cards follow `apple-design` §5 (translucency only on floating chrome, fallbacks).
+- Floating HUD cards follow `fe-native-feel` §5 (translucency only on floating chrome, fallbacks).
 - A side panel (an assistant chat, a detail drawer) slides over the scene from the edge and leaves along the same path.
 - Lazy-load the scene, show a static render first, and give a plain list/table view of the same data.
 

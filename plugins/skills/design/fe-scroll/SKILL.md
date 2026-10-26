@@ -1,15 +1,15 @@
 ---
-name: scroll-craft
-description: Use when building a landing or marketing page meant to feel like an experience — scrollytelling, scroll-driven sections, a layered or cinematic hero, a page where scrolling plays a video, a 3D scroll world, an Apple-style product page — or when a landing page "looks like a template". Don't use for app screens or dashboards (ui-design-taste, dashboard-craft).
+name: fe-scroll
+description: Use when building a landing or marketing page meant to feel like an experience — scrollytelling, scroll-driven sections, a layered or cinematic hero, a page where scrolling plays a video, a 3D scroll world, an Apple-style product page — or when a landing page "looks like a template". Don't use for app screens or dashboards (fe-base, fe-dashboard).
 ---
 
-# Scroll Craft
+# FE Scroll — scroll craft
 
 Scroll is the one input every visitor already knows. This skill treats it as a timeline: the wheel scrubs, the page is a film with real text on top, and each section behaves differently enough that the visitor keeps going to see what the next one does.
 
 **You produce:** `BRIEF.md` (brief, journey, feeling curve, peak), a page grammar, a scroll score (device per beat), one bespoke signature move, the assets, one real HTML page on the bundled engine, and screenshots proving it holds at every scroll position.
 
-`ui-design-taste` still governs type, color, spacing and contrast inside the page; `references/taste.md` is this skill's stricter version for scroll pages. Adapted from [nateherkai/scroll-craft](https://github.com/nateherkai/scroll-craft) (MIT, `references/LICENSE-scroll-craft.md`). `<skill>` below means this skill's folder.
+`fe-base` still governs type, color, spacing and contrast inside the page; `references/taste.md` is this skill's stricter version for scroll pages. Adapted from [nateherkai/scroll-craft](https://github.com/nateherkai/scroll-craft) (MIT, `references/LICENSE-scroll-craft.md`). `<skill>` below means this skill's folder.
 
 ## The spine
 

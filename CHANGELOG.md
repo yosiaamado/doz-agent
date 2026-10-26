@@ -9,6 +9,19 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [3.0.0] - 2026-10-26
+
+Source: a user request to rename `ui-design-taste` to `fe-base` and give the skills adapted from other repos the plugin's own names, while keeping their source references. Major version because invocation names change: `doz-agent:<old-name>` no longer resolves. Content is unchanged; source links, license notices in `references/`, and upstream engine paths (`~/.video-demo/`, the `video-demo` npm package name, `scrollcraft` workspace) are kept as they were, since the engines depend on them.
+
+- `skills/design/ui-design-taste/` → `skills/design/fe-base/` (`name: fe-base`).
+- `skills/design/apple-design/` → `skills/design/fe-native-feel/` (`name: fe-native-feel`).
+- `skills/design/dashboard-craft/` → `skills/design/fe-dashboard/` (`name: fe-dashboard`).
+- `skills/design/scroll-craft/` → `skills/design/fe-scroll/` (`name: fe-scroll`).
+- `skills/media/video-demo/` → `skills/media/demo-video/` (`name: demo-video`); `references/windows.md` copies it to `~/demo-video` in WSL.
+- `agents/video-demo.md` → `agents/demo-video.md` (`name: demo-video`, preloads `demo-video`).
+- `agents/frontend-engineer.md`, `agents/code-reviewer.md`, `skills/engineering/frontend-patterns/SKILL.md`, and cross-references inside the renamed skills: new names.
+- `plugin.json` (3.0.0), `marketplace.json`, `README.md`: new names, plus a rename table in the README.
+
 ## [2.7.0] - 2026-10-26
 
 Source: a user request to grow the FE and UI/UX skills from [nateherkai/scroll-craft](https://github.com/nateherkai/scroll-craft) and [nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), and to make a `video-demo` agent from [nilbuild/video-demo](https://github.com/nilbuild/video-demo). All three are MIT; license notices are kept in each skill's `references/`. scroll-craft covers a gap (experience-style landing pages), so it is a new skill. ui-ux-pro-max overlaps `ui-design-taste`, so only its offline database and the audit rules not already covered were merged, as on-demand references; its decorative style picks are framed as candidates under the existing taste rules. The bundled scripts were read, not run, here. No `claude plugin eval` run yet: additive, on-demand material.

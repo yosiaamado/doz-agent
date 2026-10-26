@@ -1,11 +1,11 @@
 ---
-name: apple-design
+name: fe-native-feel
 description: Use when building or reviewing UI that should feel fluid and native — drag, swipe, sheets, drawers, carousels, springs and interruptible transitions, translucent or glass chrome, type tracking, platform conventions for web, desktop (Electron/Tauri) or mobile apps — or when asked for an Apple-style or HIG design review ("kerasa kayak app Apple", "review UI ini").
 ---
 
-# Apple Design
+# FE Native Feel — Apple-style design
 
-`ui-design-taste` sets the visual system (spacing, palette, type scale, cards, states, basic motion timing). This skill adds what makes an interface feel **physical and native**: how things respond, move, layer and behave, plus a review method grounded in Apple's Human Interface Guidelines (HIG). Where both speak, `ui-design-taste` owns tokens and timing; this file owns interaction physics, materials and platform behavior.
+`fe-base` sets the visual system (spacing, palette, type scale, cards, states, basic motion timing). This skill adds what makes an interface feel **physical and native**: how things respond, move, layer and behave, plus a review method grounded in Apple's Human Interface Guidelines (HIG). Where both speak, `fe-base` owns tokens and timing; this file owns interaction physics, materials and platform behavior.
 
 The through-line: **motion starts from the current on-screen value, inherits the user's velocity, projects momentum forward, and can be grabbed and reversed at any instant.**
 
@@ -38,7 +38,7 @@ Apple's HIG design principles (2026). A screen that breaks a principle has a big
 
 - **Every animation can be interrupted and redirected.** Never lock input during a transition. A closing sheet the user grabs follows the finger instead of finishing first.
 - **Animate from the presentation value** (what's on screen now), never from the logical target, or it jumps.
-- **Anything the user can touch, drag or throw uses a spring, not a CSS transition or `@keyframes`.** Fixed-duration curves from `ui-design-taste` §8 stay right for hover, fades and state changes nobody can grab.
+- **Anything the user can touch, drag or throw uses a spring, not a CSS transition or `@keyframes`.** Fixed-duration curves from `fe-base` §8 stay right for hover, fades and state changes nobody can grab.
 - Think in **damping ratio** (overshoot: `1.0` = none) and **response** (seconds to reach the target — not a duration).
 
 | Interaction | Damping | Response |
@@ -75,7 +75,7 @@ Velocity handoff, momentum projection and rubber-banding have exact formulas and
 
 ## 6. Typography details
 
-The type scale is in `ui-design-taste` §3. Apple adds:
+The type scale is in `fe-base` §3. Apple adds:
 
 - **Tracking is size-specific:** negative on large display text (around `-0.02em`), near `0` for body, slightly positive for very small text. One `letter-spacing` for every size is wrong somewhere.
 - **Leading runs inverse to size:** tight on large headings, looser on body; looser still for scripts with tall ascenders/descenders.
@@ -85,7 +85,7 @@ The type scale is in `ui-design-taste` §3. Apple adds:
 
 ## 7. Accessibility beyond the basics
 
-Contrast and color-only rules are in `ui-design-taste` §4. Add:
+Contrast and color-only rules are in `fe-base` §4. Add:
 
 | Control size | Default | Minimum |
 |---|---|---|
@@ -123,7 +123,7 @@ When the product is a desktop app (Electron, Tauri), a mobile app (React Native,
 
 ## 11. Craft lens
 
-On top of `ui-design-taste` §9–10:
+On top of `fe-base` §9–10:
 
 - **Name the one thing this design will be remembered by.** If nothing, say so. A deliberately quiet utility is a valid answer — say that too.
 - **Spot generated defaults:** warm cream + high-contrast serif + terracotta accent; near-black + one acid-green or vermilion accent; a broadsheet of hairline rules, zero radius and dense columns; a hero of a big number over a small label with a gradient; `01 / 02 / 03` markers on content that isn't a sequence. A look with no reason rooted in the product is a default, not a choice.
