@@ -18,6 +18,7 @@ A personal collection of Claude Code subagents + skills. Upload it to GitHub onc
 | `frontend-engineer` | UI, components, state, forms, WCAG 2.2 AA, Core Web Vitals. 🎨 has design taste (`fe-base`), 🧠 keeps a memory of the component map | ✅ |
 | `devops-engineer` | Docker, CI/CD, deploy, IaC, observability, SLOs, with production safety rules | ✅ |
 | `demo-video` | Narrated, cursor-driven demo videos and retina stills of a web app (pinned build, mocked requests) or a public URL, one scene at a time with a review stop; all local, voice included | ✅ demo workspace only |
+| `trading-analyst` | Stocks (IDX/US), crypto, forex, commodities: macro, politics and geopolitics scorecard (13 factors, checked against measured correlation) → dated news from ≥ 2 outlets → sentiment vs expectations → "priced in?" in ATR multiples → chart vs index and peers → entry/stop/targets, R:R ≥ 2 and lot sizing, or a clear no-trade. Modes: analyze, review a position, scan a watchlist. Analysis only, never places orders | 📝 `trading-journal/` only |
 
 **Skills** (`plugins/skills/<area>/<name>/SKILL.md`)
 
@@ -42,6 +43,7 @@ Renamed in 3.0.0 (old names no longer load): `ui-design-taste` → `fe-base`, `a
 | `fe-dashboard` | design | Dashboards that feel premium: persistent shell (floating rail or sliding pill nav), bento grid with one hero card, spotlight-bar/spline/gauge/ring chart patterns, first-load choreography (shell → surfaces → blur-in text → count-up → chart draw), route change, circular dark-mode reveal, live-data tweening, traps, and Motion recipes in `references/`. Loaded by `frontend-engineer` for dashboard and analytics screens |
 | `fe-scroll` | design | Scroll-driven, cinematic landing pages: brief + feeling curve with one peak, page grammars, fingerprint gate against earlier builds, a device per beat, dimensional layered heroes, the bundled scroll engine, scrub-ready encoding, and screenshot verification at every scroll position. Loaded by `frontend-engineer` for experience-style marketing pages |
 | `demo-video` | media | The filming engine and workflow behind the `demo-video` agent: Playwright recorder, camera/cursor actor, local Kokoro voice, stitching, troubleshooting |
+| `trading-analysis` | markets | The trader's routine behind `trading-analyst`: scope defaults, macro/politics/geopolitics factors with an IDX sector map, catalyst search, sentiment rubric (direction × materiality × surprise × source tier), priced-in table, plan recipe, journal loop, and `scripts/price_check.py` (MA/RSI/ATR/RS/beta plus correlation to macro proxies, from Yahoo daily data, stdlib only). Tested price/macro/news sources and IDX lot/tick rules in dated references |
 | `rab-kontraktor-advisor` | consultant | Product context for an RAB generator for small contractors: the AHSP/HSPK/SNI standards, BOQ/AACE, and the data & UX patterns of estimating software |
 | `finance-accounting` | consultant | Finance & accounting supervisor/PO for engineers: turns money features into specs (accounting treatment, debit/credit journals, rounding, golden test cases), with a research protocol for current Indonesian rules (PSAK, PPN, PPh, Coretax) and trusted formulas |
 
@@ -56,7 +58,7 @@ doz-agent/
 ├── studio/                      # doz studio: visual editor + workflow runner (not installed)
 └── plugins/
     ├── .claude-plugin/plugin.json
-    ├── agents/                  # 10 subagents (flat files, no subfolders)
+    ├── agents/                  # 11 subagents (flat files, no subfolders)
     ├── workflows/               # stored workflows (.md): a graph of nodes + edges, read by studio & run-workflow
     ├── actions/                 # stored shell commands for action nodes (tests, checking changes)
     └── skills/
@@ -64,6 +66,7 @@ doz-agent/
         ├── product/             # product-ownership, business-thinking
         ├── design/              # fe-base, fe-native-feel, fe-dashboard, fe-scroll
         ├── media/               # demo-video
+        ├── markets/             # trading-analysis
         ├── thinking/            # analytical-thinking
         └── consultant/          # rab-kontraktor-advisor, finance-accounting (domain skills per product/client)
 ```
