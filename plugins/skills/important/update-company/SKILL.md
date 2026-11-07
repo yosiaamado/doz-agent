@@ -9,7 +9,7 @@ Keeps `company-profile.md` in the working directory current for the role agents.
 
 ## Step 1 — Load
 
-Read `company-profile.md`. If it's missing, create it from [the template](../company-roles/references/company-profile-template.md), and add `company-profile.md` to `.gitignore` if it isn't there. Add a `## History` section if an older file lacks one.
+Read `company-profile.md`. If it's missing, create it from [the template](../../business/company-roles/references/company-profile-template.md), and add `company-profile.md` to `.gitignore` if it isn't there. Add a `## History` section if an older file lacks one.
 
 ## Step 2 — Find out what changed
 

@@ -9,6 +9,19 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [3.4.0] - 2026-11-08
+
+Source: a user request for team shortcuts like `/ship-feature` (`/sales-team`, `/director`), kept in their own folder, and for any session to be able to say which shortcut covers what. Skills can call agents because they run in the main thread; agents can't call each other. Invocation names don't depend on the path, so moving skills breaks nothing. Not yet run in a real session. No before/after: new skills, no tuned behaviour changed.
+
+- `skills/important/` (new area): shortcut skills. `ship-feature` moved from `engineering/`, `update-company` from `business/`.
+- `skills/important/director/SKILL.md` (new): chooses seats by what the decision touches, runs them in parallel on one brief, reports verdicts, the split and a recommendation; one CEO tie-break round at most.
+- `skills/important/sales-team/SKILL.md` (new): routes by customer stage to one role, or two when the situation spans them.
+- `skills/important/deal-check/SKILL.md` (new): sales, money and legal checks with a table mapping their verdicts to GO, GO WITH CHANGES, HOLD or NO-GO.
+- `skills/important/weekly-review/SKILL.md` (new): reads the profile, sales notes and last review, then saves one focus that fits the available hours to `weekly-reviews/`.
+- `skills/important/shortcuts/SKILL.md` (new): the shortcut list any session can answer from.
+- `tests/test_plugin_structure.py`: every skill in `important/` must have a row in `shortcuts`.
+- `plugin.json` (3.4.0, `./skills/important`), `marketplace.json`, `README.md`, `.gitignore` (`weekly-reviews/`).
+
 ## [3.3.0] - 2026-11-08
 
 Source: a user request to separate agents by area and add company-role agents (sales for discussing new prospects, CEO, CFO, CTO, COO and others), with knowledge researched from senior practitioners; names are a recommendation for the user to correct. Agents stay flat because subfolders change their names, so areas are shown by README group and colour. One skill holds all playbooks, so nine roles add one skill description rather than nine. Playbooks were researched on 2026-11-08 from first-hand and practitioner writing plus Indonesian regulations; what couldn't be verified is marked `⚠ NEEDS VERIFICATION`, and benchmarks are mostly US and often vendor-reported. No before/after: new agents, no tuned behaviour changed. A trial of `sales-director` on a made-up prospect (6 tool calls, `Recommendation: QUALIFY FIRST`) led to defining the A/B/C rating, placing the next move first under Next steps, and rewording the proposal gate. A `legal-counsel` run on a real question (14 tool calls, `Recommendation: NEED DOCUMENT`) caught a wrong amendment reference in its playbook, now corrected. Each description adds about 330 characters of resident context.

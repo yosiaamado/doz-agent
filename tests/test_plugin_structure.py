@@ -77,6 +77,14 @@ class LayoutTest(unittest.TestCase):
                  if os.path.isdir(os.path.join(PLUGIN, "skills", d))}
         self.assertEqual(areas - registered, set(), "add the area folder to the skills array")
 
+    def test_every_important_skill_is_listed_in_shortcuts(self):
+        important = os.path.join(PLUGIN, "skills", "important")
+        table = open(os.path.join(important, "shortcuts", "SKILL.md"), encoding="utf-8").read()
+        for path in glob.glob(os.path.join(important, "*", "SKILL.md")):
+            name = frontmatter(path)[0]["name"]
+            with self.subTest(skill=name):
+                self.assertIn(f"| `{name}` |", table, "add a row to the shortcuts table")
+
     def test_agents_are_flat(self):
         subdirs = [d for d in os.listdir(AGENTS) if os.path.isdir(os.path.join(AGENTS, d))]
         self.assertEqual(subdirs, [], "agent subfolders change the agent's scoped name")

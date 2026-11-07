@@ -4,6 +4,18 @@ A personal collection of Claude Code subagents + skills. Upload it to GitHub onc
 
 ## Contents
 
+**Shortcuts** (`plugins/skills/important/`). The commands that run a team; ask "shortcut apa aja" in any session to get this list.
+
+| Shortcut | Use it to | Calls |
+|---|---|---|
+| `/doz-agent:ship-feature` | Build a product, feature, upgrade or bugfix end to end | Product and engineering agents, as needed |
+| `/doz-agent:director` | Get leadership's view on one big decision, and see where they split | `ceo`, `cfo`, plus `cto`, `coo`, `cmo`, `legal-counsel`, `hr-lead` as relevant |
+| `/doz-agent:sales-team` | Handle a prospect, find leads, or deal with an existing client | `sales-director`, `cmo`, `customer-success-lead`, by situation |
+| `/doz-agent:deal-check` | Get a go or no-go before sending a proposal or signing | `sales-director`, `cfo`, `legal-counsel`, plus `cto` for custom scope |
+| `/doz-agent:weekly-review` | Review the week and set one focus for the next | `sales-director`, `coo` |
+| `/doz-agent:update-company` | Record a new client, hire, product or money change in `company-profile.md` | None, it asks you questions |
+| `/doz-agent:shortcuts` | See this list | None |
+
 **Subagents** (`plugins/agents/`). The files are flat, so areas are shown here and by colour in Claude Code.
 
 **Engineering & product**
@@ -61,7 +73,7 @@ Renamed in 3.0.0 (old names no longer load): `ui-design-taste` → `fe-base`, `a
 
 | Skill | Area | Contents |
 |---|---|---|
-| `ship-feature` | engineering | **The main entry point.** A one-command orchestrator: size the work (small/medium/large), run only the agents needed (PO → SA → BE ∥ FE → parallel verification → acceptance), the fix loop, stopping only for business decisions |
+| `ship-feature` | important | **The main entry point.** A one-command orchestrator: size the work (small/medium/large), run only the agents needed (PO → SA → BE ∥ FE → parallel verification → acceptance), the fix loop, stopping only for business decisions |
 | `token-audit` | engineering | Token & failure audit of one workflow from the transcript: tokens & estimated cost per agent, the biggest gaps (large files read whole, long output, exploration, cache misses, narration, long reports), agent failures & blocking findings per category, failure patterns recurring across workflows, and suggestions per agent file. Automatic at the end of a Medium/Large `ship-feature`; manually: `/doz-agent:token-audit [--all]` |
 | `run-workflow` | engineering | Runs a stored workflow (`plugins/workflows/<name>.md`, created in doz studio or by hand) step by step: parallelism, conditions, fix loops, approvals. Progress is written to `.doz-studio/runs/` so it shows live in studio. `/doz-agent:run-workflow <name> <request>` |
 | `product-ownership` | product | The PO framework (Scrum Guide 2020): impact analysis, INVEST, Given/When/Then, story splitting, DoR, choosing agents, accepting the work |
@@ -78,7 +90,8 @@ Renamed in 3.0.0 (old names no longer load): `ui-design-taste` → `fe-base`, `a
 | `demo-video` | media | The filming engine and workflow behind the `demo-video` agent: Playwright recorder, camera/cursor actor, local Kokoro voice, stitching, troubleshooting |
 | `trading-analysis` | markets | The trader's routine behind `trading-analyst`: scope defaults, macro/politics/geopolitics factors with an IDX sector map, catalyst search, sentiment rubric (direction × materiality × surprise × source tier), priced-in table, plan recipe, journal loop, and `scripts/price_check.py` (MA/RSI/ATR/RS/beta plus correlation to macro proxies, from Yahoo daily data, stdlib only). Tested price/macro/news sources and IDX lot/tick rules in dated references |
 | `company-roles` | business | The shared advisor method (position first, evidence labels, hand-offs, report template) and a sourced playbook per role in `references/`: what a senior owns, first questions, decision frameworks, benchmarks, Indonesian rules, traps |
-| `update-company` | business | Updates the private `company-profile.md` by asking what changed (client, team, product, money, goals, legal) with options from your own profile, and keeps a history. `/doz-agent:update-company` |
+| `update-company` | important | Updates the private `company-profile.md` by asking what changed (client, team, product, money, goals, legal) with options from your own profile, and keeps a history. `/doz-agent:update-company` |
+| `director`, `sales-team`, `deal-check`, `weekly-review`, `shortcuts` | important | Team shortcuts in the table above: they run in the main thread, call only the relevant role agents in parallel with the same brief, and show verdicts and disagreements. `shortcuts` answers which command does what |
 | `rab-kontraktor-advisor` | consultant | Product context for an RAB generator for small contractors: the AHSP/HSPK/SNI standards, BOQ/AACE, and the data & UX patterns of estimating software |
 | `finance-accounting` | consultant | Finance & accounting supervisor/PO for engineers: turns money features into specs (accounting treatment, debit/credit journals, rounding, golden test cases), with a research protocol for current Indonesian rules (PSAK, PPN, PPh, Coretax) and trusted formulas |
 
@@ -97,8 +110,9 @@ doz-agent/
     ├── workflows/               # stored workflows (.md): a graph of nodes + edges, read by studio & run-workflow
     ├── actions/                 # stored shell commands for action nodes (tests, checking changes)
     └── skills/
-        ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature, token-audit, run-workflow
-        ├── business/            # company-roles (role playbooks), update-company
+        ├── important/           # shortcuts: ship-feature, director, sales-team, deal-check, weekly-review, update-company, shortcuts
+        ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, token-audit, run-workflow
+        ├── business/            # company-roles (role playbooks)
         ├── product/             # product-ownership, business-thinking
         ├── design/              # fe-base, fe-native-feel, fe-dashboard, fe-scroll
         ├── media/               # demo-video
