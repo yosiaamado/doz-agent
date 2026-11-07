@@ -9,3 +9,8 @@ studio/.usage.json
 # artefak build & rilis
 dist-electron/
 claude-workflow-agent-gui-*.zip
+
+# Private business data written by the role and trading agents
+company-profile.md
+sales-notes/
+trading-journal/

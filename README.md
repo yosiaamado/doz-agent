@@ -4,7 +4,9 @@ A personal collection of Claude Code subagents + skills. Upload it to GitHub onc
 
 ## Contents
 
-**Subagents** (`plugins/agents/`)
+**Subagents** (`plugins/agents/`). The files are flat, so areas are shown here and by colour in Claude Code.
+
+**Engineering & product**
 
 | Agent | Role | Can edit files? |
 |---|---|---|
@@ -18,7 +20,38 @@ A personal collection of Claude Code subagents + skills. Upload it to GitHub onc
 | `frontend-engineer` | UI, components, state, forms, WCAG 2.2 AA, Core Web Vitals. 🎨 has design taste (`fe-base`), 🧠 keeps a memory of the component map | ✅ |
 | `devops-engineer` | Docker, CI/CD, deploy, IaC, observability, SLOs, with production safety rules | ✅ |
 | `demo-video` | Narrated, cursor-driven demo videos and retina stills of a web app (pinned build, mocked requests) or a public URL, one scene at a time with a review stop; all local, voice included | ✅ demo workspace only |
+
+**Leadership**
+
+| Agent | Role | Can edit files? |
+|---|---|---|
+| `ceo` | Focus and what to stop, strategy, capital, investors, bet-the-company calls | ❌ read-only |
+| `cfo` | Cash and runway, margins, pricing maths, scenarios, term sheets; computes rather than estimates | ❌ read-only |
+| `cto` | Build vs buy, rewrites, tech debt as a business decision, team shape, AI adoption, technical risk | ❌ read-only |
+| `coo` | Execution: the current constraint, lightest process, KPIs, cadence, vendors, delivery capacity | ❌ read-only |
+
+**Sales & marketing**
+
+| Agent | Role | Can edit files? |
+|---|---|---|
+| `sales-director` | Discussing a new prospect or open deal: rating, real buyer, next move, objections, discounts, tenders, forecast | 📝 `sales-notes/` only |
+| `cmo` | Positioning, ICP, go-to-market, channels on a small budget, what to measure, when not to spend | ❌ read-only |
+| `customer-success-lead` | Onboarding, churn diagnosis, renewals, expansion, escalations, letting a customer go | ❌ read-only |
+
+**People & legal**
+
+| Agent | Role | Can edit files? |
+|---|---|---|
+| `hr-lead` | Hiring, pay, employee vs contractor, performance, exits, Indonesian labour rules | ❌ read-only |
+| `legal-counsel` | Contract issue-spotting with proposed wording, IP ownership, UU PDP, PT matters, when to hire an advocate. Not legal advice | ❌ read-only |
+
+**Markets**
+
+| Agent | Role | Can edit files? |
+|---|---|---|
 | `trading-analyst` | Stocks (IDX/US), crypto, forex, commodities: macro, politics and geopolitics scorecard (13 factors, checked against measured correlation) → dated news from ≥ 2 outlets → sentiment vs expectations → "priced in?" in ATR multiples → chart vs index and peers → entry/stop/targets, R:R ≥ 2 and lot sizing, or a clear no-trade. Modes: analyze, review a position, scan a watchlist. Analysis only, never places orders | 📝 `trading-journal/` only |
+
+The role agents give a position with reasons, a rejected option and next steps, labelling what is sourced, judged or unverified. They read `company-profile.md` in the working directory; when it's missing, their report tells the main thread to create it from the template and add it to `.gitignore`, so it stays private. They can't call each other: ask for several at once ("what would the CEO, CFO and sales director say?") and the main thread runs them in parallel and shows where they disagree. To keep talking with one role, use a chat in studio's Office or `claude --agent doz-agent:sales-director`.
 
 **Skills** (`plugins/skills/<area>/<name>/SKILL.md`)
 
@@ -44,6 +77,8 @@ Renamed in 3.0.0 (old names no longer load): `ui-design-taste` → `fe-base`, `a
 | `fe-scroll` | design | Scroll-driven, cinematic landing pages: brief + feeling curve with one peak, page grammars, fingerprint gate against earlier builds, a device per beat, dimensional layered heroes, the bundled scroll engine, scrub-ready encoding, and screenshot verification at every scroll position. Loaded by `frontend-engineer` for experience-style marketing pages |
 | `demo-video` | media | The filming engine and workflow behind the `demo-video` agent: Playwright recorder, camera/cursor actor, local Kokoro voice, stitching, troubleshooting |
 | `trading-analysis` | markets | The trader's routine behind `trading-analyst`: scope defaults, macro/politics/geopolitics factors with an IDX sector map, catalyst search, sentiment rubric (direction × materiality × surprise × source tier), priced-in table, plan recipe, journal loop, and `scripts/price_check.py` (MA/RSI/ATR/RS/beta plus correlation to macro proxies, from Yahoo daily data, stdlib only). Tested price/macro/news sources and IDX lot/tick rules in dated references |
+| `company-roles` | business | The shared advisor method (position first, evidence labels, hand-offs, report template) and a sourced playbook per role in `references/`: what a senior owns, first questions, decision frameworks, benchmarks, Indonesian rules, traps |
+| `update-company` | business | Updates the private `company-profile.md` by asking what changed (client, team, product, money, goals, legal) with options from your own profile, and keeps a history. `/doz-agent:update-company` |
 | `rab-kontraktor-advisor` | consultant | Product context for an RAB generator for small contractors: the AHSP/HSPK/SNI standards, BOQ/AACE, and the data & UX patterns of estimating software |
 | `finance-accounting` | consultant | Finance & accounting supervisor/PO for engineers: turns money features into specs (accounting treatment, debit/credit journals, rounding, golden test cases), with a research protocol for current Indonesian rules (PSAK, PPN, PPh, Coretax) and trusted formulas |
 
@@ -58,11 +93,12 @@ doz-agent/
 ├── studio/                      # doz studio: visual editor + workflow runner (not installed)
 └── plugins/
     ├── .claude-plugin/plugin.json
-    ├── agents/                  # 11 subagents (flat files, no subfolders)
+    ├── agents/                  # 20 subagents (flat files, no subfolders)
     ├── workflows/               # stored workflows (.md): a graph of nodes + edges, read by studio & run-workflow
     ├── actions/                 # stored shell commands for action nodes (tests, checking changes)
     └── skills/
         ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, ship-feature, token-audit, run-workflow
+        ├── business/            # company-roles (role playbooks), update-company
         ├── product/             # product-ownership, business-thinking
         ├── design/              # fe-base, fe-native-feel, fe-dashboard, fe-scroll
         ├── media/               # demo-video
