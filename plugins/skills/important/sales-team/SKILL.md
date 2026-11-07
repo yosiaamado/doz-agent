@@ -26,11 +26,11 @@ If the stage is unclear, ask one question with `AskUserQuestion`: "New prospect,
 
 ## 2. Brief
 
-Your brief contains: (1) the user's words verbatim; (2) facts from this conversation that `company-profile.md` lacks; (3) the prospect or customer name, and any file to read; (4) which product it concerns. Two roles run in parallel in one message, with the same brief.
+Your brief contains: (1) the user's words verbatim; (2) facts from this conversation that `company/profile.md` lacks; (3) the prospect or customer name, and any file to read; (4) which product it concerns. Two roles run in parallel in one message, with the same brief.
 
 ## 3. Report
 
 - **One role**: pass its answer on as it is, including any drafted message. Don't summarize it.
 - **Two roles**: their verdicts, where they conflict, then one combined next move with an owner and a date.
 
-You draft; the user sends. Apply `Profile:` lines to `company-profile.md`, and make sure `sales-notes/` is in `.gitignore` when `sales-director` wrote a note there.
+You draft; the user sends. Apply `Profile:` lines to `company/profile.md`, and make sure `company/` is in `.gitignore`.

@@ -1,6 +1,6 @@
 # Company profile
 
-Read by the role agents so they don't assume or ask again. Private: keep it in `.gitignore`. Write `TODO` for anything unknown, and only facts the user stated.
+Read by the role agents so they don't assume or ask again. Private: keep `company/` in `.gitignore`. Write `TODO` for anything unknown, and only facts the user stated.
 
 Last updated: <YYYY-MM-DD>
 

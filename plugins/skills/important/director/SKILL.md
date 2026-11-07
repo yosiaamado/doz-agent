@@ -13,7 +13,7 @@ You (the main thread) chair the meeting. The role agents give their views; you s
 
 ## 1. Prepare
 
-1. Read `company-profile.md`. If it's missing, create it from [the template](../../business/company-roles/references/company-profile-template.md) with the facts the user stated and `TODO` for the rest, and add it to `.gitignore`.
+1. Read `company/profile.md`. If it's missing, create it from [the template](../../business/company-roles/references/company-profile-template.md) with the facts the user stated and `TODO` for the rest, and add `company/` to `.gitignore`.
 2. State the decision in one sentence, with its realistic options. If there is no decision yet ("gimana ya bisnis gw"), ask the user what they're deciding, with `AskUserQuestion` and options from the profile, and stop until they answer.
 
 ## 2. Choose the seats
@@ -56,4 +56,4 @@ Show the split as it is; don't average it. Agreement between roles built on the 
 
 - **Stakes high and the split unresolved**: one more `doz-agent:ceo` call with each seat's verdict and reason, asking which to follow. One round only.
 - **`Hand off:` lines**: follow one only if it could change the decision; otherwise list it under Next step.
-- **`Profile:` lines**: apply them to `company-profile.md`.
+- **`Profile:` lines**: apply them to `company/profile.md`.

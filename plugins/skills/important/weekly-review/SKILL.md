@@ -13,7 +13,7 @@ You (the main thread) run a short founder review. The output is one focus that f
 
 ## 1. Gather
 
-1. Read `company-profile.md`, `sales-notes/*.md`, and the latest file in `weekly-reviews/`.
+1. Read `company/profile.md`, `company/sales/*.md`, and the latest file in `company/leadership/weekly-reviews/`. List them with `Glob` and `path` set to the folder.
 2. Ask only what those don't answer, in one `AskUserQuestion` call: what got done against last week's focus; hours available next week; any new prospect, client or money movement. Scheduled with nobody to answer: use what the files say and mark the gaps.
 
 ## 2. Run in parallel
@@ -29,7 +29,7 @@ Tell both to write no notes this run, and to keep the answer under 150 words.
 
 ## 3. Report and save
 
-Write this to `weekly-reviews/<YYYY-MM-DD>.md` and show it. Add `weekly-reviews/` to `.gitignore` if it isn't there.
+Write this to `company/leadership/weekly-reviews/<YYYY-MM-DD>.md` and show it. Add `company/` to `.gitignore` if it isn't there.
 
 ```
 # Week of <date>
@@ -47,4 +47,4 @@ Decision waiting: <question, and whether to take it to /doz-agent:director | non
 
 The hours must add up to no more than what's available. If the focus was missed two weeks running, say so plainly and ask what's blocking it, rather than setting it again.
 
-Apply `Profile:` lines to `company-profile.md`, or suggest `/doz-agent:update-company` when a fact changed.
+Apply `Profile:` lines to `company/profile.md`, or suggest `/doz-agent:update-company` when a fact changed.

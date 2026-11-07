@@ -5,11 +5,11 @@ description: Use when the user invokes /update-company or says the company chang
 
 # Update company profile
 
-Keeps `company-profile.md` in the working directory current for the role agents. Talk to the user in their language; the file stays in English.
+Keeps `company/profile.md` in the working directory current for the role agents. Talk to the user in their language; the file stays in English.
 
 ## Step 1 — Load
 
-Read `company-profile.md`. If it's missing, create it from [the template](../../business/company-roles/references/company-profile-template.md), and add `company-profile.md` to `.gitignore` if it isn't there. Add a `## History` section if an older file lacks one.
+Read `company/profile.md`. If only an older `company-profile.md` exists, move it there. If neither exists, create it from [the template](../../business/company-roles/references/company-profile-template.md), and add `company/` to `.gitignore` if it isn't there. Add a `## History` section if an older file lacks one.
 
 ## Step 2 — Find out what changed
 

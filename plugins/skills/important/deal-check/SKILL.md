@@ -13,7 +13,7 @@ You (the main thread) run a gate before the user sends or signs. Three views, on
 
 ## 1. Collect
 
-Read `company-profile.md` and `sales-notes/<prospect>.md` if present. You need: client, product, scope, price, payment terms, delivery date, and the contract or proposal file. Ask for what's missing with one `AskUserQuestion`. A missing document doesn't stop the check; `legal-counsel` will say what it can't judge.
+Read `company/profile.md`, `company/sales/<prospect>.md`, and any contract in `company/legal/` or proposal in `company/sales/`, if present. You need: client, product, scope, price, payment terms, delivery date, and the contract or proposal file. Ask for what's missing with one `AskUserQuestion`. A missing document doesn't stop the check; `legal-counsel` will say what it can't judge.
 
 ## 2. Run in parallel
 
@@ -59,4 +59,4 @@ The user decides, and you don't send or sign anything. A GO isn't legal advice: 
 
 ## 4. After
 
-Apply `Profile:` lines to `company-profile.md`. On a signed deal, suggest `/doz-agent:update-company`.
+Apply `Profile:` lines to `company/profile.md`. On a signed deal, suggest `/doz-agent:update-company`.

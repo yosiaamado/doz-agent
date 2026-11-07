@@ -9,6 +9,15 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [3.5.0] - 2026-11-08
+
+Source: a user request for a private `company/` folder split by division, so agents can read company records as an archive. Checked on 2026-11-08: `Glob` finds gitignored files, and `Grep` from the project root skips them, so the skill tells agents to search with `path` set to the folder. No before/after: paths changed, no tuned behaviour changed.
+
+- `skills/business/company-roles/SKILL.md`: Step 1 maps divisions to folders and roles, with a read-your-own-division rule and the search rule; profile path is `company/profile.md`, with the older `company-profile.md` still read.
+- `agents/sales-director.md`: notes go to `company/sales/`.
+- `skills/important/deal-check`, `director`, `sales-team`, `update-company`, `weekly-review`: new paths; `update-company` moves an older profile; reviews go to `company/leadership/weekly-reviews/`.
+- `company-profile-template.md`, `README.md`, `plugin.json` (3.5.0), `.gitignore` (`company/`).
+
 ## [3.4.0] - 2026-11-08
 
 Source: a user request for team shortcuts like `/ship-feature` (`/sales-team`, `/director`), kept in their own folder, and for any session to be able to say which shortcut covers what. Skills can call agents because they run in the main thread; agents can't call each other. Invocation names don't depend on the path, so moving skills breaks nothing. Not yet run in a real session. No before/after: new skills, no tuned behaviour changed.

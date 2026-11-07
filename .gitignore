@@ -11,6 +11,7 @@ dist-electron/
 claude-workflow-agent-gui-*.zip
 
 # Private business data written by the role and trading agents
+company/
 company-profile.md
 sales-notes/
 trading-journal/
