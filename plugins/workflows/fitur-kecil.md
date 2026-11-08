@@ -2,9 +2,7 @@
 name: fitur-kecil
 description: A small backend feature. The PO cuts the scope, BE implements, QA tests, and if QA fails BE fixes it (2 rounds max).
 defaults:
-  runner: claude-cli
   inputs: previous
-budget_usd: 8
 nodes:
   - { id: start, type: start, label: Feature request }
   - id: po
@@ -34,14 +32,6 @@ edges:
   - { from: qa, to: lolos }
   - { from: lolos, to: selesai, when: true }
   - { from: lolos, to: be, when: false, loop: 2 }
-layout:
-  start: [ 0, 116 ]
-  po: [ 260, 120 ]
-  aturan: [ 259, 321, 260, 160 ]
-  be: [ 540, 120 ]
-  qa: [ 820, 120 ]
-  lolos: [ 1100, 120 ]
-  selesai: [ 1380, 60 ]
 ---
 
 An example workflow. Notes in this section are sent to every agent as workflow context.

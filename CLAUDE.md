@@ -20,7 +20,6 @@ Turn count beats token price: a cheaper model that takes 2–3× the turns on mu
 - Agents stay **flat** in `plugins/agents/`. Subfolders there become part of the agent's name and break every reference.
 - Every plugin change: bump `version` in `plugin.json` (SemVer), add a `CHANGELOG.md` entry (source/reason, then one line per file), update the README tables, commit as `type(scope): summary (X.Y.Z)`, lightweight tag `vX.Y.Z`.
 - Validate: `claude plugin validate .` and `claude plugin validate plugins`. These check manifests only — also check frontmatter parses (an unquoted `: ` inside `description` breaks YAML).
-- `studio/dist-electron/` and `*.zip` are build output. Never edit them.
 
 ## Writing a description (loaded into every session)
 

@@ -9,6 +9,18 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [3.6.0] - 2026-11-08
+
+Source: a user decision to remove doz studio (the visual editor, runner and desktop app) and make the repo public. Nothing recorded in `agent-usage/` shows studio being used for real work, and it was ~16k lines to keep in step with `claude -p` output. Stored workflows still run through `run-workflow`. `run-workflow` no longer writes `.doz-studio/runs/*.jsonl`, which removes one Bash call per node; no before/after run yet. A git history scan before going public found only fake test keys.
+
+- `studio/`, `.github/workflows/desktop-build.yml`, `docs/desktop-install.md`, `docs/specs/studio-office.md`, `docs/specs/bilingual-desktop-app.md`, `.claude/agent-memory/` (engineer notes about studio only): removed. Recover with `git checkout v3.5.0 -- <path>`.
+- `skills/engineering/run-workflow/SKILL.md`: progress-log step removed; ignores keys it doesn't use.
+- `workflows/*.md`: studio-only keys (`runner`, `budget_usd`, `layout`) removed; labels ending in `?` quoted so strict YAML parsers accept them.
+- `workflows/README.md`: format reduced to the keys `run-workflow` reads; live-progress section removed. `actions/*.md`: `timeout_min` removed.
+- `agents/technical-lead.md`: no longer mentions studio.
+- `plugin.json` (3.6.0) and `marketplace.json`: English descriptions, author email removed.
+- `README.md`: studio section replaced by a short stored-workflows section; install command uses `yosiaamado/doz-agent`; private-repo setup steps removed. `CLAUDE.md`, `.gitignore`: studio entries removed.
+
 ## [3.5.0] - 2026-11-08
 
 Source: a user request for a private `company/` folder split by division, so agents can read company records as an archive. Checked on 2026-11-08: `Glob` finds gitignored files, and `Grep` from the project root skips them, so the skill tells agents to search with `path` set to the folder. No before/after: paths changed, no tuned behaviour changed.

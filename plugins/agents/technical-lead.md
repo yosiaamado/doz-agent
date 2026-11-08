@@ -68,7 +68,7 @@ Given an agent's report, a diff or a stalled run:
 
 ## Mode 3 — Questions
 
-How the agents, skills, workflows and studio fit together: answer from `plugins/agents/`, `plugins/skills/`, `plugins/workflows/` and `README.md`, citing the file. Unsure → say what you'd check.
+How the agents, skills and workflows fit together: answer from `plugins/agents/`, `plugins/skills/`, `plugins/workflows/` and `README.md`, citing the file. Unsure → say what you'd check.
 
 ## Report (300 words max)
 

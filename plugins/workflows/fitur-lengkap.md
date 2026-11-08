@@ -1,8 +1,7 @@
 ---
 name: fitur-lengkap
 description: A large end-to-end feature. PO → contract (SA) → BE ∥ FE → review ∥ QA ∥ security → you decide on the merge.
-defaults: { runner: claude-cli, inputs: previous }
-budget_usd: 25
+defaults: { inputs: previous }
 parallel: 3
 nodes:
   - { id: start, type: start, label: Feature request }
@@ -14,7 +13,7 @@ nodes:
   - { id: qa, type: agent, agent: qa-tester, label: QA, verdict: true, inputs: all }
   - { id: security, type: agent, agent: security-tester, label: Security, permission: read-only, inputs: all }
   - { id: catatan, type: info, label: The contract is the reference, text: BE and FE both follow docs/specs/<slug>.md. Don't read the other side's code. }
-  - { id: putuskan, type: approval, label: Ready to merge?, message: Read the review, QA, and security reports. Approve if it's ready to merge. }
+  - { id: putuskan, type: approval, label: "Ready to merge?", message: Read the review, QA, and security reports. Approve if it's ready to merge. }
   - { id: selesai, type: output, label: Final report }
   - { id: revisi, type: output, label: Needs revision }
 edges:
@@ -34,19 +33,6 @@ edges:
   - { from: security, to: putuskan }
   - { from: putuskan, to: selesai, when: true }
   - { from: putuskan, to: revisi, when: false }
-layout:
-  start: [ 0, 240 ]
-  po: [ 180, 240 ]
-  sa: [ 480, 240 ]
-  catatan: [ 480, 420, 260, 120 ]
-  be: [ 800, 140 ]
-  fe: [ 800, 340 ]
-  review: [ 1120, 40 ]
-  qa: [ 1120, 240 ]
-  security: [ 1120, 440 ]
-  putuskan: [ 1440, 240 ]
-  selesai: [ 1640, 140 ]
-  revisi: [ 1640, 340 ]
 ---
 
 A large workflow. If the work turns out to be small, `fitur-kecil` or `/doz-agent:ship-feature` is cheaper.

@@ -1,6 +1,6 @@
 # doz-agent
 
-A personal collection of Claude Code subagents + skills. Upload it to GitHub once, then install it into any project with 2 commands.
+A collection of Claude Code subagents + skills for engineering and business work. Install it into any project with 2 commands (see [Install](#install-in-any-project)).
 
 ## Contents
 
@@ -22,7 +22,7 @@ A personal collection of Claude Code subagents + skills. Upload it to GitHub onc
 
 | Agent | Role | Can edit files? |
 |---|---|---|
-| `technical-lead` | Breaks a goal into vertical-slice tasks per agent (owner, files, interfaces, tests, order, checkpoints), supervises an agent's approach or report, and answers how the agents and skills fit together. Default chat target in studio's Office | ❌ read-only |
+| `technical-lead` | Breaks a goal into vertical-slice tasks per agent (owner, files, interfaces, tests, order, checkpoints), supervises an agent's approach or report, and answers how the agents and skills fit together | ❌ read-only |
 | `product-owner` | **Single pass:** impact analysis, scope, INVEST user stories + acceptance criteria, decisions + defaults, the agent plan, and accepting/rejecting the result | ❌ read-only |
 | `system-analyst` | API contract, data model, BE/FE file map in one spec file (`docs/specs/<slug>.md`). **Optional** — only for large designs (≥3 endpoints, migrations, complex domains) | 📝 spec file only |
 | `qa-tester` | Risk-based test strategy, test design techniques (BVA, decision tables), bug reports with severity + priority | ✅ |
@@ -63,7 +63,7 @@ A personal collection of Claude Code subagents + skills. Upload it to GitHub onc
 |---|---|---|
 | `trading-analyst` | Stocks (IDX/US), crypto, forex, commodities: macro, politics and geopolitics scorecard (13 factors, checked against measured correlation) → dated news from ≥ 2 outlets → sentiment vs expectations → "priced in?" in ATR multiples → chart vs index and peers → entry/stop/targets, R:R ≥ 2 and lot sizing, or a clear no-trade. Modes: analyze, review a position, scan a watchlist. Analysis only, never places orders | 📝 `trading-journal/` only |
 
-The role agents give a position with reasons, a rejected option and next steps, labelling what is sourced, judged or unverified. They read `company/profile.md` in the working directory; when it's missing, their report tells the main thread to create it from the template and add `company/` to `.gitignore`, so it stays private. Put company documents in `company/<division>/` (`leadership`, `finance`, `sales`, `marketing`, `customers`, `people`, `legal`, `tech`): each role reads its own folder when the question could use it. They can't call each other: ask for several at once ("what would the CEO, CFO and sales director say?") and the main thread runs them in parallel and shows where they disagree. To keep talking with one role, use a chat in studio's Office or `claude --agent doz-agent:sales-director`.
+The role agents give a position with reasons, a rejected option and next steps, labelling what is sourced, judged or unverified. They read `company/profile.md` in the working directory; when it's missing, their report tells the main thread to create it from the template and add `company/` to `.gitignore`, so it stays private. Put company documents in `company/<division>/` (`leadership`, `finance`, `sales`, `marketing`, `customers`, `people`, `legal`, `tech`): each role reads its own folder when the question could use it. They can't call each other: ask for several at once ("what would the CEO, CFO and sales director say?") and the main thread runs them in parallel and shows where they disagree. To keep talking with one role, start a session with it: `claude --agent doz-agent:sales-director`.
 
 **Skills** (`plugins/skills/<area>/<name>/SKILL.md`)
 
@@ -75,7 +75,7 @@ Renamed in 3.0.0 (old names no longer load): `ui-design-taste` → `fe-base`, `a
 |---|---|---|
 | `ship-feature` | important | **The main entry point.** A one-command orchestrator: size the work (small/medium/large), run only the agents needed (PO → SA → BE ∥ FE → parallel verification → acceptance), the fix loop, stopping only for business decisions |
 | `token-audit` | engineering | Token & failure audit of one workflow from the transcript: tokens & estimated cost per agent, the biggest gaps (large files read whole, long output, exploration, cache misses, narration, long reports), agent failures & blocking findings per category, failure patterns recurring across workflows, and suggestions per agent file. Automatic at the end of a Medium/Large `ship-feature`; manually: `/doz-agent:token-audit [--all]` |
-| `run-workflow` | engineering | Runs a stored workflow (`plugins/workflows/<name>.md`, created in doz studio or by hand) step by step: parallelism, conditions, fix loops, approvals. Progress is written to `.doz-studio/runs/` so it shows live in studio. `/doz-agent:run-workflow <name> <request>` |
+| `run-workflow` | engineering | Runs a stored workflow (`plugins/workflows/<name>.md`) step by step: parallelism, conditions, fix loops, approvals. `/doz-agent:run-workflow <name> <request>` |
 | `product-ownership` | product | The PO framework (Scrum Guide 2020): impact analysis, INVEST, Given/When/Then, story splitting, DoR, choosing agents, accepting the work |
 | `engineering-workflow` | engineering | Team workflow: DoR/DoD, branching, Conventional Commits, PRs, code review, ADRs, SemVer, incidents & postmortems |
 | `backend-patterns` | engineering | Backend base rules (REST, RFC 9457, zero-downtime migrations, OWASP, resiliency, OpenTelemetry) + per-language rules in `references/` (.NET, etc.) |
@@ -103,11 +103,10 @@ doz-agent/
 ├── CHANGELOG.md                 # version history: the reason + one line per change per file
 ├── agent-usage/                 # token-audit results per date, for comparing versions (not installed)
 ├── tests/                       # token-audit script tests: python3 -m unittest discover -s tests
-├── studio/                      # doz studio: visual editor + workflow runner (not installed)
 └── plugins/
     ├── .claude-plugin/plugin.json
     ├── agents/                  # 20 subagents (flat files, no subfolders)
-    ├── workflows/               # stored workflows (.md): a graph of nodes + edges, read by studio & run-workflow
+    ├── workflows/               # stored workflows (.md): a graph of nodes + edges, read by run-workflow
     ├── actions/                 # stored shell commands for action nodes (tests, checking changes)
     └── skills/
         ├── important/           # shortcuts: ship-feature, director, sales-team, deal-check, weekly-review, update-company, shortcuts
@@ -145,25 +144,15 @@ One command is enough, or just write it out plainly — "build feature X all the
 
 Want to discuss it first without implementing? Use `/doz-agent:product-ownership <idea>` (back and forth in the main chat), then continue with `ship-feature`.
 
-## Visual workflows (doz studio)
+## Stored workflows
 
-`ship-feature` picks agents dynamically. For a **fixed** flow, or one you design yourself (e.g. "PO → BE → QA, retry BE up to 2x if QA fails", or "review ∥ security → you decide"), draw it in **doz studio**:
+`ship-feature` picks agents dynamically. For a **fixed** flow (e.g. "PO → BE → QA, retry BE up to 2x if QA fails", or "review ∥ security → you decide"), store it as a workflow file and run it:
 
-```bash
-cd studio && npm install && npm run build
-npm start -- --workdir /path/to/project     # http://localhost:4317
+```
+/doz-agent:run-workflow fitur-kecil add CSV export to the orders page
 ```
 
-- An n8n-style interface with a dark/light theme: a left menu that expands on hover (agents/skills/actions, and you can create and edit their files right there), a canvas with a snap grid, a Logs panel at the bottom, and a Claude Code usage widget (the 5-hour & weekly limits).
-- A **Setup** wizard on first open: check & test the Claude Code login (`claude -p`), the API key, git, and GitHub access.
-- A **GitHub** button in studio: pull, commit, and push the doz-agent repo or the active project without opening a terminal.
-- Ready-made templates: `fitur-kecil`, `fitur-lengkap`, `perbaikan-bug`, `audit-keamanan`, `review-pr`, `rilis`. A run's request can include documents (md, docx, pdf, etc.).
-- A box = agent / skill / action (shell command) / condition / approval / note / output. An edge = the flow of output. A back edge from a condition = a loop with a limit.
-- Every node is configurable: the brain (`claude-cli` using the Claude Code login, or `api` using an API key), model, effort, read-only permission, which nodes it takes input from, max turns, timeout, retry, budget.
-- While running, the active node and the edge leading into it turn blue; finished ones turn green. Click a node to see tokens, duration, execution history, the prompt, the output, the changed files + diff, and the `claude -p` command that was run.
-- Saving = a `plugins/workflows/<name>.md` file. It can be run from Claude Code without studio too: `/doz-agent:run-workflow <name> <request>`, and the progress still shows in studio if studio happens to be open.
-
-Details: [`studio/README.md`](studio/README.md), the file format: [`plugins/workflows/README.md`](plugins/workflows/README.md).
+Ready-made: `fitur-kecil`, `fitur-lengkap`, `perbaikan-bug`, `audit-keamanan`, `review-pr`, `rilis`. A node = agent / skill / action (shell command) / condition / approval / note / output; an edge = the flow of output; a back edge from a condition = a loop with a limit. File format: [`plugins/workflows/README.md`](plugins/workflows/README.md).
 
 ## Memory: agents that remember the code flow
 
@@ -258,27 +247,16 @@ Run 3–5 features of comparable size for each model (no flag = the model in the
 4. **Skip product-owner when the requirement is already clear in your head.**
 5. **Don't rerun the full chain for a small fix.** Only the agent that found the problem needs to re-check.
 
-## Upload to GitHub
-
-```bash
-git init
-git add .
-git commit -m "init doz-agent"
-git branch -M main
-git remote add origin https://github.com/<username>/doz-agent.git
-git push -u origin main
-```
-
 ## Install in any project
 
 Open Claude Code in the project folder, then run:
 
 ```
-/plugin marketplace add <username>/doz-agent
+/plugin marketplace add yosiaamado/doz-agent
 /plugin install doz-agent@doz-agent
 ```
 
-The marketplace only needs adding once per machine. If the repo is private, make sure `git` on that machine is logged in to GitHub.
+The marketplace only needs adding once per machine.
 
 ## How to use it
 
