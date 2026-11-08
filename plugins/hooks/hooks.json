@@ -1,0 +1,19 @@
+{
+  "description": "Keeps company/ in sync with the repo named in company-repo.json when enable-company is true",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/company-sync.sh\" pull", "timeout": 60 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/company-sync.sh\" push", "timeout": 60 }
+        ]
+      }
+    ]
+  }
+}

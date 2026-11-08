@@ -4,6 +4,7 @@ node_modules/
 
 # Private business data written by the role and trading agents
 company/
+company-repo.json
 company-profile.md
 sales-notes/
 trading-journal/

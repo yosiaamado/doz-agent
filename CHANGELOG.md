@@ -9,6 +9,16 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [3.7.0] - 2026-11-08
+
+Source: a user request to keep the company profile in its own repo, configured by a gitignored JSON file with `enable-company` and a placeholder repo link, so every agent that needs the profile reads the current version. A plugin hook syncs `company/` with that repo, so agents and skills keep reading and writing `company/` unchanged and pay no extra tokens. Tested against a local bare repo: missing file, disabled, placeholder, clone, commit and push, no-op when clean, pulling a remote edit, `auto-push: false`. No before/after: no tuned behaviour changed.
+
+- `hooks/hooks.json` (new): `SessionStart` runs `company-sync.sh pull`, `Stop` runs `company-sync.sh push`.
+- `hooks/company-sync.sh` (new): does nothing unless `company-repo.json` has `enable-company: true` and a real `repo`; clones or pulls into `company/`, commits and pushes changes, reports failures in one line.
+- `skills/business/company-roles/references/company-repo.md` (new): setup and behaviour. `company-repo.example.json` (new): the placeholder config.
+- `skills/important/update-company/SKILL.md`: creates `company-repo.json` from the example and gitignores it; mentions the push when enabled.
+- `README.md`, `plugin.json` (3.7.0), `.gitignore` (`company-repo.json`).
+
 ## [3.6.0] - 2026-11-08
 
 Source: a user decision to remove doz studio (the visual editor, runner and desktop app) and make the repo public. Nothing recorded in `agent-usage/` shows studio being used for real work, and it was ~16k lines to keep in step with `claude -p` output. Stored workflows still run through `run-workflow`. `run-workflow` no longer writes `.doz-studio/runs/*.jsonl`, which removes one Bash call per node; no before/after run yet. A git history scan before going public found only fake test keys.

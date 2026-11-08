@@ -63,7 +63,7 @@ A collection of Claude Code subagents + skills for engineering and business work
 |---|---|---|
 | `trading-analyst` | Stocks (IDX/US), crypto, forex, commodities: macro, politics and geopolitics scorecard (13 factors, checked against measured correlation) → dated news from ≥ 2 outlets → sentiment vs expectations → "priced in?" in ATR multiples → chart vs index and peers → entry/stop/targets, R:R ≥ 2 and lot sizing, or a clear no-trade. Modes: analyze, review a position, scan a watchlist. Analysis only, never places orders | 📝 `trading-journal/` only |
 
-The role agents give a position with reasons, a rejected option and next steps, labelling what is sourced, judged or unverified. They read `company/profile.md` in the working directory; when it's missing, their report tells the main thread to create it from the template and add `company/` to `.gitignore`, so it stays private. Put company documents in `company/<division>/` (`leadership`, `finance`, `sales`, `marketing`, `customers`, `people`, `legal`, `tech`): each role reads its own folder when the question could use it. They can't call each other: ask for several at once ("what would the CEO, CFO and sales director say?") and the main thread runs them in parallel and shows where they disagree. To keep talking with one role, start a session with it: `claude --agent doz-agent:sales-director`.
+The role agents give a position with reasons, a rejected option and next steps, labelling what is sourced, judged or unverified. They read `company/profile.md` in the working directory; when it's missing, their report tells the main thread to create it from the template and add `company/` to `.gitignore`, so it stays private. To share one company record across projects and machines, keep `company/` in its own private repo: set `enable-company` to `true` and `repo` in `company-repo.json` (created by `/doz-agent:update-company`, gitignored), and the plugin hook pulls it at session start and pushes changes after each turn. Setup: [`company-repo.md`](plugins/skills/business/company-roles/references/company-repo.md). Put company documents in `company/<division>/` (`leadership`, `finance`, `sales`, `marketing`, `customers`, `people`, `legal`, `tech`): each role reads its own folder when the question could use it. They can't call each other: ask for several at once ("what would the CEO, CFO and sales director say?") and the main thread runs them in parallel and shows where they disagree. To keep talking with one role, start a session with it: `claude --agent doz-agent:sales-director`.
 
 **Skills** (`plugins/skills/<area>/<name>/SKILL.md`)
 
@@ -108,6 +108,7 @@ doz-agent/
     ├── agents/                  # 20 subagents (flat files, no subfolders)
     ├── workflows/               # stored workflows (.md): a graph of nodes + edges, read by run-workflow
     ├── actions/                 # stored shell commands for action nodes (tests, checking changes)
+    ├── hooks/                   # company-sync: keeps company/ in step with the repo in company-repo.json
     └── skills/
         ├── important/           # shortcuts: ship-feature, director, sales-team, deal-check, weekly-review, update-company, shortcuts
         ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, token-audit, run-workflow

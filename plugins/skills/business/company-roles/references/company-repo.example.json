@@ -1,0 +1,6 @@
+{
+  "enable-company": false,
+  "repo": "https://github.com/<owner>/<company-repo>.git",
+  "branch": "main",
+  "auto-push": true
+}

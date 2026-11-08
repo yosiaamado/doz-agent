@@ -11,6 +11,8 @@ Keeps `company/profile.md` in the working directory current for the role agents.
 
 Read `company/profile.md`. If only an older `company-profile.md` exists, move it there. If neither exists, create it from [the template](../../business/company-roles/references/company-profile-template.md), and add `company/` to `.gitignore` if it isn't there. Add a `## History` section if an older file lacks one.
 
+If `company-repo.json` is missing in the project root, create it from [the example](../../business/company-roles/references/company-repo.example.json) and add it to `.gitignore`. Tell the user in one line: set `enable-company` to `true` and fill `repo` to keep `company/` in its own private repo, synced across projects ([setup](../../business/company-roles/references/company-repo.md)).
+
 ## Step 2 — Find out what changed
 
 If the user's message already says what changed, skip to Step 3 and ask only for what's missing. Otherwise ask with `AskUserQuestion`, `multiSelect: true`:
@@ -50,4 +52,4 @@ Then pick up to 2 `TODO`s in the profile that would most improve the role agents
 
 ## Step 5 — Confirm
 
-Show the changes as short before → after lines, and how many `TODO`s remain. Don't paste the whole file. Don't commit, since the file is private. If the change raises a real decision (first paying client, a first hire, money running short), name the one role agent worth asking, and leave the call to the user.
+Show the changes as short before → after lines, and how many `TODO`s remain. Don't paste the whole file. Don't commit it to the project, since it's private. If `company-repo.json` has `enable-company: true`, say that the plugin hook commits and pushes `company/` to the company repo after this turn. If the change raises a real decision (first paying client, a first hire, money running short), name the one role agent worth asking, and leave the call to the user.
