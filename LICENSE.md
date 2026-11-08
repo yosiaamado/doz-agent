@@ -22,4 +22,4 @@ These files are provided "as is", without warranty of any kind. The agents run A
 
 ## Questions
 
-For team licenses, redistribution, or anything not covered here: yosiaamado04@gmail.com
+For team licenses, redistribution, or anything not covered here: open an issue at https://github.com/yosiaamado/doz-agent/issues.

@@ -19,6 +19,7 @@ Source: a user decision to remove doz studio (the visual editor, runner and desk
 - `workflows/README.md`: format reduced to the keys `run-workflow` reads; live-progress section removed. `actions/*.md`: `timeout_min` removed.
 - `agents/technical-lead.md`: no longer mentions studio.
 - `plugin.json` (3.6.0) and `marketplace.json`: English descriptions, author email removed.
+- `LICENSE.md`: the contact email is replaced by a link to GitHub issues.
 - `README.md`: studio section replaced by a short stored-workflows section; install command uses `yosiaamado/doz-agent`; private-repo setup steps removed. `CLAUDE.md`, `.gitignore`: studio entries removed.
 
 ## [3.5.0] - 2026-11-08
