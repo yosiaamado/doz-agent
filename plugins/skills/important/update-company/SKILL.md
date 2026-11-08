@@ -9,9 +9,16 @@ Keeps `company/profile.md` in the working directory current for the role agents.
 
 ## Step 1 — Load
 
-Read `company/profile.md`. If only an older `company-profile.md` exists, move it there. If neither exists, create it from [the template](../../business/company-roles/references/company-profile-template.md), and add `company/` to `.gitignore` if it isn't there. Add a `## History` section if an older file lacks one.
+Read `company/profile.md`. If only an older `company-profile.md` exists, move it there. Add a `## History` section if an older file lacks one. If the profile exists, go to Step 2.
 
-If `company-repo.json` is missing in the project root, create it from [the example](../../business/company-roles/references/company-repo.example.json) and add it to `.gitignore`. Tell the user in one line: set `enable-company` to `true` and fill `repo` to keep `company/` in its own private repo, synced across projects ([setup](../../business/company-roles/references/company-repo.md)).
+**No profile: initialize.** The sync script is `../../../hooks/company-sync.sh` from this skill's base directory (`Glob` for `**/hooks/company-sync.sh` under `~/.claude/plugins` if you can't resolve it); run it from the project root.
+
+1. If `company-repo.json` already has `enable-company: true` and a real `repo`, run `bash <script> pull` and read the profile again; if it now exists, go to Step 2.
+2. Otherwise ask with `AskUserQuestion`: "Where should the company record live?" — options "Local" (`company/` in this project only) and "Repo" (a private git repo, synced across projects). For "Repo", ask for the repo (`owner/repo` or a clone URL) in chat unless the user already gave it, and wait.
+3. Write `company-repo.json` in the project root, and add it and `company/` to `.gitignore`:
+   - **Repo**: `{ "enable-company": true, "repo": "<url>", "branch": "main", "auto-push": true }`, where `owner/repo` becomes `https://github.com/owner/repo.git`. Run `bash <script> pull` and show its one line. If the clone brought `company/profile.md`, go to Step 2. If it failed, tell the user the error (a private repo needs git credentials on this machine: `gh auth login` or an SSH key) and ask whether to continue with Local.
+   - **Local**: copy [the example](../../business/company-roles/references/company-repo.example.json) (`enable-company: false`).
+4. Create `company/profile.md` from [the template](../../business/company-roles/references/company-profile-template.md). In Repo mode the `Stop` hook commits and pushes it after this turn ([setup](../../business/company-roles/references/company-repo.md)).
 
 ## Step 2 — Find out what changed
 

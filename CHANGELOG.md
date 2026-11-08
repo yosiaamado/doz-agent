@@ -9,6 +9,19 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [3.8.0] - 2026-11-08
+
+Source: a real session — `/sales-team` with no `company/` said it couldn't read the company profile, because nothing had created `company-repo.json`, so the sync hook had nothing to do. Then user requests: initialize only through `/update-company` (Local or Repo), a `/setting` command, and agents may add and edit in `company/` but only the user may delete or move files there, plus a skill to tidy the archive. A skill can't enforce permissions, so a `PreToolUse` hook turns those commands into a permission prompt; the user is the admin. Overwriting a file's content isn't caught (it would mean blocking edits); in Repo mode git history recovers it. Tested against local bare repos: empty-repo clone, first push, second clone, remote edit pulled, switching to a new empty repo, switching branch. Guard tested on 15 commands: deletes and moves in `company/` ask; reads, git status/commit and moves outside `company/` pass. No tuned behaviour changed. (Interim versions 3.8.0 to 3.11.0 on this branch, including a reverted first-run setup in every company skill, are folded into this entry.)
+
+- `skills/important/update-company/SKILL.md`: with no profile, asks Local or Repo; for Repo asks for the repo, writes `company-repo.json`, gitignores it and `company/`, and runs `hooks/company-sync.sh pull` at once instead of waiting for the next session; handles an empty repo and a failed clone. If the config is already enabled, pulls first.
+- `skills/important/setting/SKILL.md` (new): shows `company-repo.json`, asks which setting, applies it with the git and sync steps each change needs (local to repo, repo URL, branch).
+- `skills/important/archive/SKILL.md` (new): surveys `company/`, proposes moves to divisions or `company/_archive/`, merges, renames and deletes, applies after approval in one move command and one delete command.
+- `hooks/company-guard.sh` (new): asks before a Bash or PowerShell command that deletes or moves anything in `company/`. `hooks/hooks.json`: `PreToolUse` on `Bash|PowerShell` runs it.
+- `hooks/company-sync.sh`: fixed a new, empty company repo — clone no longer uses `--branch` and checks the branch out or creates it; pull and the pre-push rebase are skipped while the branch doesn't exist on the remote.
+- `skills/important/shortcuts/SKILL.md`: lists `archive` and `setting`.
+- `skills/business/company-roles/references/company-repo.md`: the config is created by `/update-company`; mentions the guard.
+- `README.md`, `plugin.json` (3.8.0, 27 skills), `marketplace.json`.
+
 ## [3.7.0] - 2026-11-08
 
 Source: a user request to keep the company profile in its own repo, configured by a gitignored JSON file with `enable-company` and a placeholder repo link, so every agent that needs the profile reads the current version. A plugin hook syncs `company/` with that repo, so agents and skills keep reading and writing `company/` unchanged and pay no extra tokens. Tested against a local bare repo: missing file, disabled, placeholder, clone, commit and push, no-op when clean, pulling a remote edit, `auto-push: false`. No before/after: no tuned behaviour changed.

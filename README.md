@@ -14,6 +14,8 @@ A collection of Claude Code subagents + skills for engineering and business work
 | `/doz-agent:deal-check` | Get a go or no-go before sending a proposal or signing | `sales-director`, `cfo`, `legal-counsel`, plus `cto` for custom scope |
 | `/doz-agent:weekly-review` | Review the week and set one focus for the next | `sales-director`, `coo` |
 | `/doz-agent:update-company` | Record a new client, hire, product or money change in `company/profile.md` | None, it asks you questions |
+| `/doz-agent:archive` | Tidy `company/`: move misplaced or old files, merge duplicates, rename; you approve first | None |
+| `/doz-agent:setting` | See or change settings in `company-repo.json`: local or repo, repo, branch, auto-push | None |
 | `/doz-agent:shortcuts` | See this list | None |
 
 **Subagents** (`plugins/agents/`). The files are flat, so areas are shown here and by colour in Claude Code.
@@ -63,7 +65,7 @@ A collection of Claude Code subagents + skills for engineering and business work
 |---|---|---|
 | `trading-analyst` | Stocks (IDX/US), crypto, forex, commodities: macro, politics and geopolitics scorecard (13 factors, checked against measured correlation) → dated news from ≥ 2 outlets → sentiment vs expectations → "priced in?" in ATR multiples → chart vs index and peers → entry/stop/targets, R:R ≥ 2 and lot sizing, or a clear no-trade. Modes: analyze, review a position, scan a watchlist. Analysis only, never places orders | 📝 `trading-journal/` only |
 
-The role agents give a position with reasons, a rejected option and next steps, labelling what is sourced, judged or unverified. They read `company/profile.md` in the working directory; when it's missing, their report tells the main thread to create it from the template and add `company/` to `.gitignore`, so it stays private. To share one company record across projects and machines, keep `company/` in its own private repo: set `enable-company` to `true` and `repo` in `company-repo.json` (created by `/doz-agent:update-company`, gitignored), and the plugin hook pulls it at session start and pushes changes after each turn. Setup: [`company-repo.md`](plugins/skills/business/company-roles/references/company-repo.md). Put company documents in `company/<division>/` (`leadership`, `finance`, `sales`, `marketing`, `customers`, `people`, `legal`, `tech`): each role reads its own folder when the question could use it. They can't call each other: ask for several at once ("what would the CEO, CFO and sales director say?") and the main thread runs them in parallel and shows where they disagree. To keep talking with one role, start a session with it: `claude --agent doz-agent:sales-director`.
+The role agents give a position with reasons, a rejected option and next steps, labelling what is sourced, judged or unverified. They read `company/profile.md` in the working directory; when it's missing, their report tells the main thread to create it from the template and add `company/` to `.gitignore`, so it stays private. To share one company record across projects and machines, keep `company/` in its own private repo: run `/doz-agent:update-company`, pick **Repo** and give `owner/repo`: it writes `company-repo.json` (gitignored) and clones it right away, and from then on the plugin hook pulls it at session start and pushes changes after each turn. A guard hook asks you before any command deletes or moves a file in `company/`; agents can still add and edit. Setup: [`company-repo.md`](plugins/skills/business/company-roles/references/company-repo.md). Put company documents in `company/<division>/` (`leadership`, `finance`, `sales`, `marketing`, `customers`, `people`, `legal`, `tech`): each role reads its own folder when the question could use it. They can't call each other: ask for several at once ("what would the CEO, CFO and sales director say?") and the main thread runs them in parallel and shows where they disagree. To keep talking with one role, start a session with it: `claude --agent doz-agent:sales-director`.
 
 **Skills** (`plugins/skills/<area>/<name>/SKILL.md`)
 
@@ -90,6 +92,8 @@ Renamed in 3.0.0 (old names no longer load): `ui-design-taste` → `fe-base`, `a
 | `demo-video` | media | The filming engine and workflow behind the `demo-video` agent: Playwright recorder, camera/cursor actor, local Kokoro voice, stitching, troubleshooting |
 | `trading-analysis` | markets | The trader's routine behind `trading-analyst`: scope defaults, macro/politics/geopolitics factors with an IDX sector map, catalyst search, sentiment rubric (direction × materiality × surprise × source tier), priced-in table, plan recipe, journal loop, and `scripts/price_check.py` (MA/RSI/ATR/RS/beta plus correlation to macro proxies, from Yahoo daily data, stdlib only). Tested price/macro/news sources and IDX lot/tick rules in dated references |
 | `company-roles` | business | The shared advisor method (position first, evidence labels, hand-offs, report template) and a sourced playbook per role in `references/`: what a senior owns, first questions, decision frameworks, benchmarks, Indonesian rules, traps |
+| `archive` | important | Proposes a cleanup of `company/` (wrong folder, closed or old items to `company/_archive/`, duplicates, names), applies it after approval. `/doz-agent:archive` |
+| `setting` | important | Shows and changes `company-repo.json` (local or repo, repo, branch, auto-push) and runs the git steps each change needs. `/doz-agent:setting` |
 | `update-company` | important | Updates the private `company/profile.md` by asking what changed (client, team, product, money, goals, legal) with options from your own profile, and keeps a history. `/doz-agent:update-company` |
 | `director`, `sales-team`, `deal-check`, `weekly-review`, `shortcuts` | important | Team shortcuts in the table above: they run in the main thread, call only the relevant role agents in parallel with the same brief, and show verdicts and disagreements. `shortcuts` answers which command does what |
 | `rab-kontraktor-advisor` | consultant | Product context for an RAB generator for small contractors: the AHSP/HSPK/SNI standards, BOQ/AACE, and the data & UX patterns of estimating software |
@@ -108,9 +112,9 @@ doz-agent/
     ├── agents/                  # 20 subagents (flat files, no subfolders)
     ├── workflows/               # stored workflows (.md): a graph of nodes + edges, read by run-workflow
     ├── actions/                 # stored shell commands for action nodes (tests, checking changes)
-    ├── hooks/                   # company-sync: keeps company/ in step with the repo in company-repo.json
+    ├── hooks/                   # company-sync (repo sync), company-guard (asks before deleting or moving in company/)
     └── skills/
-        ├── important/           # shortcuts: ship-feature, director, sales-team, deal-check, weekly-review, update-company, shortcuts
+        ├── important/           # shortcuts: ship-feature, director, sales-team, deal-check, weekly-review, update-company, archive, setting, shortcuts
         ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, token-audit, run-workflow
         ├── business/            # company-roles (role playbooks)
         ├── product/             # product-ownership, business-thinking

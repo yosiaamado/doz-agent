@@ -1,17 +1,37 @@
 {
-  "description": "Keeps company/ in sync with the repo named in company-repo.json when enable-company is true",
+  "description": "Keeps company/ in sync with the repo named in company-repo.json when enable-company is true, and asks the user before any command deletes or moves files in company/",
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/company-guard.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/company-sync.sh\" pull", "timeout": 60 }
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/company-sync.sh\" pull",
+            "timeout": 60
+          }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/company-sync.sh\" push", "timeout": 60 }
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/company-sync.sh\" push",
+            "timeout": 60
+          }
         ]
       }
     ]

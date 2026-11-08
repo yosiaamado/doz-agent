@@ -17,6 +17,8 @@ Answer from this table in the user's language. If they describe a need, recommen
 | `deal-check` | Get a go or no-go before sending a proposal or signing | `sales-director`, `cfo`, `legal-counsel`, plus `cto` for custom scope | `/doz-agent:deal-check contracts/client-x.pdf` |
 | `weekly-review` | Review the week and set one focus for the next | `sales-director`, `coo` | `/doz-agent:weekly-review` |
 | `update-company` | Record a new client, hire, product or money change in the profile | none, it asks you questions | `/doz-agent:update-company new client on Fiskal, Rp12,500,000` |
+| `archive` | Tidy `company/`: wrong folders, old or closed items, duplicates, names | none, you approve the plan | `/doz-agent:archive sales` |
+| `setting` | See or change settings: company record local or repo, repo, branch, auto-push | none | `/doz-agent:setting turn off auto-push` |
 | `shortcuts` | See this list | none | `/doz-agent:shortcuts` |
 
 Single agents need no shortcut: ask normally, or say which one, e.g. "pakai agent cfo: …". Other skills and agents are listed in the plugin's `README.md`; `technical-lead` answers how they fit together.

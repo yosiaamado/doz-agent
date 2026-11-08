@@ -20,6 +20,8 @@ autopush="$(val auto-push)"
 
 export GIT_TERMINAL_PROMPT=0
 run() { if command -v timeout >/dev/null 2>&1; then timeout 45 "$@"; else "$@"; fi; }
+# 0 = branch exists on origin, 2 = missing (empty or new repo), other = error
+remote_has_branch() { run git -C "$dir" ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; }
 say() {
   if [ "$mode" = "pull" ]; then echo "company repo: $1"
   else printf '{"systemMessage":"company repo: %s"}\n' "$(printf '%s' "$1" | sed 's/["\\]/ /g')"; fi
@@ -35,12 +37,14 @@ if [ "$mode" = "pull" ]; then
       say "company/ has local files but is not a clone of $repo; not synced. Move its files into the company repo, then delete company/."
       exit 0
     fi
-    if err="$(run git clone -q --branch "$branch" "$repo" "$dir" 2>&1)"; then
+    # No --branch: it fails on an empty repo. Check the branch out after, or start it.
+    if err="$(run git clone -q "$repo" "$dir" 2>&1)"; then
+      git -C "$dir" checkout -q "$branch" 2>/dev/null || git -C "$dir" checkout -q -b "$branch" 2>/dev/null
       say "cloned $repo into company/."
     else
       say "could not clone $repo ($(printf '%s' "$err" | head -n 1)); working without company/."
     fi
-  elif ! err="$(run git -C "$dir" pull -q --rebase --autostash origin "$branch" 2>&1)"; then
+  elif remote_has_branch && ! err="$(run git -C "$dir" pull -q --rebase --autostash origin "$branch" 2>&1)"; then
     say "pull failed ($(printf '%s' "$err" | head -n 1)); using the local copy of company/."
   fi
   exit 0
@@ -58,7 +62,7 @@ fi
 [ "$autopush" = "false" ] && exit 0
 ahead="$(git -C "$dir" rev-list --count "origin/$branch..HEAD" 2>/dev/null || echo 1)"
 [ "$ahead" = "0" ] && exit 0
-if ! err="$( { run git -C "$dir" pull -q --rebase origin "$branch" && run git -C "$dir" push -q origin "HEAD:$branch"; } 2>&1)"; then
+if ! err="$( { if remote_has_branch; then run git -C "$dir" pull -q --rebase origin "$branch"; fi && run git -C "$dir" push -q origin "HEAD:$branch"; } 2>&1)"; then
   say "changes are committed in company/ but the push failed ($(printf '%s' "$err" | head -n 1)); it retries after the next turn."
 fi
 exit 0
