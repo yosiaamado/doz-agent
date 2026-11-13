@@ -9,9 +9,24 @@ The code rules live in `frontend-patterns`. This file is about **taste**: why on
 
 **The one sentence behind all of it:** good design isn't the most decorated, it's the fastest to read. Hierarchy is built from **space, size, and font weight** — not from lines, boxes, shadows, and color.
 
+## 0. Before the first component: source, mode, thesis
+
+1. **Find the design source.** `DESIGN.md`/`design.md`, a token file, `tailwind.config` theme, `:root` variables, or a component library theme. It wins over everything below; this skill fills only what it leaves open. Where to look and how to read it: [references/design-md.md](references/design-md.md).
+2. **Pick one mode** from what the screen is for, not from a fashionable style. At most one secondary influence.
+
+| Mode | Optimise for | Default away from |
+|---|---|---|
+| Product / workspace (app, admin, tool) | Task speed, readable density, restrained chrome | A landing-page hero, decorative cards |
+| Dashboard / data | Scanning, comparison, status; show units, scope and data freshness | Card mosaics with no decision behind them (§6, `fe-dashboard`) |
+| Marketing / brand | One clear story and one conversion path; one dominant idea per section | Feature soup, five CTAs (`fe-scroll` for experience pages) |
+| Editorial / docs | Sustained reading: 60–75 ch lines, line-height 1.7, in-page navigation | Sidebars and widgets competing with the text |
+| Commerce / service (checkout, booking, onboarding) | Trust and clarity: price, steps, commitments explicit; errors prevented and recoverable | Distraction inside the critical flow, surprise costs on the last step |
+
+3. **Write the visual thesis in one sentence** — what this screen should feel like and why ("calm and dense, an accountant scans 200 rows a day"). Plus the single most important element. Small component fixes skip this; a new screen or product doesn't.
+
 ## 1. The five decisions that determine the outcome
 
-Before writing a component, lock these five down. Put them in a comment or a token file; don't guess them per component.
+Before writing a component, lock these five down. Put them in the design source; don't guess them per component. For a **new product**, write them to `DESIGN.md` ([references/design-md.md](references/design-md.md)) so the next call reads one file instead of re-deriving them.
 
 | Decision | Safe default |
 |---|---|
@@ -23,6 +38,8 @@ Before writing a component, lock these five down. Put them in a comment or a tok
 
 No brand or design system yet → read [references/design-database.md](references/design-database.md) and query the bundled database for a product-appropriate palette and font pairing, then cut its output down to these five.
 
+Components read **semantic tokens** (`--accent`, `--surface`, `--text-muted`), never raw palette steps; tiers and OKLCH scales in [references/design-md.md](references/design-md.md).
+
 ## 2. Layout & space
 
 - **Whitespace is a feature, not leftovers.** If a screen feels cramped, remove elements or add spacing — don't shrink the font.
@@ -31,6 +48,7 @@ No brand or design system yet → read [references/design-database.md](reference
 - **A 12-column grid**, 24px gutters. Long body text is capped at **60–75 characters** per line.
 - **One page = one purpose.** The most important element gets the top-left position and the largest size. If everything stands out, nothing does.
 - **A long page beats a dense page.** Scrolling is cheap, confusion is expensive.
+- **A component reused in a wide column and a narrow sidebar adapts with a container query**, not a viewport breakpoint; page layout and global nav stay on viewport queries. Add breakpoints where the content breaks, not at device names.
 
 ## 3. Typography
 
@@ -41,7 +59,7 @@ A scale you can use straight away (ratio ~1.25):
 | Display / large figure | 32–40px | 600–700 | For one headline number only |
 | Page title | 24–28px | 600 | |
 | Card / section title | 16–18px | 600 | |
-| Body | 14–16px | 400 | `line-height` 1.5 |
+| Body | 14–16px | 400 | `line-height` 1.5; 1.7 for long-form reading, 1.2 on one-line controls |
 | Labels & meta | 12–13px | 500 | Grey, `letter-spacing: .04em` + UPPERCASE is fine for an *eyebrow* |
 
 - **Numbers use `font-variant-numeric: tabular-nums`.** Without it, columns of figures in tables and KPIs look wobbly.
@@ -61,7 +79,7 @@ A scale you can use straight away (ratio ~1.25):
 - **One hero surface per view filled with the accent** (solid or gradient): a featured card, a welcome banner, a call-to-action. Everything else neutral. A second filled card halves the effect of both, and four multicoloured gradient cards is the tell-tale sign of a template.
 - **Dark floating elements on a light page** for what sits above content: tooltips, popovers, a floating switcher pill. They read as a layer without a heavy shadow. One per region at most.
 - **Color must never be the only carrier of meaning.** Always pair it with an icon, a sign, or text.
-- **Contrast:** text 4.5:1, UI elements and icons 3:1. Check before you hand the work over.
+- **Contrast:** text 4.5:1, UI elements, icons and the focus ring 3:1. **Measure, don't eyeball:** `python <this skill>/scripts/contrast.py FG BG [FG BG …]` (hex, rgb(), oklch(), alpha composited). Check each state's pair — muted text, placeholder, disabled-looking-but-active, text on the accent.
 - **Dark mode is not inverted colors.** Background `#0B0F14`–`#111827`, surfaces raised with lightness (not shadow), and accent colors desaturated so they don't glare.
 
 ## 5. Surfaces, borders & elevation
@@ -125,6 +143,10 @@ TOTAL VISITS              ← label 12px, grey, uppercase optional
 - **Errors** explain what failed and what can be done, with a retry button.
 - **Success** is visible: a brief toast, or a change in the data you can see immediately. An action that gives no feedback feels broken.
 - **First-run** differs from a normal empty state: show an example or dummy data so the user understands what it will look like.
+- **Three different empties:** first-use (teach + primary action), no-results (echo the query, suggest a broader one), filtered-empty (name the active filters + "Clear filters"). One generic "No data" for all three is a bug.
+- **The states people forget:** stale (show "updated 5 min ago" + refresh), offline, no permission (say who can grant it), partial success ("8 of 10 imported — 2 failed, see why").
+- **Errors keep what the user typed.** Never show success before the server confirms it. For destructive actions prefer **undo** over a confirm dialog; confirm only what can't be undone.
+- **Honest content.** Placeholder people and labels in mocks are fine (§9); invented metrics, testimonials, customer logos, ratings or "10,000+ users" in a shipped screen are not. No real number yet → leave a visible `TODO` slot and list it in the report.
 
 ## 8. Motion
 
@@ -166,6 +188,8 @@ Pick **one or two**, not all of them:
 - A primary and a secondary button that are equally loud.
 - Every corner rounded to 20px, inputs and tables included.
 - A sidebar that slides in again on every click, or every card lifting on hover.
+- A landing-page hero on top of an app screen.
+- "Premium" bought with effects: preloader, custom cursor, magnetic buttons, smooth-scroll hijack, glass, 3D. Outside a deliberate experience page (`fe-scroll`) each one costs accessibility and load time and adds nothing to the task.
 
 ## 11. Checklist before handing over a screen
 
@@ -174,12 +198,14 @@ Pick **one or two**, not all of them:
 - [ ] One accent. Other colors are only semantic or neutral.
 - [ ] Numbers use tabular-nums and the correct local format.
 - [ ] Every important number has something to compare against, or context.
-- [ ] Loading, empty, error, and success are designed, not browser defaults.
-- [ ] Text contrast ≥ 4.5:1, keyboard focus clearly visible.
+- [ ] Loading, the three empties, error (input kept), stale/offline/permission where they can happen, and success are designed, not browser defaults.
+- [ ] Contrast **measured** with `scripts/contrast.py` (text ≥ 4.5:1, focus ring and UI ≥ 3:1), keyboard focus clearly visible.
 - [ ] Checked at 360px wide: no horizontal scroll, tables scroll or turn into cards.
+- [ ] **Pressure test** on the rendered screen: the longest real string (name, translation, URL), text zoomed to 200%, reduced motion on, the request failing or slow, the narrowest width. Each still reads and still works.
+- [ ] No invented metrics, testimonials or logos; performance claims only from a measurement, otherwise reported as unmeasured.
 - [ ] One surface style and at most one accent-filled hero surface per view.
 - [ ] Hover and transitions ≤ 200ms, chrome stays still on navigation, entrances play once, and `prefers-reduced-motion` respected.
-- [ ] This screen can be described in one sentence: "this page is for ___".
+- [ ] This screen can be described in one sentence: "this page is for ___", and it matches the mode and thesis from §0.
 
 Reviewing or handing over a whole flow (forms, navigation, mobile, a native app) → also run [references/ux-audit.md](references/ux-audit.md). A scroll-driven or cinematic landing page → `fe-scroll`.
 

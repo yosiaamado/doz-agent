@@ -1,6 +1,6 @@
 {
   "name": "doz-agent",
-  "version": "3.8.0",
+  "version": "3.9.0",
   "description": "20 subagents (technical lead, product owner, system analyst, QA, security, code review, backend, frontend, devops, demo video, trading analyst, CEO, CFO, CTO, COO, CMO, sales director, customer success, HR, legal) + 27 skills (ship-feature, run-workflow, token-audit, product ownership, engineering workflow, backend/frontend/devops patterns, fe-base, fe-native-feel, fe-dashboard, fe-scroll, demo-video, analytical & business thinking, rab-kontraktor-advisor, finance-accounting, trading-analysis, company-roles, update-company, setting, archive, director, sales-team, deal-check, weekly-review, shortcuts), following professional working standards",
   "author": {
     "name": "Yosia"

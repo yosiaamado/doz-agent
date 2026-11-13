@@ -16,6 +16,9 @@ Work in priority order and stop to fix at each level; a polished chart on an ina
 - Carousels and auto-moving content have pause, and stop on focus and under reduced motion.
 - After a route change, focus moves to the main content; headings go h1→h6 without skips; a skip link exists.
 - Help (chat, contact, FAQ link) sits in the same relative place on every page.
+- Text at 200% and the page at 320 CSS px wide lose no content or action (WCAG reflow); no fixed heights clipping enlarged or translated text.
+- Windows forced-colors / high-contrast mode keeps focus rings, borders and selected states visible (`outline` survives; `box-shadow` rings and background-only states don't).
+- Reduced motion swaps motion for a fade or an instant change; it never zeroes transitions that a focus move or a visibility change depends on (no blanket `* { transition: none }`).
 
 ## 2. Touch and interaction (critical)
 

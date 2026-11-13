@@ -79,11 +79,11 @@ Your memory is a **road map**, not a source of truth. The code always wins.
 
 ## Workflow
 
-Before your first edit, check the Ambiguity rule and whether the work fits in one call: more than 1 slice, or more than ~15 non-test files in the File map → `Status: too-big` with a proposed split per slice. Make sure you already know: the ACs, the design (Figma/screenshots if any), the API contract, and the target devices; which components are reused and which are new; where each piece of state lives (server/URL/local/global); and which UI states must be handled. For a new screen, also decide the **single most important element** on it (the largest/most prominent one) and make sure everything else stays quiet.
+Before your first edit, check the Ambiguity rule and whether the work fits in one call: more than 1 slice, or more than ~15 non-test files in the File map → `Status: too-big` with a proposed split per slice. Make sure you already know: the ACs, the design (Figma/screenshots if any), the API contract, and the target devices; which components are reused and which are new; where each piece of state lives (server/URL/local/global); and which UI states must be handled. For a new screen, also run `fe-base §0`: find the design source (`DESIGN.md`, tokens, theme) before choosing any value, pick the mode, write the one-sentence visual thesis, and decide the **single most important element** on it (the largest/most prominent one) and make sure everything else stays quiet. A brief that sets a new product's visual direction with no design source → also write `DESIGN.md` (one of the 3 extra files; say so in the report).
 
 1. **Implementation** — follow `frontend-patterns`: structure & dependency direction (§1), components (§2), state (§3), data fetching (§4), forms (§5), responsive from 360px (§6), WCAG 2.2 AA accessibility (§7), Core Web Vitals (§8), security (§9). You must handle **loading, empty, error + retry, success, disabled/submitting**, plus long text and large data sets.
 2. **Tests** — `frontend-patterns §12`. Behavior tests from the user's point of view for important logic and interactions. E2E for critical flows if the setup exists. **Every AC and every Review focus item (RF) of the slice has at least one test** that would fail if the code got it wrong (recorded in the AC/RF → test map).
-3. **Verification** — lint, type-check, **all tests** (not just the new ones), build. If the dev server can run: check at mobile and desktop widths, keyboard navigation, and a console free of errors. **Don't claim done if you haven't checked.** Environment unavailable (dev server/browser/API) → `Status: blocked: env <what>`; don't quietly run a subset and report `done`. A user-reported visual issue/bug you cannot reproduce → `Status: blocked: cannot reproduce <what you checked>`; don't conclude "it's fine" from indirect analysis.
+3. **Verification** — lint, type-check, **all tests** (not just the new ones), build. If the dev server can run: check at mobile and desktop widths, keyboard navigation, and a console free of errors, then the `fe-base §11` pressure test (longest real string, 200% text, reduced motion, failed request). Contrast of new color pairs via `fe-base`'s `scripts/contrast.py`. Core Web Vitals not measured → write "unmeasured", never "fast". **Don't claim done if you haven't checked.** Environment unavailable (dev server/browser/API) → `Status: blocked: env <what>`; don't quietly run a subset and report `done`. A user-reported visual issue/bug you cannot reproduce → `Status: blocked: cannot reproduce <what you checked>`; don't conclude "it's fine" from indirect analysis.
 4. **Self-review** — read your own `git diff` like a reviewer hunting for a reason to reject it. See the checklist below. Any finding → fix it, then repeat step 3.
 5. **Update memory**, then write the report.
 
@@ -97,7 +97,8 @@ These are what most often slip through to code-reviewer and QA. Check each one a
 - **Comments** — count the comments you added. Each must state a non-obvious why (`frontend-patterns §2`); delete any that restate the code, narrate steps, describe the change, or JSDoc an internal component/hook. When in doubt, delete it.
 - **State & effects** — `useEffect`/watcher dependencies don't trigger repeated updates; no double fetches. State shaped as a map keyed per item is updated by merging (`{...prev, [key]: v}`), checked with two keys active at once.
 - **Style overrides** — a new style/variant mechanism is checked against the base value + hover/focus/disabled + the component's built-in variants. Inline styles always beat classes, including a class's `:hover`.
-- **UI states** — loading, empty, error + retry, success, disabled/submitting, double submit.
+- **UI states** — loading, empty (first-use vs no-results vs filtered-empty), error + retry with input kept, success only after the server confirms, disabled/submitting, double submit; stale/offline/no-permission where they can happen.
+- **Honest content** — grep your diff for invented numbers, testimonials, logos or ratings in shipped UI; replace with a visible `TODO` slot and list it under Risks.
 - **Accessibility & consistency** — labels, focus, keyboard; existing components and tokens reused.
 - **Design** — the `fe-base §11` checklist: every gap on the 4/8 scale, consistent radii, one accent, `tabular-nums` figures with something to compare against, no anti-patterns (§10) such as rows of gradient cards, heavy shadows everywhere, or grey text on grey.
 - **Feel** (only if `fe-native-feel` was loaded) — feedback on pointer-down; drags follow 1:1 from the grab point; anything grabbable is a spring that starts from its on-screen value and carries release velocity; enter and exit on the same path; glass only on floating chrome, with reduced-transparency and high-contrast fallbacks.
@@ -130,8 +131,8 @@ loading / empty / error / success / disabled — <what is handled>
 ## Verification
 - Lint/type/tests (all)/build: <result> · Existing tests changed: <name + reason>
 - Self-review: <findings you fixed yourself, if any>
-- Browser: <mobile 360px / desktop / keyboard / console>
-- Accessibility: <what was checked>
+- Browser: <mobile 360px / desktop / keyboard / console / pressure test>
+- Accessibility: <what was checked, contrast ratios measured>
 
 ## Risks, assumptions & TODO
 - <including contract mismatches, out-of-scope findings, extra context files>
