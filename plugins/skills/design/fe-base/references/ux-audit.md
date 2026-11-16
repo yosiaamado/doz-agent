@@ -44,6 +44,11 @@ Work in priority order and stop to fix at each level; a polished chart on an ina
 - No nested scroll regions fighting the page scroll.
 - Landscape stays readable and operable.
 - Long URLs, IDs and user content wrap with `overflow-wrap: anywhere` on a shrinkable flex/grid child; never `word-break: break-all` on prose.
+- No sideways scroll from `100vw` (it includes the scrollbar): use `100%`, and `overflow-x: clip` on `html, body` as the backstop. Grid tracks are `minmax(0, 1fr)` and flex children get `min-width: 0`, or one long word blows the column out.
+- A full-height hero uses `100svh`/`100dvh`, not `100vh` (mobile browser bars). At 1920 wide the content container stops at ~1360–1520 px.
+- Button labels never wrap; shorten the label or let the button go full-width on mobile. Never two `position: sticky; top: 0` elements stacking on each other.
+- Input border width is the same in every state (default, focus, error) — a thicker focus border shifts the layout; use an outline or box-shadow ring.
+- Content and navigation still render when JavaScript fails or is slow: nothing important starts at `opacity: 0` waiting for a script.
 - Chip/badge collections wrap before labels shrink; a `+3` overflow is an operable disclosure, and truncated labels show the full text to pointer and keyboard users.
 
 ## 5. Forms and feedback

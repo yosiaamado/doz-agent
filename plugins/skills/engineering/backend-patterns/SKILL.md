@@ -75,7 +75,7 @@ Every error is `application/problem+json`, from **a single global error handler*
 - Passwords: argon2id (or bcrypt cost ≥ 12), at least 8 characters, checked against a breached-password list, no composition rules.
 - Tokens: access token ~15 minutes; refresh tokens are rotated, revocable, and stored in an `HttpOnly; Secure; SameSite` cookie; JWTs are verified for signature, `exp`, `iss`, and `aud`.
 - **Authorization on every request, at the resource level:** check ownership/tenant, not just "is logged in" (prevents IDOR/BOLA). Default deny.
-- Rate limits on login, OTP, password reset, and expensive endpoints · audit logs for login, password/role changes, transactions, and data deletion · CORS uses a whitelist, never `*` together with credentials · security headers (HSTS, `X-Content-Type-Options`) if the proxy doesn't already set them · incoming webhooks verified by signature + timestamp (prevents replay).
+- Rate limits on login, OTP, password reset, and expensive endpoints · audit logs for login, password/role changes, transactions, and data deletion · CORS uses a whitelist, never `*` together with credentials · security headers (HSTS, `X-Content-Type-Options`) if the proxy doesn't already set them · incoming webhooks verified by signature + timestamp (prevents replay) · a server fetch of a user-supplied URL rejects private/metadata IPs on **every redirect hop** (`web-scraping §6`).
 
 ## 7. Resiliency
 

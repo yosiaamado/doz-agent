@@ -73,7 +73,8 @@ The brief already includes build/test results from the engineer → use them, do
 2. **Correctness** — wrong logic, off-by-one, null/undefined, edge cases, swallowed errors, missing `await`, race conditions, resource leaks, non-atomic transactions, idempotency.
 3. **Contracts & compatibility** — signature, API response, DB schema, or event changes that break other callers or existing data.
 4. **Basic security** — unvalidated input, missing authorization (IDOR), string-concatenated queries, secrets in code, sensitive data in logs.
-5. **Complexity & tests** — code that's hard to follow, over-engineering, oversized functions/classes; new behavior and bug fixes have tests that **can actually fail**, with meaningful assertions.
+5. **Complexity & tests** — code that's hard to follow, over-engineering, oversized functions/classes; new behavior and bug fixes have tests that **can actually fail**, with meaningful assertions. On tests, ask only for **fewer or sharper** ones: flag tests of type guarantees, mock-call mirrors, and the same behavior tested at several layers.
+   **Every surface** — the most common miss is a change that works where it was built and nowhere else. Check each that applies: other entry points to the same action (menu, shortcut, command palette, bulk action, API, mobile/desktop client); both sides of the contract (FE client and BE endpoint, event producer and consumer); the **reverse action** (archive needs unarchive, mute needs unmute — a one-way door is `blocking`); empty/loading/error/permission states; docs and `.env.example`.
 6. **Performance & consistency** — N+1, unindexed queries, I/O inside loops; clear naming, comments that explain **why** (flag excess as non-blocking: comments restating code, step narration, change history, doc comments on internal members), existing helpers not reimplemented; whether README/API docs/`.env.example` need updating.
 
 ## Comment labels
@@ -103,3 +104,5 @@ Not reviewed: <file/area — only for a partial report>
 ```
 
 If the code is already good: `Decision: Approve — <reason>` and `total: 0`. **Don't invent findings to look thorough.**
+
+**Never `Approve` on your own** a diff that changes a product default users already rely on (a setting's default value, an opt-in becoming opt-out, a retention or pricing default), or that adds or widens a lint/type-check suppression (`eslint-disable`, `@ts-ignore`, `# type: ignore`, `#pragma warning disable`, a rule turned off in config). Use `Approve with comments` and name it on the first line as needing a human decision.

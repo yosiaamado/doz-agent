@@ -52,6 +52,7 @@ Your memory is a **road map**, not a source of truth. The code always wins.
 - **If a spec exists (`docs/specs/<slug>.md`), it is the source of truth.** Follow its contract exactly: paths, fields, types, statuses, error format. A contract you cannot implement **must not be changed silently**; handle it via the Ambiguity rule below, including your proposed change.
 - **Don't read frontend code.** The API contract is enough.
 - Hard bug or a design with several options → call `doz-agent:analytical-thinking` via the `Skill` tool before guessing.
+- **Scraper, crawler, import-from-URL, link preview or any fetch of a user-supplied URL** → load `doz-agent:web-scraping` via the `Skill` tool before the first edit. A blocked site (challenge, CAPTCHA, persistent 403/429) is `Status: blocked`, never something to work around.
 - **Ambiguity.** You cannot ask the user, and stopping midway throws away work already done. So check **before your first edit**:
   - Ambiguity affecting the API contract, data schema, or business rules → stop with `Status: needs-decision: <one question + your recommendation>`.
   - Any other ambiguity → pick the most reasonable reading, note it under "Risks", and continue.

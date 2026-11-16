@@ -18,7 +18,7 @@ The code rules live in `frontend-patterns`. This file is about **taste**: why on
 |---|---|---|
 | Product / workspace (app, admin, tool) | Task speed, readable density, restrained chrome | A landing-page hero, decorative cards |
 | Dashboard / data | Scanning, comparison, status; show units, scope and data freshness | Card mosaics with no decision behind them (§6, `fe-dashboard`) |
-| Marketing / brand | One clear story and one conversion path; one dominant idea per section | Feature soup, five CTAs (`fe-scroll` for experience pages) |
+| Marketing / brand | One clear story and one conversion path; one dominant idea per section | Feature soup, five CTAs. Read [references/marketing-page.md](references/marketing-page.md); `fe-scroll` for experience pages |
 | Editorial / docs | Sustained reading: 60–75 ch lines, line-height 1.7, in-page navigation | Sidebars and widgets competing with the text |
 | Commerce / service (checkout, booking, onboarding) | Trust and clarity: price, steps, commitments explicit; errors prevented and recoverable | Distraction inside the critical flow, surprise costs on the last step |
 
@@ -146,7 +146,7 @@ TOTAL VISITS              ← label 12px, grey, uppercase optional
 - **Three different empties:** first-use (teach + primary action), no-results (echo the query, suggest a broader one), filtered-empty (name the active filters + "Clear filters"). One generic "No data" for all three is a bug.
 - **The states people forget:** stale (show "updated 5 min ago" + refresh), offline, no permission (say who can grant it), partial success ("8 of 10 imported — 2 failed, see why").
 - **Errors keep what the user typed.** Never show success before the server confirms it. For destructive actions prefer **undo** over a confirm dialog; confirm only what can't be undone.
-- **Honest content.** Placeholder people and labels in mocks are fine (§9); invented metrics, testimonials, customer logos, ratings or "10,000+ users" in a shipped screen are not. No real number yet → leave a visible `TODO` slot and list it in the report.
+- **Honest content.** Placeholder people and labels in mocks are fine (§9); invented metrics, testimonials, customer logos, ratings or "10,000+ users" in a shipped screen are not, and neither is a form that shows "Sent" with no request behind it. No real number yet → leave a visible `TODO` slot and list it in the report.
 
 ## 8. Motion
 

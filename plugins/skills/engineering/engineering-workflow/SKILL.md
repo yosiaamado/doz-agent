@@ -85,12 +85,16 @@ The rules:
 
 ## How to test
 - <manual verification steps + automated tests added>
+- Not verified: <what you could not check, and why — "tests pass" alone is not verification>
 
 ## Risk & rollback
 - <impact, migrations, feature flags, how to roll back>
 
 ## Screenshots (if the UI changed)
+<before / after; a short clip for motion or a multi-step flow>
 ```
+
+A PR written with an AI agent says so in one line at the end (the tool and model), so reviewers know how to read it.
 
 Before asking for review:
 - [ ] CI green: lint, type-check, tests, build.
@@ -184,3 +188,13 @@ Store them in `docs/adr/NNNN-title.md`. One decision per file, and don't change 
 - The root cause (5 Whys)
 - What went well and what didn't
 - Action items with an owner and a deadline
+
+## 13. Running things locally without hurting yourself
+
+Each rule below comes from a real incident in an agent-heavy repo (t3code, MIT; reviewed 2026-11-16).
+
+- **Kill only what you started:** the PID you captured at spawn, or the process you confirmed owns the port. Never `pkill -f <pattern>` / `taskkill /IM node.exe` — it takes down the user's other servers and editors.
+- **Never point a dev server or test run at the user's real data.** Seed a sandbox from a read-only copy (copy, not symlink; data flows one way).
+- **No detached servers** (`nohup`, `&` left running, `tmux`, `start /b`) at the end of a task: stop what you started. Forgotten ones run for weeks.
+- **One UI check per feature, by whoever integrates it.** Parallel engineers don't each launch a dev server and browser on the same ports.
+- **Docs and comments hold decisions and traps only.** When behaviour changes, rewrite the doc to the new truth rather than appending a dated note. Plans, scratch notes and investigation logs are not committed.

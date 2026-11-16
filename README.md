@@ -27,9 +27,9 @@ A collection of Claude Code subagents + skills for engineering and business work
 | `technical-lead` | Breaks a goal into vertical-slice tasks per agent (owner, files, interfaces, tests, order, checkpoints), supervises an agent's approach or report, and answers how the agents and skills fit together | ❌ read-only |
 | `product-owner` | **Single pass:** impact analysis, scope, INVEST user stories + acceptance criteria, decisions + defaults, the agent plan, and accepting/rejecting the result | ❌ read-only |
 | `system-analyst` | API contract, data model, BE/FE file map in one spec file (`docs/specs/<slug>.md`). **Optional** — only for large designs (≥3 endpoints, migrations, complex domains) | 📝 spec file only |
-| `qa-tester` | Risk-based test strategy, test design techniques (BVA, decision tables), bug reports with severity + priority | ✅ |
+| `qa-tester` | Risk-based test strategy, test design techniques (BVA, decision tables), bug reports with severity + priority, "fewer, sharper tests" rules, waits on events not the clock | ✅ |
 | `security-tester` | STRIDE threat model + OWASP Top 10:2025 / ASVS 5.0 audit | ❌ read-only |
-| `code-reviewer` | Review in the style of Google eng practices, comments labelled blocking/non-blocking | ❌ read-only |
+| `code-reviewer` | Review in the style of Google eng practices, comments labelled blocking/non-blocking, an every-surface check (entry points, both sides of the contract, the reverse action), human sign-off for changed defaults and new lint suppressions | ❌ read-only |
 | `backend-engineer` | APIs, services, DB, migrations, queues: requirement → design → code + tests → verification. 🧠 keeps a memory of the code-flow map | ✅ |
 | `frontend-engineer` | UI, components, state, forms, WCAG 2.2 AA, Core Web Vitals. 🎨 has design taste (`fe-base`), 🧠 keeps a memory of the component map | ✅ |
 | `devops-engineer` | Docker, CI/CD, deploy, IaC, observability, SLOs, with production safety rules | ✅ |
@@ -79,13 +79,14 @@ Renamed in 3.0.0 (old names no longer load): `ui-design-taste` → `fe-base`, `a
 | `token-audit` | engineering | Token & failure audit of one workflow from the transcript: tokens & estimated cost per agent, the biggest gaps (large files read whole, long output, exploration, cache misses, narration, long reports), agent failures & blocking findings per category, failure patterns recurring across workflows, and suggestions per agent file. Automatic at the end of a Medium/Large `ship-feature`; manually: `/doz-agent:token-audit [--all]` |
 | `run-workflow` | engineering | Runs a stored workflow (`plugins/workflows/<name>.md`) step by step: parallelism, conditions, fix loops, approvals. `/doz-agent:run-workflow <name> <request>` |
 | `product-ownership` | product | The PO framework (Scrum Guide 2020): impact analysis, INVEST, Given/When/Then, story splitting, DoR, choosing agents, accepting the work |
-| `engineering-workflow` | engineering | Team workflow: DoR/DoD, branching, Conventional Commits, PRs, code review, ADRs, SemVer, incidents & postmortems |
+| `engineering-workflow` | engineering | Team workflow: DoR/DoD, branching, Conventional Commits, PRs, code review, ADRs, SemVer, incidents & postmortems, running things locally without hurting yourself |
+| `web-scraping` | engineering | Scrapers, crawlers and user-supplied URL fetches: source ladder (API → feed → JSON endpoint → HTML → headless), explicit polite defaults, stop on a block (never bypass), selectors that survive redesigns, hidden-text stripping before an LLM, SSRF per redirect hop, crawl traps. Loaded by `backend-engineer` |
 | `backend-patterns` | engineering | Backend base rules (REST, RFC 9457, zero-downtime migrations, OWASP, resiliency, OpenTelemetry) + per-language rules in `references/` (.NET, etc.) |
 | `frontend-patterns` | engineering | Structure, state, forms, WCAG 2.2 AA, Core Web Vitals, CSP, the testing trophy |
 | `devops-patterns` | engineering | Docker, CI/CD + supply chain, deploy & rollback, K8s, Terraform, SLOs & alerts, backup/DR |
 | `analytical-thinking` | thinking | MECE, hypotheses, root cause, Fermi estimation, decision matrices, pre-mortems |
 | `business-thinking` | product | Idea validation, PRDs, RICE/WSJF, unit economics, pricing, OKRs, A/B tests, build vs buy, UU PDP |
-| `fe-base` | design | Visual taste: design-source lookup, a mode router (product, dashboard, marketing, editorial, commerce) and one-line visual thesis, a `DESIGN.md` handoff with token tiers, hierarchy from space, the 4/8 scale, one accent, KPI/chart/table anatomy, bordered vs gapped surfaces, one hero surface, states, motion choreography (still chrome, reading-order entrances, fast exits, theme reveal), template anti-patterns + case studies in `references/`, the full state model, measured contrast (`scripts/contrast.py`), a pressure test, a UX audit pass, and a bundled offline database (palettes, font pairings, styles, per-stack notes) for new products |
+| `fe-base` | design | Visual taste: design-source lookup, a mode router (product, dashboard, marketing, editorial, commerce) and one-line visual thesis, a `DESIGN.md` handoff with token tiers, hierarchy from space, the 4/8 scale, one accent, KPI/chart/table anatomy, bordered vs gapped surfaces, one hero surface, states, motion choreography (still chrome, reading-order entrances, fast exits, theme reveal), template anti-patterns + case studies in `references/`, the full state model, measured contrast (`scripts/contrast.py`), a pressure test, a marketing-page reference (anatomy by visitor job, copy rules, generated tells, from Hallmark), a UX audit pass, and a bundled offline database (palettes, font pairings, styles, per-stack notes) for new products |
 | `fe-native-feel` | design | Apple-grade feel for web, desktop and mobile apps: pointer-down feedback, 1:1 drags, interruptible springs, velocity handoff, momentum projection, rubber-banding, glass on floating chrome only, type tracking, platform conventions, Apple Pay on the web, and an HIG review method. Loaded by `frontend-engineer` only for interactive or native-feeling UI |
 | `fe-dashboard` | design | Dashboards that feel premium: persistent shell (floating rail or sliding pill nav), bento grid with one hero card, spotlight-bar/spline/gauge/ring chart patterns, first-load choreography (shell → surfaces → blur-in text → count-up → chart draw), route change, circular dark-mode reveal, live-data tweening, traps, and Motion recipes in `references/`. Loaded by `frontend-engineer` for dashboard and analytics screens |
 | `fe-scroll` | design | Scroll-driven, cinematic landing pages: brief + feeling curve with one peak, page grammars, fingerprint gate against earlier builds, a device per beat, dimensional layered heroes, the bundled scroll engine, scrub-ready encoding, and screenshot verification at every scroll position. Loaded by `frontend-engineer` for experience-style marketing pages |
@@ -115,7 +116,7 @@ doz-agent/
     ├── hooks/                   # company-sync (repo sync), company-guard (asks before deleting or moving in company/)
     └── skills/
         ├── important/           # shortcuts: ship-feature, director, sales-team, deal-check, weekly-review, update-company, archive, setting, shortcuts
-        ├── engineering/         # backend/frontend/devops-patterns, engineering-workflow, token-audit, run-workflow
+        ├── engineering/         # backend/frontend/devops-patterns, web-scraping, engineering-workflow, token-audit, run-workflow
         ├── business/            # company-roles (role playbooks)
         ├── product/             # product-ownership, business-thinking
         ├── design/              # fe-base, fe-native-feel, fe-dashboard, fe-scroll
@@ -160,6 +161,7 @@ Want to discuss it first without implementing? Use `/doz-agent:product-ownership
 Ready-made: `fitur-kecil`, `fitur-lengkap`, `perbaikan-bug`, `audit-keamanan`, `review-pr`, `rilis`. A node = agent / skill / action (shell command) / condition / approval / note / output; an edge = the flow of output; a back edge from a condition = a loop with a limit. File format: [`plugins/workflows/README.md`](plugins/workflows/README.md).
 
 ## Memory: agents that remember the code flow
+
 
 `backend-engineer` and `frontend-engineer` use `memory: project`, so they keep a **per-project code-flow map** in `.claude/agent-memory/<agent>/` (committed to git, reviewable in a PR).
 
@@ -262,6 +264,7 @@ Open Claude Code in the project folder, then run:
 ```
 
 The marketplace only needs adding once per machine.
+
 
 ## How to use it
 

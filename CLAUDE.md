@@ -81,6 +81,17 @@ Sentences in agent bodies were tuned against real runs. Changing them needs evid
 2. The smallest change that addresses it.
 3. A before/after: rerun a comparable feature and compare `token-audit` output, or a `claude plugin eval` case. Record the result in the CHANGELOG entry and, for cost changes, in a new `agent-usage/` file.
 
+An eval case that counts as evidence (from t3code's and Hallmark's eval setups, reviewed 2026-11-16):
+
+- It names the real session or bug it comes from, and is written **before** the change: it must fail on the old text.
+- It has **control cases** next to it — inputs where the old behaviour was right — so a fix that over-corrects shows up.
+- It includes a **temptation case** where relevant: a brief that invites the bad behaviour ("no customers, no numbers yet" for invented metrics; a blocked site for scraping).
+- It runs several samples per case on the same model as the baseline, and the pass rule is written down before running.
+- It invokes the skill or agent **explicitly** (`/fe-base …`, or naming the agent). Skills don't auto-trigger in `claude -p`, so a headless run that relies on triggering measures nothing.
+- Cutting a skill down to its rule list is a change like any other: Hallmark measured its short rules-only version leaving many more failures than the full skill. Shorter wording needs the same before/after.
+
+Resident context is capped by `tests/context_budget.json` (total description and agent-body characters). Raising it is allowed; do it in the same commit and give the reason in the CHANGELOG entry.
+
 ## Checklist before commit
 
 - [ ] English only inside `plugins/`
@@ -89,5 +100,5 @@ Sentences in agent bodies were tuned against real runs. Changing them needs evid
 - [ ] New area registered in `plugin.json` `skills`
 - [ ] Agent has `maxTurns`, a ~70% checkpoint, a search cap, and a first-line status
 - [ ] Status markers unchanged (or `token-audit` updated in the same commit)
-- [ ] `python -m unittest discover -s tests` passes (size, descriptions, layout, maxTurns, cross-references)
+- [ ] `python -m unittest discover -s tests` passes (size, descriptions, layout, maxTurns, cross-references, context budget)
 - [ ] Version bumped, CHANGELOG + README updated, both validators pass

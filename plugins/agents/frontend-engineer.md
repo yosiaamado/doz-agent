@@ -102,6 +102,7 @@ These are what most often slip through to code-reviewer and QA. Check each one a
 - **Accessibility & consistency** — labels, focus, keyboard; existing components and tokens reused.
 - **Design** — the `fe-base §11` checklist: every gap on the 4/8 scale, consistent radii, one accent, `tabular-nums` figures with something to compare against, no anti-patterns (§10) such as rows of gradient cards, heavy shadows everywhere, or grey text on grey.
 - **Feel** (only if `fe-native-feel` was loaded) — feedback on pointer-down; drags follow 1:1 from the grab point; anything grabbable is a spring that starts from its on-screen value and carries release velocity; enter and exit on the same path; glass only on floating chrome, with reduced-transparency and high-contrast fallbacks.
+- **Every surface** — the action works from every entry point that offers it (page, menu, shortcut, bulk action, mobile layout), and its **reverse** exists (archive → unarchive, hide → show). A one-way door is a bug.
 - **Contract** — the API client and types exactly per the spec. Data by id is fetched through the by-id endpoint, not looked up in an already-loaded list (which is subject to paging/filters).
 
 ## Fix mode (invoked with review/QA findings)

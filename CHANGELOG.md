@@ -9,6 +9,23 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [3.11.0] - 2026-11-16
+
+Source: a user request to study t3code (https://github.com/pingdotgg/t3code, MIT), Scrapling (https://github.com/D4Vinci/Scrapling, BSD-3-Clause) and Hallmark (https://github.com/Nutlope/hallmark, MIT), reviewed 2026-11-16, and grow the agents and skills from them. Kept what doz-agent lacked and what each repo learned from real incidents. Ideas restated in original wording; Hallmark's license is kept in `fe-base/references/`, Scrapling's credit in `web-scraping/references/`. Not taken: Scrapling's stealth fetching, Cloudflare solving, fingerprint spoofing and proxy escalation (a blocked site is a stop); Hallmark's themes, linter and rituals; t3code's Effect/`vp` specifics and its own PR moderation. No before/after run: additive rules, no tuned sentence reworded. Resident context: descriptions 14,098 characters and agent bodies 99,084, recorded as the first budget.
+
+- `skills/engineering/web-scraping/` (new): source ladder, explicit polite defaults, stop on a block, signal table, durable selectors with fixtures, hidden-text stripping before an LLM, SSRF on every redirect hop, crawl state, traps; `references/scrapling.md` (defaults to override) and `references/CREDITS.md`.
+- `agents/backend-engineer.md`: loads `web-scraping` for scrapers and URL fetches; a blocked site is `Status: blocked`.
+- `agents/security-tester.md`: SSRF checked per redirect hop; prompt injection via fetched content under A05.
+- `skills/engineering/backend-patterns/SKILL.md`: SSRF per hop in §6.
+- `agents/qa-tester.md`: wait on events, not the clock; skipped tests carry an issue and reason; mock paid dependencies; a "don't write / instead" table; regression proof on the base commit.
+- `agents/code-reviewer.md`: ask only for fewer or sharper tests; an every-surface check including the reverse action; no solo `Approve` for changed product defaults or new lint/type suppressions.
+- `agents/frontend-engineer.md`: every-surface item in self-review.
+- `skills/engineering/engineering-workflow/SKILL.md`: PR template gains "Not verified" and before/after media; new §13 on running things locally (kill only your own PID, no real data, no detached servers, one UI check per feature, docs hold decisions only).
+- `skills/design/fe-base/references/marketing-page.md` (new): anatomy by visitor job, copy rules, generated-tells table, honest content, a pre-handover score. `LICENSE-hallmark.md` (new). `SKILL.md`: §0 marketing row points to it; §7 names the fake send. `references/ux-audit.md`: `100vw`, `minmax(0,1fr)`, `svh/dvh`, container cap, wrapping buttons, double sticky, stable input borders, no-JS content.
+- `tests/test_context_budget.py` + `tests/context_budget.json` (new): fail when resident context grows past the recorded budget (from t3code).
+- `CLAUDE.md`: what makes an eval case count as evidence (written before the fix, controls, temptation cases, explicit invocation since skills don't auto-trigger in `claude -p`), and the context budget rule.
+- `README.md`, `plugin.json` and `marketplace.json` (3.11.0, 28 skills).
+
 ## [3.10.0] - 2026-11-16
 
 Source: a user request to take skill-writing patterns from Pomerado (https://github.com/Pomerado/pomerado, MIT, reviewed 2026-11-16 at its main branch). Its minter skills are long by design (up to 98k characters, cached as one prefix), so their length and layout don't transfer to Claude Code's 20k re-attach limit; what transfers is how they are written and guarded. Pomerado's unit tests assert that every skill a prompt names actually loads; the same idea here catches a renamed skill or renumbered section before an agent follows a dead pointer. No before/after: no tuned sentence changed; the agents gain one policy line each.
