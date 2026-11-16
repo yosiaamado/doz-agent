@@ -106,7 +106,7 @@ doz-agent/
 ├── .claude-plugin/marketplace.json
 ├── CHANGELOG.md                 # version history: the reason + one line per change per file
 ├── agent-usage/                 # token-audit results per date, for comparing versions (not installed)
-├── tests/                       # token-audit script tests: python3 -m unittest discover -s tests
+├── tests/                       # structure, cross-reference and token-audit tests: python3 -m unittest discover -s tests
 └── plugins/
     ├── .claude-plugin/plugin.json
     ├── agents/                  # 20 subagents (flat files, no subfolders)
