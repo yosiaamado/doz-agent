@@ -9,6 +9,15 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [3.14.0] - 2026-11-16
+
+Source: a user request to install microsoft/playwright-cli (Apache-2.0) and wire it in. `frontend-engineer` was told to check the UI "in the browser" but subagents have no browser tool, so that check rarely happened; playwright-cli runs through Bash, which every engineer and tester already has, and returns an accessibility snapshot with refs instead of a page dump. Pinned to `@playwright/cli@0.1.24` and run via `npx`, so a new account needs only Node.js (already required by the code graph). Smoke-tested on this Windows machine: open, snapshot (heading, labelled textbox and button with refs), resize to 360 px, screenshot and close all worked, no separate browser download, no browser process left. The traps in the new reference come from that run: `file://` is blocked, artifacts land in `.playwright-cli/`, a missing favicon reads as a console error, `close-all`/`kill-all` would end other sessions. No session-start check added: a missing browser surfaces on `open` and the agent reports `blocked: env`. Agent bodies grow by 350 characters; budget raised to 102,846.
+
+- `skills/engineering/frontend-patterns/references/browser-check.md` (new): commands with a per-agent session, what to check (ACs at 360/1280 px, keyboard path, states, console and requests), traps.
+- `skills/engineering/frontend-patterns/SKILL.md`: §12 points to it.
+- `agents/frontend-engineer.md`: verification uses playwright-cli. `agents/qa-tester.md`: drives the running app with it when the project has no E2E setup, without adding Playwright to the project.
+- `README.md`, `plugin.json` (3.14.0), `tests/context_budget.json`.
+
 ## [3.13.0] - 2026-11-16
 
 Source: a user request to review VoltAgent/awesome-design-md (MIT), vercel-labs `web-design-guidelines` (its rules live in vercel-labs/web-interface-guidelines, MIT) and microsoft/playwright-cli (Apache-2.0), all read 2026-11-16, and upgrade the FE skills or recommend installs. Vercel's skill fetches its rules from GitHub on every run; the rules are taken in here instead (no runtime fetch, no injected instructions), with the regex-checkable ones turned into a script. The DESIGN.md template now follows Google's published format (`@google/design.md` v0.4.0 spec) so other tools read it; running that package's linter was not allowed in this session, so the template was checked against the spec text only. playwright-cli is a tool, not knowledge: recommended to the user, not wired in yet. No before/after run. Agent bodies grow by 203 characters; budget raised to 102,496.

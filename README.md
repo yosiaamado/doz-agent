@@ -277,6 +277,8 @@ The marketplace only needs adding once per machine.
 
 Indexes live in `~/.cache/codebase-memory-mcp/` and stay in sync while a session is open. To turn the graph off, disable `plugin:doz-agent:codebase-memory` in `/mcp`. Don't also install codebase-memory-mcp through its own installer or plugin: it would run twice under two tool names.
 
+**Browser checks.** `frontend-engineer` and `qa-tester` drive the running app with [playwright-cli](https://github.com/microsoft/playwright-cli) (Apache-2.0) through `npx -y @playwright/cli@0.1.24`: headless, a named session per agent, accessibility snapshots instead of screenshots. Nothing to install beyond **Node.js 20+** (playwright-cli's own minimum); if the machine has no usable browser, the agent reports `blocked: env browser` instead of installing one. Add `.playwright-cli/` to the project's `.gitignore`; that's where its snapshots and screenshots land.
+
 ## How to use it
 
 **Skills** load automatically when the topic matches their `description`. They can also be invoked manually:

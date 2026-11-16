@@ -80,4 +80,4 @@ An error boundary at the route/feature level · errors sent to monitoring (Sentr
 
 ## 12. Testing
 
-The testing trophy: the bulk of the effort in component/integration tests with Testing Library (query by role/label, not class/test-id); unit tests for utils, hooks, and pure logic; E2E (Playwright) for critical flows. Mock the API with MSW, not by mocking the fetch function internally. Test behavior, not implementation details.
+The testing trophy: the bulk of the effort in component/integration tests with Testing Library (query by role/label, not class/test-id); unit tests for utils, hooks, and pure logic; E2E (Playwright) for critical flows. Mock the API with MSW, not by mocking the fetch function internally. Test behavior, not implementation details. Checking the running app by hand (no E2E setup, or before writing one) → `references/browser-check.md`.
