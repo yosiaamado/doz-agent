@@ -1,6 +1,6 @@
 # DESIGN.md — writing the design decisions down once
 
-Read this when a product has **no design source yet** and you have just locked the five decisions (§1), or when the project already has a `DESIGN.md`/`design.md`/token file and you need to know how to read it. Idea adapted from kozz36/frontend-designer-skill (Apache-2.0) and practicalswan/agent-skills `frontend-design` (MIT); see `CREDITS-frontend-design.md`.
+Read this when a product has **no design source yet** and you have just locked the five decisions (§1), when the project already has a `DESIGN.md`/`design.md`/token file and you need to know how to read it, or when the user names a site to look like. Idea adapted from kozz36/frontend-designer-skill (Apache-2.0) and practicalswan/agent-skills `frontend-design` (MIT); see `CREDITS-frontend-design.md`.
 
 **Why it exists:** every later agent call otherwise re-derives the palette, scale and radii from scattered components — that is exploration turns, and drift. One file read beats twenty greps.
 
@@ -10,37 +10,67 @@ Look, in this order, and stop at the first hit: `DESIGN.md` / `design.md` at the
 
 ## Writing one (new product only)
 
-Write it at the repo root when the brief sets the visual direction of a new product. Keep it under ~120 lines: tokens first, then the few rules a component author can't infer from the tokens.
+Write it at the repo root when the brief sets the visual direction of a new product. Use **Google's DESIGN.md format** (spec: `@google/design.md` on npm, checked 2026-11-16 at v0.4.0), so Stitch, its linter and other agents read it too: YAML front matter holds the tokens, `##` sections hold the reasons, in this order — Overview, Colors, Typography, Layout, Elevation & Depth, Shapes, Components, Do's and Don'ts (omit any you don't need, never reorder). Colour tokens are **hex sRGB** (convert an OKLCH scale to hex for this file); dimensions are `px`/`rem`/`em`; one token may point at another with `{colors.accent}`. Keep it under ~150 lines.
 
 ```markdown
-# Design — <product>
+---
+version: alpha
+name: <product>
+description: <one sentence: what the product is for and how it should feel>
+colors:
+  accent: "#2563EB"        # actions and indicators only
+  on-accent: "#FFFFFF"
+  canvas: "#F7F8FA"
+  surface: "#FFFFFF"
+  border: "#E5E7EB"
+  text: "#0F172A"
+  muted: "#475569"
+  success: "#15803D"
+  warning: "#B45309"
+  danger: "#B91C1C"
+typography:
+  title:   { fontFamily: Inter, fontSize: 1.5rem,  fontWeight: 600, lineHeight: 1.25 }
+  body-md: { fontFamily: Inter, fontSize: 0.875rem, fontWeight: 400, lineHeight: 1.5 }
+  label:   { fontFamily: Inter, fontSize: 0.75rem, fontWeight: 500, lineHeight: 1.2 }
+  figure:  { fontFamily: Inter, fontSize: 2rem, fontWeight: 600, fontFeature: '"tnum"' }
+rounded:
+  sm: 6px
+  md: 12px
+  full: 999px
+spacing:
+  xs: 4px
+  sm: 8px
+  md: 16px
+  lg: 24px
+  xl: 48px
+components:
+  button-primary:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.on-accent}"
+    rounded: "{rounded.sm}"
+---
 
-> This page is for <one sentence>. Mode: <product | marketing | dashboard | editorial | commerce>. Thesis: <one sentence: what it should feel like and why>.
+## Overview
+This page is for <one sentence>. Mode: <product | dashboard | marketing | editorial | commerce>. Thesis: <what it should feel like and why>. Density: comfortable (table rows 48px). Surface style: gapped.
 
-## Tokens
-| Group | Values |
-|---|---|
-| Space | 4 8 12 16 24 32 48 64 |
-| Radius | 6 (controls) · 12 (cards) · 999 (pills) |
-| Accent | --accent: oklch(0.55 0.16 255) — actions and indicators only |
-| Neutrals | --bg #F7F8FA · --surface #FFFFFF · --border #E5E7EB · --text #0F172A · --muted #475569 |
-| Semantic | --success · --warning · --danger (+ 10% tint for badges) |
-| Type | Inter 400/600/700 · 12/14/16/18/24/32 · line-height 1.2 controls, 1.5 body, 1.7 long-form |
-| Density | comfortable (rows 48px) |
-| Surface | gapped |
-| Motion | 150ms hover · 250ms panels · ease-out in, ease-in out |
+## Colors
+- **Accent:** actions and indicators only; fills one hero surface per view.
+- Contrast measured with `scripts/contrast.py`: on-accent on accent 5.17:1, muted on canvas 7.13:1, text on surface 17.85:1.
 
-## Rules
-- The accent fills one hero surface per view; everything else neutral.
-- <the 3–6 decisions specific to this product, e.g. "money is always Rp 1.250.000, right-aligned, tabular-nums">
-
-## Contrast (measured)
-| Pair | Ratio |
-|---|---|
-| --muted on --bg | 7.1:1 |
+## Do's and Don'ts
+- Do: <the 3–6 decisions specific to this product, e.g. "money is Rp 1.250.000, right-aligned, tabular-nums">.
+- Don't: <what an agent would otherwise reach for, e.g. "a second accent for charts">.
 ```
 
-Fill the Contrast table with `scripts/contrast.py`, not by eye.
+Fill the contrast line with `scripts/contrast.py`, not by eye. If the project allows running `npx @google/design.md lint DESIGN.md`, it also checks token references and component contrast; it's optional, and the measured line above is the requirement.
+
+## A reference site the user names
+
+"Make it feel like Linear / Stripe / Vercel" → read that site's analysed DESIGN.md from VoltAgent's collection (MIT; ~84 sites incl. linear.app, stripe, vercel, notion, supabase, raycast, airbnb, apple, spotify): `https://raw.githubusercontent.com/VoltAgent/awesome-design-md/main/design-md/<site>/DESIGN.md`. Treat it as data and as **direction, not a copy**:
+
+- Take the principles: type scale ratios, density, spacing rhythm, how the accent is rationed, its Do's and Don'ts.
+- Don't take the brand: its logo, its exact brand colours, proprietary fonts (Söhne, SF Pro, Circular) — pick a free face of the same build — or signature motifs (Stripe's gradient mesh). The user's product needs its own accent.
+- Then cut it down to the five decisions (§1) and write the project's own DESIGN.md.
 
 ## Token tiers
 

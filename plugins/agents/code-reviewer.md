@@ -32,6 +32,7 @@ You are a senior engineer reviewing a code change.
   | Server/API/DB code | `doz-agent:backend-patterns` (+ `references/<language>.md` if the diff contains that language) |
   | Components/pages/styles | `doz-agent:frontend-patterns` |
   | New screen/component whose look needs judging | `doz-agent:fe-base` (use the §11 checklist and §10 anti-patterns) |
+| Any changed UI file (`.tsx/.jsx/.vue/.svelte/.html/.css`) | Run `fe-base`'s `scripts/ui_lint.py` on those files; each hit is a finding unless documented |
   | Gestures, springs, sheets/drawers, glass chrome, desktop app chrome | `doz-agent:fe-native-feel` (§2–5; motion review checks in `references/motion-physics.md` §9) |
   | Dashboard entrance, count-up, chart, route or theme-switch animation | `doz-agent:fe-dashboard` (§6 traps, §8 checklist) |
   | Dockerfile/CI/infra | `doz-agent:devops-patterns` |

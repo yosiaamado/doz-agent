@@ -11,7 +11,7 @@ The code rules live in `frontend-patterns`. This file is about **taste**: why on
 
 ## 0. Before the first component: source, mode, thesis
 
-1. **Find the design source.** `DESIGN.md`/`design.md`, a token file, `tailwind.config` theme, `:root` variables, or a component library theme. It wins over everything below; this skill fills only what it leaves open. Where to look and how to read it: [references/design-md.md](references/design-md.md).
+1. **Find the design source.** `DESIGN.md`/`design.md`, a token file, `tailwind.config` theme, `:root` variables, or a component library theme. It wins over everything below; this skill fills only what it leaves open. Where to look, how to read it, and what to do when the user names a site to look like: [references/design-md.md](references/design-md.md).
 2. **Pick one mode** from what the screen is for, not from a fashionable style. At most one secondary influence.
 
 | Mode | Optimise for | Default away from |
@@ -193,6 +193,7 @@ Pick **one or two**, not all of them:
 
 ## 11. Checklist before handing over a screen
 
+- [ ] `python <this skill>/scripts/ui_lint.py <changed files>` is clean, or each hit is a documented exception.
 - [ ] Every gap is on the 4/8 scale. No `13px`, `17px`, `23px`.
 - [ ] 3 radius sizes max, consistent between similar components.
 - [ ] One accent. Other colors are only semantic or neutral.

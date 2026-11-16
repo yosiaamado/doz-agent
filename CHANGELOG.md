@@ -9,6 +9,17 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [3.13.0] - 2026-11-16
+
+Source: a user request to review VoltAgent/awesome-design-md (MIT), vercel-labs `web-design-guidelines` (its rules live in vercel-labs/web-interface-guidelines, MIT) and microsoft/playwright-cli (Apache-2.0), all read 2026-11-16, and upgrade the FE skills or recommend installs. Vercel's skill fetches its rules from GitHub on every run; the rules are taken in here instead (no runtime fetch, no injected instructions), with the regex-checkable ones turned into a script. The DESIGN.md template now follows Google's published format (`@google/design.md` v0.4.0 spec) so other tools read it; running that package's linter was not allowed in this session, so the template was checked against the spec text only. playwright-cli is a tool, not knowledge: recommended to the user, not wired in yet. No before/after run. Agent bodies grow by 203 characters; budget raised to 102,496.
+
+- `skills/design/fe-base/scripts/ui_lint.py` (new): flags `transition: all`, outline removed with no focus replacement, disabled zoom, blocked paste, clickable `div`/`span`, `href="#"`/`javascript:`, `100vw`, `100vh`, `autoFocus`, unsized `<img>`, `...` in copy. Tested on a fixture with 12 known hits and a clean file (0 hits, spread syntax ignored).
+- `skills/design/fe-base/references/ux-audit.md`: new §7a with the guideline checks a regex can't make (transform-origin, typography details, form behaviour, touch, theming, i18n, hydration, performance, hover contrast).
+- `skills/design/fe-base/references/design-md.md`: template in Google's DESIGN.md format (YAML tokens, fixed section order, hex colours, `{token}` references) with measured contrast; new "reference site" section using awesome-design-md as direction, not a copy (no logos, exact brand colours, proprietary fonts or signature motifs).
+- `skills/design/fe-base/SKILL.md`: §0 points to the reference-site lookup; §11 checklist runs `ui_lint.py`.
+- `agents/frontend-engineer.md`: verification runs `ui_lint.py`. `agents/code-reviewer.md`: runs it on changed UI files.
+- `README.md`, `plugin.json` (3.13.0), `tests/context_budget.json`.
+
 ## [3.12.0] - 2026-11-16
 
 Source: a user request to install codebase-memory-mcp (https://github.com/DeusData/codebase-memory-mcp, MIT, v0.12.1) and wire it into doz-agent, including for new accounts that install the plugin. It is a native MCP server (a local code graph), not knowledge, so it ships as a bundled server rather than a skill; its own installer's skill, agent profiles and hooks are not used. Exploration from scratch is the largest cost in `agent-usage/2026-09-25.md`, and the vendor's preprint reports 10× fewer tokens and 2.1× fewer tool calls than file-by-file reading (vendor-reported, not yet measured here). Checked on this Windows machine: `npx -y codebase-memory-mcp@0.12.1` runs, and indexing this repo gives 2,287 nodes and 4,347 edges. Bundling is required because plugin subagents ignore `mcpServers:` and need exact tool names: a server in the plugin's `.mcp.json` gets the stable prefix `mcp__plugin_doz-agent_codebase-memory__` on every account. Agent bodies grow by 3,209 characters (eight one-line rules); `tests/context_budget.json` raised to 102,293 for that reason. No `token-audit` before/after yet.

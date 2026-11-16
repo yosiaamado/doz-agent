@@ -78,6 +78,21 @@ Work in priority order and stop to fix at each level; a polished chart on an ina
 - 1,000+ points aggregate or sample, with drill-down; a pie with > 5 slices becomes a bar chart.
 - Loading uses a chart-shaped skeleton; a failed load shows an error with retry, never an empty axis frame.
 
+## 7a. Code-level details (web)
+
+Run `python <this skill>/scripts/ui_lint.py <changed files or src/>` first: it finds `transition: all`, removed outlines with no focus replacement, disabled zoom, blocked paste, clickable divs, `href="#"`, `100vw`/`100vh`, `autoFocus`, unsized `<img>` and `...` in copy. Then check what a regex can't (from Vercel's Web Interface Guidelines, MIT):
+
+- **Motion:** `transform-origin` set where an element grows from a point; SVG transforms on a `<g>` with `transform-box: fill-box`; animations interruptible by new input; autoplay over 5 s has pause.
+- **Typography:** curly quotes; `&nbsp;` between a number and its unit (`10&nbsp;MB`) and in shortcuts (`⌘&nbsp;K`); "Loading…"/"Saving…" end with the ellipsis; `text-wrap: balance` on headings.
+- **Forms:** `spellCheck={false}` on email, code and username fields; placeholders show an example pattern; the submit button stays enabled until the request starts, then shows progress; unsaved changes warn before leaving (`beforeunload` or a router guard); checkbox and label share one hit area.
+- **Focus:** `:focus-visible`, not `:focus`; compound controls use `:focus-within`; heading anchors get `scroll-margin-top`.
+- **Touch:** `touch-action: manipulation` on controls; `overscroll-behavior: contain` inside modals, drawers and sheets; full-bleed layouts pad with `env(safe-area-inset-*)`.
+- **Theming:** dark pages set `color-scheme: dark` on `<html>` and a matching `<meta name="theme-color">`; native `<select>` gets explicit background and text colours (Windows dark mode).
+- **i18n:** brand names, code and IDs wrapped in `translate="no"`; language from `Accept-Language`/`navigator.languages`, not IP.
+- **Hydration (SSR):** a controlled input has `onChange` (else `defaultValue`); dates rendered on server and client agree; `suppressHydrationWarning` only on the one element that needs it.
+- **Performance:** no layout reads (`getBoundingClientRect`, `offsetHeight`) during render; `preconnect` to asset CDNs; a muted looping `<video>` instead of an animated GIF.
+- **States:** hover, active and focus each raise contrast over rest; never lower it.
+
 ## 8. Native and mobile apps (iOS, Android, React Native, Flutter)
 
 - Vector icons from one family, one stroke width, one filled-or-outline style per level; never emoji as structural icons.
