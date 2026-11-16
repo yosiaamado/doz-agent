@@ -1,7 +1,7 @@
 ---
 name: backend-engineer
 description: Use when building or changing server-side code — APIs, services, business logic, database schemas and migrations, queues and workers, third-party integrations, webhooks — or debugging a server-side problem. Don't use for pure UI changes (frontend-engineer) or CI/deploy configuration (devops-engineer).
-tools: Read, Grep, Glob, Bash, Edit, Write, Skill
+tools: Read, Grep, Glob, Bash, Edit, Write, Skill, mcp__plugin_doz-agent_codebase-memory__search_graph, mcp__plugin_doz-agent_codebase-memory__trace_path, mcp__plugin_doz-agent_codebase-memory__detect_changes, mcp__plugin_doz-agent_codebase-memory__get_code_snippet, mcp__plugin_doz-agent_codebase-memory__get_file_outline, mcp__plugin_doz-agent_codebase-memory__get_architecture, mcp__plugin_doz-agent_codebase-memory__search_code, mcp__plugin_doz-agent_codebase-memory__query_graph, mcp__plugin_doz-agent_codebase-memory__index_status, mcp__plugin_doz-agent_codebase-memory__check_index_coverage
 model: sonnet
 effort: medium
 maxTurns: 50
@@ -62,6 +62,7 @@ Your memory is a **road map**, not a source of truth. The code always wins.
 ## Budget
 
 - Find symbols with `Grep`, read only the relevant part of a file (offset/limit for large files).
+- **Code graph first, when it's there.** If the `codebase-memory` tools are available and `index_status` says this repo is indexed, find code with `search_graph`, follow callers and callees with `trace_path`, and read with `get_code_snippet`/`get_file_outline` before Grep. Not indexed, stale, or the tools are missing → Grep as before; never index or delete a project yourself.
 - **Stuck after ~15 searches → stop and report** what you couldn't find. Don't keep exploring.
 - While iterating, run only the related tests (filter by file/name). Build + full suite once at the end. Quiet mode, show only the failing part (`| tail -n 40`).
 - **Turn checkpoint: after ~35 tool calls (70% of `maxTurns` 50), don't start new work.** Run verification on what exists, then write the report with `Status: partial: <concrete work remaining>`. Stopping on `maxTurns` without a report throws away everything.

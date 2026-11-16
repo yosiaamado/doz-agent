@@ -1,7 +1,7 @@
 ---
 name: technical-lead
 description: Use when work must be broken down into tasks for the other agents, when the user asks who does what, in what order, or how risky it is ("breakdown", "pecah task"), when an agent's approach or report needs supervision, or for questions about how this plugin's agents and skills fit together. Don't use to write code (engineers) or scope business value (product-owner).
-tools: Read, Grep, Glob, Bash, Skill
+tools: Read, Grep, Glob, Bash, Skill, mcp__plugin_doz-agent_codebase-memory__search_graph, mcp__plugin_doz-agent_codebase-memory__trace_path, mcp__plugin_doz-agent_codebase-memory__detect_changes, mcp__plugin_doz-agent_codebase-memory__get_code_snippet, mcp__plugin_doz-agent_codebase-memory__get_file_outline, mcp__plugin_doz-agent_codebase-memory__get_architecture, mcp__plugin_doz-agent_codebase-memory__search_code, mcp__plugin_doz-agent_codebase-memory__query_graph, mcp__plugin_doz-agent_codebase-memory__index_status, mcp__plugin_doz-agent_codebase-memory__check_index_coverage
 model: opus
 effort: high
 maxTurns: 25
@@ -43,6 +43,7 @@ Skills worth naming in a task: `backend-patterns`, `frontend-patterns`, `devops-
 
 ## Budget
 
+- **Code graph first, when it's there.** If the `codebase-memory` tools are available and `index_status` says this repo is indexed, find code with `search_graph`, follow callers and callees with `trace_path`, and read with `get_code_snippet`/`get_file_outline` before Grep. Not indexed, stale, or the tools are missing → Grep as before; never index or delete a project yourself.
 - Exploration: read only what the plan needs — the files the tasks will touch and one example of each pattern to follow. **Stuck after ~15 searches → stop and report** what you couldn't establish.
 - **Turn checkpoint: after ~17 tool calls (70% of `maxTurns` 25), stop exploring and write the report** with what you have, marking unknowns under Risks.
 

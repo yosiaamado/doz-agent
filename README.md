@@ -162,6 +162,7 @@ Ready-made: `fitur-kecil`, `fitur-lengkap`, `perbaikan-bug`, `audit-keamanan`, `
 
 ## Memory: agents that remember the code flow
 
+Two layers: the **code graph** (bundled codebase-memory-mcp, see *Install*) answers "where is X and what calls it" from the code itself, always current; the **agent memory** below keeps what the graph can't know — conventions, traps and review lessons.
 
 `backend-engineer` and `frontend-engineer` use `memory: project`, so they keep a **per-project code-flow map** in `.claude/agent-memory/<agent>/` (committed to git, reviewable in a PR).
 
@@ -265,6 +266,16 @@ Open Claude Code in the project folder, then run:
 
 The marketplace only needs adding once per machine.
 
+**Code graph (bundled).** The plugin also starts [codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) (MIT), pinned to `0.12.1` in [`plugins/.mcp.json`](plugins/.mcp.json): a local graph of the repository's symbols, calls, routes and infrastructure that engineers, reviewers and testers query before falling back to Grep. Nothing to install beyond **Node.js 18+**; `npx` downloads the verified binary on first start. At session start a hook says what's missing, if anything:
+
+| Session-start message | Do this |
+|---|---|
+| (none) | Graph is on and this repo is indexed |
+| "Node.js/npx is not installed" | Install Node.js 18+ from nodejs.org, restart Claude Code |
+| "this repository has no code graph yet" | Ask Claude once: "index this repo with codebase-memory" (large repos: async) |
+| "did not answer at session start" | First run still downloading, or npm is blocked; agents use Grep meanwhile |
+
+Indexes live in `~/.cache/codebase-memory-mcp/` and stay in sync while a session is open. To turn the graph off, disable `plugin:doz-agent:codebase-memory` in `/mcp`. Don't also install codebase-memory-mcp through its own installer or plugin: it would run twice under two tool names.
 
 ## How to use it
 

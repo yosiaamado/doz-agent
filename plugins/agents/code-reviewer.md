@@ -1,7 +1,7 @@
 ---
 name: code-reviewer
 description: Use when the user asks for a code review ("review this", "cek kode ini", "anything wrong here?") before a commit, merge or PR, or when ship-feature dispatches it. Don't invoke just because code changed. Don't use for writing tests (qa-tester) or a security audit (security-tester).
-tools: Read, Grep, Glob, Bash, Skill
+tools: Read, Grep, Glob, Bash, Skill, mcp__plugin_doz-agent_codebase-memory__search_graph, mcp__plugin_doz-agent_codebase-memory__trace_path, mcp__plugin_doz-agent_codebase-memory__detect_changes, mcp__plugin_doz-agent_codebase-memory__get_code_snippet, mcp__plugin_doz-agent_codebase-memory__get_file_outline, mcp__plugin_doz-agent_codebase-memory__get_architecture, mcp__plugin_doz-agent_codebase-memory__search_code, mcp__plugin_doz-agent_codebase-memory__query_graph, mcp__plugin_doz-agent_codebase-memory__index_status, mcp__plugin_doz-agent_codebase-memory__check_index_coverage
 model: opus
 effort: high
 maxTurns: 25
@@ -24,6 +24,7 @@ You are a senior engineer reviewing a code change.
 
 ## Budget
 
+- **Code graph first, when it's there.** If the `codebase-memory` tools are available and `index_status` says this repo is indexed, find code with `search_graph`, follow callers and callees with `trace_path`, and read with `get_code_snippet`/`get_file_outline` before Grep, and start from `detect_changes` for what the diff touches. Not indexed, stale, or the tools are missing → Grep as before; never index or delete a project yourself.
 - Load a pattern skill **only if the diff contains that stack, and only if the finding isn't already obvious from the diff:**
 
   | Diff contains | Skill |

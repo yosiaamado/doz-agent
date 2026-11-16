@@ -9,6 +9,16 @@ Rules for humans and AI changing this repo:
 - A change triggered by a usage audit names the file in `agent-usage/`, so its impact can be compared against the next audit.
 - History before 1.15.0: see `git log`.
 
+## [3.12.0] - 2026-11-16
+
+Source: a user request to install codebase-memory-mcp (https://github.com/DeusData/codebase-memory-mcp, MIT, v0.12.1) and wire it into doz-agent, including for new accounts that install the plugin. It is a native MCP server (a local code graph), not knowledge, so it ships as a bundled server rather than a skill; its own installer's skill, agent profiles and hooks are not used. Exploration from scratch is the largest cost in `agent-usage/2026-09-25.md`, and the vendor's preprint reports 10× fewer tokens and 2.1× fewer tool calls than file-by-file reading (vendor-reported, not yet measured here). Checked on this Windows machine: `npx -y codebase-memory-mcp@0.12.1` runs, and indexing this repo gives 2,287 nodes and 4,347 edges. Bundling is required because plugin subagents ignore `mcpServers:` and need exact tool names: a server in the plugin's `.mcp.json` gets the stable prefix `mcp__plugin_doz-agent_codebase-memory__` on every account. Agent bodies grow by 3,209 characters (eight one-line rules); `tests/context_budget.json` raised to 102,293 for that reason. No `token-audit` before/after yet.
+
+- `plugins/.mcp.json` (new): starts `codebase-memory-mcp@0.12.1` via `npx` (pinned; verify a new release before bumping).
+- `hooks/codebase-graph-check.sh` (new), `hooks/hooks.json`: at session start in a git repo, says nothing when the graph is ready, or one line when Node.js is missing, the server didn't answer, or the repo isn't indexed yet (asking the main thread to index it once). Never installs or indexes by itself. Tested: indexed, not indexed, no Node, non-git.
+- `agents/backend-engineer.md`, `frontend-engineer.md`, `devops-engineer.md`, `system-analyst.md`, `technical-lead.md`, `qa-tester.md`, `security-tester.md`, `code-reviewer.md`: ten read-only graph tools in `tools:` (no index, delete, ADR-write or trace-ingest tools); a "code graph first, Grep when it isn't there" rule; reviewers and testers start from `detect_changes`.
+- `README.md`: install section explains the bundled graph and the session-start messages; memory section explains graph vs agent memory.
+- `plugin.json` (3.12.0), `tests/context_budget.json`.
+
 ## [3.11.0] - 2026-11-16
 
 Source: a user request to study t3code (https://github.com/pingdotgg/t3code, MIT), Scrapling (https://github.com/D4Vinci/Scrapling, BSD-3-Clause) and Hallmark (https://github.com/Nutlope/hallmark, MIT), reviewed 2026-11-16, and grow the agents and skills from them. Kept what doz-agent lacked and what each repo learned from real incidents. Ideas restated in original wording; Hallmark's license is kept in `fe-base/references/`, Scrapling's credit in `web-scraping/references/`. Not taken: Scrapling's stealth fetching, Cloudflare solving, fingerprint spoofing and proxy escalation (a blocked site is a stop); Hallmark's themes, linter and rituals; t3code's Effect/`vp` specifics and its own PR moderation. No before/after run: additive rules, no tuned sentence reworded. Resident context: descriptions 14,098 characters and agent bodies 99,084, recorded as the first budget.
